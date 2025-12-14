@@ -1,17 +1,21 @@
 [
   {
-    "selector": "PUBFUTURE",
+    "id": "manhwaclan-pubfuture",
+    "selector": ".PUBFUTURE",
     "description": "ad class found in manhwaclan",
     "confidence": "high",
     "domains": ["*"],
-    "category": "advertising"
+    "category": "advertising",
+    "enabled": true
   },
   {
-    "selector": "c-ads",
+    "id": "kunmanga-c-ads",
+    "selector": ".c-ads",
     "description": "ad class found in kunmanga",
     "confidence": "high",
     "domains": ["*"],
-    "category": "advertising"
+    "category": "advertising",
+    "enabled": true
   },
   {
     "id": "ads-iframes",
