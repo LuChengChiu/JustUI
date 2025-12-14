@@ -7,7 +7,7 @@
     "category": "advertising"
   },
   {
-    "selector": ".c-ads",
+    "selector": "c-ads",
     "description": "ad class found in kunmanga",
     "confidence": "high",
     "domains": ["*"],
