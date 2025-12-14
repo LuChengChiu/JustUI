@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ads-iframes",
+    "selector": "iframe[src*='ads'], iframe[src*='doubleclick'], iframe[src*='cpc']",
+    "description": "CPC/Ad network iframes",
+    "confidence": "high",
+    "domains": ["*"],
+    "category": "advertising",
+    "enabled": true
+  },
+  {
+    "id": "social-widgets",
+    "selector": ".fb-like, .twitter-share-button, .linkedin-share-button",
+    "description": "Social media share buttons",
+    "confidence": "medium",
+    "domains": ["*"],
+    "category": "social",
+    "enabled": true
+  },
+  {
+    "id": "newsletter-popups",
+    "selector": "[class*='newsletter'], [class*='popup'], [id*='modal']",
+    "description": "Newsletter signup popups",
+    "confidence": "medium",
+    "domains": ["*"],
+    "category": "popup",
+    "enabled": true
+  },
+  {
+    "id": "tracking-scripts",
+    "selector": "script[src*='analytics'], script[src*='tracking'], script[src*='gtag']",
+    "description": "Analytics and tracking scripts",
+    "confidence": "high",
+    "domains": ["*"],
+    "category": "tracking",
+    "enabled": true
+  }
+]
