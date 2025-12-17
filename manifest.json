@@ -3,19 +3,21 @@
   "name": "JustUI",
   "version": "1.0.0",
   "description": "A Chrome extension built with React, Vite, and Tailwind CSS",
-  "permissions": ["activeTab", "storage", "scripting", "alarms"],
+  "permissions": ["activeTab", "storage", "scripting", "alarms", "webNavigation"],
   "background": {
     "service_worker": "scripts/background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["scripts/adDetectionEngine.js", "scripts/content.js"]
+      "js": ["scripts/adDetectionEngine.js", "scripts/content.js"],
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["data/defaultRules.json", "data/defaultWhitelist.json"],
+      "resources": ["data/defaultRules.json", "data/defaultWhitelist.json", "scripts/injected-script.js"],
       "matches": ["<all_urls>"]
     }
   ],

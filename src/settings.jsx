@@ -6,9 +6,11 @@ function Settings() {
   const [defaultRulesEnabled, setDefaultRulesEnabled] = useState(true);
   const [customRulesEnabled, setCustomRulesEnabled] = useState(true);
   const [patternRulesEnabled, setPatternRulesEnabled] = useState(true);
+  const [navigationGuardEnabled, setNavigationGuardEnabled] = useState(true);
   const [whitelist, setWhitelist] = useState([]);
   const [defaultRules, setDefaultRules] = useState([]);
   const [customRules, setCustomRules] = useState([]);
+  const [navigationStats, setNavigationStats] = useState({ blockedCount: 0, allowedCount: 0 });
   const [newDomain, setNewDomain] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -18,16 +20,20 @@ function Settings() {
       'defaultRulesEnabled',
       'customRulesEnabled', 
       'patternRulesEnabled',
+      'navigationGuardEnabled',
       'whitelist',
       'defaultRules',
-      'customRules'
+      'customRules',
+      'navigationStats'
     ], (result) => {
       setDefaultRulesEnabled(result.defaultRulesEnabled !== false);
       setCustomRulesEnabled(result.customRulesEnabled !== false);
       setPatternRulesEnabled(result.patternRulesEnabled !== false);
+      setNavigationGuardEnabled(result.navigationGuardEnabled !== false);
       setWhitelist(result.whitelist || []);
       setDefaultRules(result.defaultRules || []);
       setCustomRules(result.customRules || []);
+      setNavigationStats(result.navigationStats || { blockedCount: 0, allowedCount: 0 });
       setLoading(false);
     });
   }, []);
@@ -49,6 +55,17 @@ function Settings() {
   const handlePatternRulesToggle = (enabled) => {
     setPatternRulesEnabled(enabled);
     updateSetting('patternRulesEnabled', enabled);
+  };
+
+  const handleNavigationGuardToggle = (enabled) => {
+    setNavigationGuardEnabled(enabled);
+    updateSetting('navigationGuardEnabled', enabled);
+  };
+
+  const resetNavigationStats = () => {
+    const resetStats = { blockedCount: 0, allowedCount: 0 };
+    setNavigationStats(resetStats);
+    updateSetting('navigationStats', resetStats);
   };
 
   const addDomainToWhitelist = () => {
@@ -90,7 +107,7 @@ function Settings() {
         {/* Header */}
         <header className="bg-white p-6 rounded-lg shadow-sm">
           <h1 className="text-2xl font-bold text-gray-800 mb-2">JustUI Settings</h1>
-          <p className="text-gray-600">Configure element removal rules and whitelist management</p>
+          <p className="text-gray-600">Configure element removal rules, navigation protection, and whitelist management</p>
         </header>
 
         {/* Rule Type Controls */}
@@ -139,6 +156,49 @@ function Settings() {
           </div>
         </div>
 
+        {/* Navigation Guardian Controls */}
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Navigation Guardian</h2>
+          
+          <div className="space-y-4">
+            {/* Navigation Guard Toggle */}
+            <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <div>
+                <h3 className="font-medium text-gray-800">Cross-Origin Navigation Protection</h3>
+                <p className="text-sm text-gray-600">Display confirmation modal before navigating to external sites</p>
+                <p className="text-xs text-gray-500">Protects against unwanted redirects, malicious popups, and clickjacking</p>
+              </div>
+              <Switch 
+                checked={navigationGuardEnabled} 
+                onChange={handleNavigationGuardToggle} 
+              />
+            </div>
+
+            {/* Navigation Stats */}
+            {navigationGuardEnabled && (
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-medium text-gray-800 mb-3">Navigation Statistics</h3>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="text-center p-3 bg-red-50 rounded-lg">
+                    <div className="text-2xl font-bold text-red-600">{navigationStats.blockedCount}</div>
+                    <div className="text-sm text-red-700">Blocked Navigations</div>
+                  </div>
+                  <div className="text-center p-3 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{navigationStats.allowedCount}</div>
+                    <div className="text-sm text-green-700">Allowed Navigations</div>
+                  </div>
+                </div>
+                <button
+                  onClick={resetNavigationStats}
+                  className="text-sm px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                >
+                  Reset Statistics
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Pattern Detection Details */}
         {patternRulesEnabled && (
           <div className="bg-white p-6 rounded-lg shadow-sm">
@@ -171,7 +231,7 @@ function Settings() {
         {/* Whitelist Management */}
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Whitelist Management</h2>
-          <p className="text-gray-600 mb-4">Domains in the whitelist are considered clean and exempt from element removal</p>
+          <p className="text-gray-600 mb-4">Domains in the whitelist are considered trusted and exempt from both element removal and navigation protection</p>
 
           {/* Add Domain */}
           <div className="flex gap-2 mb-4">
@@ -240,7 +300,7 @@ function Settings() {
 
         {/* Footer */}
         <div className="text-center text-gray-500 text-sm">
-          <p>JustUI v1.0.0 - Advanced Ad and Element Removal</p>
+          <p>JustUI v1.0.0 - Advanced Ad Removal & Navigation Protection</p>
         </div>
       </div>
     </div>

@@ -8,20 +8,20 @@ const REMOTE_WHITELIST_URL =
 
 // Fetch default rules from remote URL with fallback to local file
 async function fetchDefaultRules() {
-  try {
-    // Try to fetch from remote URL first
-    const response = await fetch(REMOTE_RULES_URL);
-    if (response.ok) {
-      const remoteRules = await response.json();
-      console.log("Fetched rules from remote URL", remoteRules);
-      return remoteRules;
-    }
-  } catch (error) {
-    console.log(
-      "Failed to fetch remote rules, falling back to local:",
-      error.message
-    );
-  }
+  // try {
+  //   // Try to fetch from remote URL first
+  //   const response = await fetch(REMOTE_RULES_URL);
+  //   if (response.ok) {
+  //     const remoteRules = await response.json();
+  //     console.log("Fetched rules from remote URL", remoteRules);
+  //     return remoteRules;
+  //   }
+  // } catch (error) {
+  //   console.log(
+  //     "Failed to fetch remote rules, falling back to local:",
+  //     error.message
+  //   );
+  // }
 
   // Fallback to local default rules
   try {
@@ -29,7 +29,7 @@ async function fetchDefaultRules() {
       chrome.runtime.getURL("data/defaultRules.json")
     );
     const localRules = await localResponse.json();
-    console.log("Using local default rules");
+    console.log("Using local default rules", localRules);
     return localRules;
   } catch (error) {
     console.error("Failed to load local default rules:", error);
@@ -72,7 +72,7 @@ async function fetchDefaultWhitelist() {
 chrome.runtime.onInstalled.addListener(async () => {
   const [defaultRules, defaultWhitelist] = await Promise.all([
     fetchDefaultRules(),
-    fetchDefaultWhitelist()
+    fetchDefaultWhitelist(),
   ]);
 
   // Set default storage values if not already set
@@ -85,6 +85,8 @@ chrome.runtime.onInstalled.addListener(async () => {
       "customRules",
       "defaultRulesEnabled",
       "customRulesEnabled",
+      "navigationGuardEnabled",
+      "navigationStats",
     ],
     (result) => {
       const updates = {};
@@ -95,13 +97,19 @@ chrome.runtime.onInstalled.addListener(async () => {
         updates.defaultRulesEnabled = true;
       if (result.customRulesEnabled === undefined)
         updates.customRulesEnabled = true;
+      if (result.navigationGuardEnabled === undefined)
+        updates.navigationGuardEnabled = true;
+      if (!result.navigationStats)
+        updates.navigationStats = { blockedCount: 0, allowedCount: 0 };
 
       // Always update default rules from remote
       updates.defaultRules = defaultRules;
 
       // Merge default whitelist with user's custom additions
       const customWhitelist = result.customWhitelist || [];
-      updates.whitelist = [...new Set([...defaultWhitelist, ...customWhitelist])];
+      updates.whitelist = [
+        ...new Set([...defaultWhitelist, ...customWhitelist]),
+      ];
 
       if (Object.keys(updates).length > 0) {
         chrome.storage.local.set(updates);
@@ -120,7 +128,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === "updateDefaults") {
     const [defaultRules, defaultWhitelist] = await Promise.all([
       fetchDefaultRules(),
-      fetchDefaultWhitelist()
+      fetchDefaultWhitelist(),
     ]);
 
     // Update rules but preserve user's whitelist additions
@@ -162,8 +170,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const whitelist = result.whitelist || [];
       // Check if domain or its parent domain is whitelisted
       // e.g., www.youtube.com matches youtube.com
-      const isWhitelisted = whitelist.some(whitelistedDomain => {
-        return domain === whitelistedDomain || domain.endsWith('.' + whitelistedDomain);
+      const isWhitelisted = whitelist.some((whitelistedDomain) => {
+        return (
+          domain === whitelistedDomain ||
+          domain.endsWith("." + whitelistedDomain)
+        );
       });
       sendResponse({ isWhitelisted });
     });

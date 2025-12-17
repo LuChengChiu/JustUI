@@ -7,14 +7,18 @@ function App() {
   const [isWhitelisted, setIsWhitelisted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [domainStats, setDomainStats] = useState({});
+  const [navigationGuardEnabled, setNavigationGuardEnabled] = useState(true);
+  const [navigationStats, setNavigationStats] = useState({ blockedCount: 0, allowedCount: 0 });
 
   useEffect(() => {
     const initializeExtension = async () => {
       try {
         // Load extension state from storage
-        chrome.storage.local.get(["isActive", "domainStats"], (result) => {
+        chrome.storage.local.get(["isActive", "domainStats", "navigationGuardEnabled", "navigationStats"], (result) => {
           setIsActive(result.isActive || false);
           setDomainStats(result.domainStats || {});
+          setNavigationGuardEnabled(result.navigationGuardEnabled !== false);
+          setNavigationStats(result.navigationStats || { blockedCount: 0, allowedCount: 0 });
         });
 
         // Get current domain with timeout
@@ -82,6 +86,12 @@ function App() {
         if (changes.domainStats) {
           setDomainStats(changes.domainStats.newValue || {});
         }
+        if (changes.navigationGuardEnabled) {
+          setNavigationGuardEnabled(changes.navigationGuardEnabled.newValue);
+        }
+        if (changes.navigationStats) {
+          setNavigationStats(changes.navigationStats.newValue || { blockedCount: 0, allowedCount: 0 });
+        }
       }
     };
 
@@ -96,6 +106,11 @@ function App() {
   const handleToggle = (newState) => {
     setIsActive(newState);
     chrome.storage.local.set({ isActive: newState });
+  };
+
+  const handleNavigationGuardToggle = (newState) => {
+    setNavigationGuardEnabled(newState);
+    chrome.storage.local.set({ navigationGuardEnabled: newState });
   };
 
   const handleWhitelistToggle = () => {
@@ -215,6 +230,39 @@ function App() {
               ? "⏸ Domain is whitelisted (clean site, no removal)"
               : "⏸ Extension is inactive"}
           </p>
+        </div>
+
+        {/* Navigation Guard Status */}
+        <div className="p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-md font-semibold text-gray-800">
+              Navigation Protection
+            </h3>
+            <Switch 
+              checked={navigationGuardEnabled} 
+              onChange={handleNavigationGuardToggle} 
+            />
+          </div>
+          <p className="text-sm text-gray-600">
+            {navigationGuardEnabled && !isWhitelisted
+              ? "🛡️ External navigations will show confirmation"
+              : navigationGuardEnabled && isWhitelisted
+              ? "🛡️ Domain is trusted (no navigation protection)"
+              : "🔓 Navigation protection disabled"}
+          </p>
+          
+          {navigationGuardEnabled && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="text-center p-2 bg-red-50 rounded">
+                <div className="text-lg font-bold text-red-600">{navigationStats.blockedCount}</div>
+                <div className="text-xs text-red-700">Blocked</div>
+              </div>
+              <div className="text-center p-2 bg-green-50 rounded">
+                <div className="text-lg font-bold text-green-600">{navigationStats.allowedCount}</div>
+                <div className="text-xs text-green-700">Allowed</div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Statistics */}

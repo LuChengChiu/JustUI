@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-JustUI is a Chrome Extension built with React 19, Vite 7, and Tailwind CSS 4. It provides an element removal system with whitelist management and customizable rules. The extension removes unwanted DOM elements (ads, trackers, etc.) from websites using both default and custom rules. The whitelist contains clean domains that DON'T need element removal - element removal executes on all domains EXCEPT those in the whitelist.
+JustUI is a comprehensive Chrome Extension built with React 19, Vite 7, and Tailwind CSS 4. It provides advanced web protection through multiple defensive systems:
+
+1. **Element Removal System** - Removes unwanted DOM elements (ads, trackers, etc.) using CSS selectors
+2. **Navigation Guardian** - Intercepts and blocks malicious cross-origin navigation attempts with user confirmation modals  
+3. **Advanced Pattern Detection** - AI-powered ad detection engine using pattern analysis
+4. **Whitelist Management** - Clean domains that are exempt from all protection systems
+
+The extension operates on all domains EXCEPT those in the whitelist, providing comprehensive protection against ads, trackers, pop-unders, malicious redirects, and other unwanted content.
 
 ## Commands
 
@@ -16,9 +23,12 @@ JustUI is a Chrome Extension built with React 19, Vite 7, and Tailwind CSS 4. It
 
 **Core Functionality:**
 1. **Main Toggle** - Enable/disable entire extension functionality
-2. **Whitelist System** - Manage clean domains that are EXEMPT from element removal (trusted sites)
-3. **Rule System** - Default and custom rules for element removal
-4. **Settings Management** - User configuration interface
+2. **Element Removal System** - CSS selector-based element removal with default/custom rules
+3. **Navigation Guardian** - Cross-origin navigation interception with user confirmation modals
+4. **Advanced Pattern Detection** - AI-powered ad detection using behavioral analysis
+5. **Whitelist System** - Manage clean domains that are EXEMPT from all protection systems (trusted sites)
+6. **Statistics & Analytics** - Real-time tracking of blocked elements and navigation attempts
+7. **Settings Management** - Comprehensive user configuration interface
 
 **Chrome Extension Structure:**
 - `manifest.json` - Chrome Extension Manifest V3 configuration
@@ -35,11 +45,23 @@ JustUI is a Chrome Extension built with React 19, Vite 7, and Tailwind CSS 4. It
 ```javascript
 {
   isActive: boolean,                    // Main extension toggle
-  whitelist: string[],                  // Clean domains EXEMPT from removal: ['example.com', 'google.com']
+  whitelist: string[],                  // Clean domains EXEMPT from all protection: ['example.com', 'google.com']
   defaultRules: Rule[],                 // Built-in element removal rules
   customRules: Rule[],                  // User-defined rules
   defaultRulesEnabled: boolean,         // Toggle for default rules
-  customRulesEnabled: boolean           // Toggle for custom rules
+  customRulesEnabled: boolean,          // Toggle for custom rules
+  patternRulesEnabled: boolean,         // Toggle for AI pattern detection
+  navigationGuardEnabled: boolean,      // Toggle for Navigation Guardian
+  navigationStats: {                    // Navigation Guardian statistics
+    blockedCount: number,               // Total blocked navigation attempts
+    allowedCount: number                // Total allowed navigation attempts
+  },
+  domainStats: {                        // Per-domain removal statistics (session-only)
+    [domain]: {
+      defaultRulesRemoved: number,
+      customRulesRemoved: number
+    }
+  }
 }
 ```
 
@@ -56,27 +78,56 @@ JustUI is a Chrome Extension built with React 19, Vite 7, and Tailwind CSS 4. It
 }
 ```
 
+**Navigation Guardian System:**
+Navigation Guardian provides comprehensive protection against malicious cross-origin navigation attempts through multiple interception layers:
+
+1. **JavaScript Navigation Overrides** (`src/scripts/injected-script.js`):
+   - Intercepts `window.open()` - Blocks pop-unders and malicious pop-ups
+   - Intercepts `location.href` assignments - Blocks programmatic redirects
+   - Intercepts `location.assign()` and `location.replace()` - Complete coverage
+   - Runs in page's main world for deep JavaScript interception
+
+2. **DOM Event Interception** (`src/scripts/content.js`):
+   - Link click interception (`<a>` tags) with href analysis
+   - Form submission interception for cross-origin form attacks
+   - Event capture phase interception for early prevention
+
+3. **User Confirmation Modal**:
+   - Professional modal UI with URL display (XSS-safe)
+   - Block/Allow buttons with keyboard shortcuts (ESC=Block, Enter=Allow)
+   - Automatic statistics tracking and storage sync
+
+4. **Whitelist Integration**:
+   - Trusted domains bypass all Navigation Guardian checks
+   - Reuses existing whitelist infrastructure for consistency
+
 **Component Responsibilities:**
 
 *Popup (src/App.jsx):*
 - Main extension toggle
-- Current domain whitelist status (shows if domain is exempt from element removal)
+- Current domain whitelist status (shows if domain is exempt from all protection systems)
 - "Add to whitelist" button (when domain is NOT whitelisted - to mark it as clean/trusted)
-- "Remove from whitelist" button (when domain IS whitelisted - to enable element removal again)
-- Element removal status indicator
+- "Remove from whitelist" button (when domain IS whitelisted - to enable protection again)
+- Element removal statistics and indicators
+- Navigation Guardian statistics (blocked/allowed counts)
 - Settings page navigation
 
 *Settings Page (src/settings.jsx):*
 - Whitelist CRUD operations
 - Default rules toggle panel with individual rule controls
 - Custom rule editor with form validation
+- Pattern detection (AI) toggle controls
+- Navigation Guardian toggle and statistics management
 - Import/export functionality for rules and settings
 
 *Content Script (src/scripts/content.js):*
-- Monitor DOM for targeted elements
+- Monitor DOM for targeted elements using CSS selectors and AI patterns
 - Execute active rules based on current domain and whitelist status
 - Remove elements matching enabled rule selectors
-- Communicate execution results to background script
+- Navigation Guardian: Intercept link clicks and form submissions
+- Display confirmation modals for cross-origin navigation attempts
+- Advanced pattern detection using AdDetectionEngine
+- Communicate execution results and statistics to background script
 
 *Background Script (src/scripts/background.js):*
 - Coordinate popup ↔ content script communication

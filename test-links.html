@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation Guardian - Link Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .test-link {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        .test-link:hover {
+            background: #0056b3;
+        }
+        .description {
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Navigation Guardian Test Page - Links</h1>
+    
+    <div class="warning">
+        <strong>⚠️ Test Page:</strong> This page contains links to external domains to test Navigation Guardian functionality. 
+        Modal dialogs should appear for cross-origin navigations (unless the target domain is whitelisted).
+    </div>
+
+    <div class="test-section">
+        <h3>Same-Origin Links (Should NOT trigger modal)</h3>
+        <div class="description">These links stay within the same domain, so Navigation Guardian should allow them without confirmation.</div>
+        <a href="#section1" class="test-link">Hash Link</a>
+        <a href="/" class="test-link">Root Page</a>
+        <a href="test-forms.html" class="test-link">Forms Test Page</a>
+    </div>
+
+    <div class="test-section">
+        <h3>Cross-Origin Links (SHOULD trigger modal)</h3>
+        <div class="description">These links navigate to external domains, so Navigation Guardian should show confirmation modals.</div>
+        <a href="https://www.google.com" class="test-link">Google</a>
+        <a href="https://www.github.com" class="test-link">GitHub</a>
+        <a href="https://www.stackoverflow.com" class="test-link">Stack Overflow</a>
+        <a href="https://example.com" class="test-link">Example.com</a>
+    </div>
+
+    <div class="test-section">
+        <h3>New Tab Links (Should trigger modal + open in new tab if allowed)</h3>
+        <div class="description">These links have target="_blank", so they should trigger modals and open new tabs if confirmed.</div>
+        <a href="https://www.reddit.com" target="_blank" class="test-link">Reddit (New Tab)</a>
+        <a href="https://www.twitter.com" target="_blank" class="test-link">Twitter (New Tab)</a>
+        <a href="https://www.youtube.com" target="_blank" class="test-link">YouTube (New Tab)</a>
+    </div>
+
+    <div class="test-section">
+        <h3>Potentially Whitelisted Domains</h3>
+        <div class="description">These links might be whitelisted depending on your JustUI configuration.</div>
+        <a href="https://localhost:3000" class="test-link">Localhost</a>
+        <a href="https://127.0.0.1:8080" class="test-link">127.0.0.1</a>
+    </div>
+
+    <div class="test-section">
+        <h3>Special Protocol Links (Should NOT trigger modal)</h3>
+        <div class="description">These protocols should be ignored by Navigation Guardian.</div>
+        <a href="mailto:test@example.com" class="test-link">Email Link</a>
+        <a href="tel:+1234567890" class="test-link">Phone Link</a>
+        <a href="javascript:alert('Hello!')" class="test-link">JavaScript Link</a>
+    </div>
+
+    <div class="test-section">
+        <h3>Nested Element Clicks</h3>
+        <div class="description">Testing click event bubbling when child elements are clicked inside links.</div>
+        <a href="https://www.mozilla.org" class="test-link">
+            <span>🦎</span> Mozilla <strong>(with nested elements)</strong>
+        </a>
+        <a href="https://www.w3.org" class="test-link">
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='white'%3E%3Cpath d='M8 2l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z'/%3E%3C/svg%3E" alt="star"> W3C
+        </a>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Instructions</h3>
+        <div class="description">
+            <ol>
+                <li>Make sure JustUI extension is enabled and Navigation Guardian is active</li>
+                <li>Click on cross-origin links above - you should see confirmation modals</li>
+                <li>Test both "Allow" and "Block" buttons in the modals</li>
+                <li>Check that blocked/allowed counts update in the extension popup</li>
+                <li>Verify that whitelisted domains (if any) bypass the modal</li>
+                <li>Test keyboard navigation: ESC = Block, Enter = Allow</li>
+            </ol>
+        </div>
+    </div>
+
+    <div id="section1">
+        <h3>Hash Target Section</h3>
+        <p>This section is targeted by the hash link above to test same-page navigation.</p>
+    </div>
+
+</body>
+</html>
