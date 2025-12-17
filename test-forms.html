@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation Guardian - Form Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .test-form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .description {
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Navigation Guardian Test Page - Forms</h1>
+    
+    <div class="warning">
+        <strong>⚠️ Test Page:</strong> This page contains forms that submit to external domains to test Navigation Guardian functionality. 
+        Modal dialogs should appear for cross-origin form submissions.
+    </div>
+
+    <div class="test-section">
+        <h3>Same-Origin Form (Should NOT trigger modal)</h3>
+        <div class="description">This form submits to the same domain, so Navigation Guardian should allow it without confirmation.</div>
+        <form class="test-form" method="GET" action="/search">
+            <div class="form-group">
+                <label for="same-origin-search">Search Query:</label>
+                <input type="text" id="same-origin-search" name="q" placeholder="Enter search term..." value="test query">
+            </div>
+            <button type="submit">Submit Same-Origin Form</button>
+        </form>
+    </div>
+
+    <div class="test-section">
+        <h3>Cross-Origin Forms (SHOULD trigger modals)</h3>
+        <div class="description">These forms submit to external domains, so Navigation Guardian should show confirmation modals.</div>
+        
+        <div class="test-form">
+            <h4>Google Search Form</h4>
+            <form method="GET" action="https://www.google.com/search">
+                <div class="form-group">
+                    <label for="google-search">Google Search:</label>
+                    <input type="text" id="google-search" name="q" placeholder="Search Google..." value="Navigation Guardian test">
+                </div>
+                <button type="submit">Submit to Google</button>
+            </form>
+        </div>
+
+        <div class="test-form">
+            <h4>DuckDuckGo Search Form</h4>
+            <form method="GET" action="https://duckduckgo.com/">
+                <div class="form-group">
+                    <label for="ddg-search">DuckDuckGo Search:</label>
+                    <input type="text" id="ddg-search" name="q" placeholder="Search DuckDuckGo..." value="privacy search">
+                </div>
+                <button type="submit">Submit to DuckDuckGo</button>
+            </form>
+        </div>
+
+        <div class="test-form">
+            <h4>Example POST Form</h4>
+            <form method="POST" action="https://httpbin.org/post">
+                <div class="form-group">
+                    <label for="post-name">Name:</label>
+                    <input type="text" id="post-name" name="name" placeholder="Your name..." value="Test User">
+                </div>
+                <div class="form-group">
+                    <label for="post-email">Email:</label>
+                    <input type="email" id="post-email" name="email" placeholder="Your email..." value="test@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="post-message">Message:</label>
+                    <textarea id="post-message" name="message" rows="3" placeholder="Your message...">Testing Navigation Guardian form interception</textarea>
+                </div>
+                <button type="submit">Submit POST Form</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>New Tab Forms (Should trigger modal + open in new tab if allowed)</h3>
+        <div class="description">These forms have target="_blank", so they should trigger modals and open new tabs if confirmed.</div>
+        
+        <div class="test-form">
+            <h4>Wikipedia Search (New Tab)</h4>
+            <form method="GET" action="https://en.wikipedia.org/wiki/Special:Search" target="_blank">
+                <div class="form-group">
+                    <label for="wiki-search">Wikipedia Search:</label>
+                    <input type="text" id="wiki-search" name="search" placeholder="Search Wikipedia..." value="Chrome extension">
+                </div>
+                <button type="submit">Submit to Wikipedia (New Tab)</button>
+            </form>
+        </div>
+
+        <div class="test-form">
+            <h4>Stack Overflow Search (New Tab)</h4>
+            <form method="GET" action="https://stackoverflow.com/search" target="_blank">
+                <div class="form-group">
+                    <label for="so-search">Stack Overflow Search:</label>
+                    <input type="text" id="so-search" name="q" placeholder="Search Stack Overflow..." value="javascript navigation">
+                </div>
+                <button type="submit">Submit to Stack Overflow (New Tab)</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>No Action Form (Uses current URL)</h3>
+        <div class="description">This form has no action attribute, so it submits to the current URL (same-origin).</div>
+        <form class="test-form" method="GET">
+            <div class="form-group">
+                <label for="no-action-input">Test Input:</label>
+                <input type="text" id="no-action-input" name="test" placeholder="Test input..." value="no action test">
+            </div>
+            <button type="submit">Submit (No Action)</button>
+        </form>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Instructions</h3>
+        <div class="description">
+            <ol>
+                <li>Make sure JustUI extension is enabled and Navigation Guardian is active</li>
+                <li>Submit the cross-origin forms above - you should see confirmation modals</li>
+                <li>Test both "Allow" and "Block" buttons in the modals</li>
+                <li>Verify that GET and POST methods both work</li>
+                <li>Check that blocked/allowed counts update in the extension popup</li>
+                <li>Test forms with target="_blank" open new tabs when confirmed</li>
+                <li>Verify that same-origin forms work without modals</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>Navigation Links</h3>
+        <p><a href="test-links.html">← Back to Links Test Page</a></p>
+        <p><a href="test-javascript.html">→ Go to JavaScript Test Page</a></p>
+    </div>
+
+</body>
+</html>

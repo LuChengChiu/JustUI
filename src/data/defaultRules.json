@@ -63,21 +63,30 @@
     "enabled": true
   },
   {
-    "id": "newsletter-popups",
-    "selector": "[class*='newsletter'], [class*='popup'], [id*='modal']",
-    "description": "Newsletter signup popups",
-    "confidence": "medium",
-    "domains": ["*"],
-    "category": "popup",
-    "enabled": true
-  },
-  {
     "id": "tracking-scripts",
     "selector": "script[src*='analytics'], script[src*='tracking'], script[src*='gtag']",
     "description": "Analytics and tracking scripts",
     "confidence": "high",
     "domains": ["*"],
     "category": "tracking",
+    "enabled": true
+  },
+  {
+    "id": "invisible-overlay-hijacker",
+    "selector": "[style*='position: fixed'][style*='width: 100%'][style*='height: 100%'][style*='opacity: 0'][style*='z-index: 2147483647']",
+    "description": "Invisible full-screen overlay used for click hijacking",
+    "confidence": "high",
+    "domains": ["*"],
+    "category": "advertising",
+    "enabled": true
+  },
+  {
+    "id": "invisible-inset-overlay-hijacker",
+    "selector": "[style*='position: fixed'][style*='inset:'][style*='opacity: 0'][style*='z-index: 2147483647']",
+    "description": "Invisible full-screen overlay using inset property for click hijacking",
+    "confidence": "high",
+    "domains": ["*"],
+    "category": "advertising",
     "enabled": true
   }
 ]
