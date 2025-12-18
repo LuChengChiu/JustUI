@@ -11,17 +11,32 @@
   window.navigationGuardianInjected = true;
 
   // Feature detection and safe override utilities
-  function safeOverride(obj, propName, newValue, context = 'property') {
+  function canOverrideProperty(obj, propName) {
     try {
-      // Try the assignment first and catch any errors
+      const descriptor = Object.getOwnPropertyDescriptor(obj, propName);
+      if (descriptor) {
+        return descriptor.writable !== false && descriptor.configurable !== false;
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function safeOverride(obj, propName, newValue, context = 'property') {
+    // Pre-check if property can be overridden
+    if (!canOverrideProperty(obj, propName)) {
+      console.info(`Navigation Guardian: Skipping ${context} ${propName} - not writable/configurable`);
+      return false;
+    }
+
+    try {
       const originalValue = obj[propName];
       obj[propName] = newValue;
       
-      // If no error occurred, the override was successful
       console.log(`Navigation Guardian: Successfully overrode ${context} ${propName}`);
       return true;
     } catch (e) {
-      // Assignment failed - this is expected on some sites
       console.warn(`Navigation Guardian: Cannot override ${context} ${propName}:`, e.message);
       return false;
     }
@@ -29,6 +44,18 @@
   
   // Safe property definition for complex cases
   function safeDefineProperty(obj, propName, descriptor, context = 'property') {
+    // Pre-check if property exists and is configurable
+    try {
+      const existingDescriptor = Object.getOwnPropertyDescriptor(obj, propName);
+      if (existingDescriptor && existingDescriptor.configurable === false) {
+        console.info(`Navigation Guardian: Skipping ${context} ${propName} - not configurable`);
+        return false;
+      }
+    } catch (e) {
+      console.warn(`Navigation Guardian: Cannot check descriptor for ${context} ${propName}`);
+      return false;
+    }
+
     try {
       Object.defineProperty(obj, propName, descriptor);
       console.log(`Navigation Guardian: Successfully defined ${context} ${propName}`);
@@ -119,12 +146,20 @@
       
       window.addEventListener('message', handleResponse);
       
-      // Send request to content script
+      // Send request to content script with pop-under analysis
       console.log('Navigation Guardian: Requesting permission for:', url);
       window.postMessage({
         type: 'NAV_GUARDIAN_CHECK',
         url: url,
-        messageId: messageId
+        messageId: messageId,
+        popUnderAnalysis: {
+          isPopUnder: true, // This function is only called for suspected pop-unders
+          score: 7, // Base score for detected pop-under attempt
+          threats: [{
+            type: 'Window.open() pop-under attempt detected',
+            score: 7
+          }]
+        }
       }, '*');
     });
   }
@@ -137,13 +172,179 @@
     locationHref: false
   };
 
-  // Override window.open (usually works)
+  // Pop-under detection patterns
+  const popUnderPatterns = [
+    /adexchangeclear\.com/i,
+    /\.php\?.*param_[45]/i,
+    /^\s*about:blank\s*$/,
+    /clicktraking/i,
+    /popunder/i,
+    /redirect.*click/i
+  ];
+  
+  // Track window.open() call patterns for pop-under detection
+  let recentWindowOpens = [];
+  let lastDocumentClick = 0;
+  
+  // Store original EventTarget methods to prevent malicious override
+  const originalAddEventListener = EventTarget.prototype.addEventListener;
+  const originalRemoveEventListener = EventTarget.prototype.removeEventListener;
+  
+  // Track suspicious click listeners for removal
+  const suspiciousListeners = new WeakMap();
+  
+  // Listen for document clicks to detect pop-under triggers
+  document.addEventListener('click', () => {
+    lastDocumentClick = Date.now();
+  }, true);
+  
+  // Override addEventListener to intercept and block malicious click listeners
+  EventTarget.prototype.addEventListener = function(type, listener, options) {
+    // Block deprecated 'unload' event - violates Permissions Policy in modern Chrome
+    // See: https://developer.chrome.com/blog/deprecating-unload
+    if (type === 'unload') {
+      console.info('Navigation Guardian: Blocked deprecated "unload" event listener. Use "pagehide" with { capture: true } instead.');
+      // Silently ignore - don't throw, just don't register
+      return;
+    }
+
+    // Check if this is a suspicious click listener
+    if (type === 'click' && typeof listener === 'function') {
+      const listenerStr = listener.toString();
+      
+      // Patterns that indicate malicious pop-under click listeners
+      const maliciousPatterns = [
+        /triggerPopUnder/i,
+        /window\.open.*_blank/,
+        /localStorage\..*lastPopUnderTime/i,
+        /adexchangeclear/i,
+        /param_[45]/,
+        /generateClickId/i,
+        /DELAY_IN_MILLISECONDS/i
+      ];
+      
+      const isSuspicious = maliciousPatterns.some(pattern => pattern.test(listenerStr));
+      
+      if (isSuspicious) {
+        console.log('Navigation Guardian: Blocked malicious click listener:', {
+          target: this.tagName || this.constructor.name,
+          listener: listenerStr.substring(0, 200) + '...',
+          options: options
+        });
+        
+        // Mark this listener as blocked
+        suspiciousListeners.set(listener, true);
+        
+        // Don't actually add the malicious listener
+        return;
+      }
+    }
+    
+    // Call original addEventListener for legitimate listeners
+    return originalAddEventListener.call(this, type, listener, options);
+  };
+  
+  // Clean up existing malicious listeners on the document
+  function cleanupMaliciousListeners() {
+    try {
+      // We can't directly enumerate existing listeners, but we can replace common targets
+      const scriptElements = document.querySelectorAll('script');
+      scriptElements.forEach(script => {
+        const content = script.textContent || script.innerHTML || '';
+        
+        // If script contains pop-under patterns, remove it
+        const maliciousPatterns = [
+          /triggerPopUnder/i,
+          /document\.addEventListener.*click.*triggerPopUnder/i,
+          /window\.open.*_blank.*window\.focus/i
+        ];
+        
+        if (maliciousPatterns.some(pattern => pattern.test(content))) {
+          console.log('Navigation Guardian: Removing malicious script with pop-under code');
+          script.remove();
+        }
+      });
+      
+      // Try to remove click listeners from document by cloning (nuclear option)
+      if (document.body) {
+        const newDocument = document.cloneNode(false);
+        const newBody = document.body.cloneNode(true);
+        
+        // This approach is too aggressive, but we could use it as last resort
+        // newDocument.appendChild(newBody);
+      }
+      
+    } catch (error) {
+      console.warn('Navigation Guardian: Error cleaning up malicious listeners:', error);
+    }
+  }
+  
+  // Run cleanup immediately
+  cleanupMaliciousListeners();
+  
+  function isPopUnderBehavior(url, name, features) {
+    const now = Date.now();
+    
+    // Check if this window.open() is triggered within 1 second of a document click
+    const isClickTriggered = (now - lastDocumentClick) < 1000;
+    
+    // Check for pop-under URL patterns
+    const hasPopUnderURL = popUnderPatterns.some(pattern => pattern.test(url || ''));
+    
+    // Check for _blank target with immediate focus (pop-under characteristic)
+    const isBlankTarget = name === '_blank' || name === '';
+    
+    // Track recent window.open() calls to detect rate limiting behavior
+    recentWindowOpens.push(now);
+    recentWindowOpens = recentWindowOpens.filter(time => (now - time) < 60000); // Keep last minute
+    
+    const tooFrequent = recentWindowOpens.length > 3; // More than 3 opens per minute
+    
+    // Combine factors to determine pop-under likelihood
+    const popUnderScore = 
+      (isClickTriggered ? 3 : 0) +
+      (hasPopUnderURL ? 4 : 0) +
+      (isBlankTarget ? 2 : 0) +
+      (tooFrequent ? 2 : 0);
+    
+    return {
+      isPopUnder: popUnderScore >= 4,
+      score: popUnderScore,
+      factors: {
+        clickTriggered: isClickTriggered,
+        popUnderURL: hasPopUnderURL,
+        blankTarget: isBlankTarget,
+        tooFrequent: tooFrequent
+      }
+    };
+  }
+  
+  // Enhanced window.open override with aggressive pop-under protection
   overrideStatus.windowOpen = safeOverride(window, 'open', function(url, name, features) {
+    const analysis = isPopUnderBehavior(url, name, features);
+    
+    // Block obvious pop-unders immediately
+    if (analysis.isPopUnder) {
+      console.log('Navigation Guardian: Blocked pop-under attempt:', {
+        url: url,
+        score: analysis.score,
+        factors: analysis.factors
+      });
+      
+      // Show a brief notification
+      try {
+        console.warn('🛡️ JustUI blocked a pop-under advertisement');
+      } catch (e) { /* ignore */ }
+      
+      return null;
+    }
+    
+    // Allow same-origin navigation
     if (!isCrossOrigin(url)) {
       return originalWindowOpen.call(this, url, name, features);
     }
     
-    // For cross-origin URLs, check permission first
+    // For cross-origin URLs that aren't obvious pop-unders, check permission
     checkNavigationPermission(url).then(allowed => {
       if (allowed) {
         originalWindowOpen.call(window, url, name, features);

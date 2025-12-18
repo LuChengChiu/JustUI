@@ -88,5 +88,23 @@
     "domains": ["*"],
     "category": "advertising",
     "enabled": true
+  },
+  {
+    "id": "adexchangeclear-links",
+    "selector": "a[href*='adexchangeclear.com']",
+    "description": "AdExchangeClear ad network links",
+    "confidence": "high",
+    "domains": ["*"],
+    "category": "advertising",
+    "enabled": true
+  },
+  {
+    "id": "ad-click-tracking",
+    "selector": "a[href*='/c.php?'][href*='ad'], a[href*='click.php'][href*='ad'], a[href*='/c.php?'][href*='click'], a[href*='/c.php?'][href*='track']",
+    "description": "Ad click tracking links (c.php/click.php with ad context)",
+    "confidence": "medium",
+    "domains": ["*"],
+    "category": "advertising",
+    "enabled": true
   }
 ]

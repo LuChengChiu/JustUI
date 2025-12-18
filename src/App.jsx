@@ -300,6 +300,15 @@ function App() {
                   </span>
                 </div>
               )}
+              {!!domainStats[currentDomain]?.chromeAdTagRemoved && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Chrome Ad Tags:</span>
+                  <span className="text-sm font-semibold text-blue-600">
+                    {domainStats[currentDomain]?.chromeAdTagRemoved || 0}{" "}
+                    elements
+                  </span>
+                </div>
+              )}
               <div className="pt-2 mt-2 border-t border-gray-200">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-semibold text-gray-800">
@@ -307,8 +316,8 @@ function App() {
                   </span>
                   <span className="text-sm font-bold text-gray-900">
                     {(domainStats[currentDomain]?.defaultRulesRemoved || 0) +
-                      (domainStats[currentDomain]?.customRulesRemoved ||
-                        0)}{" "}
+                      (domainStats[currentDomain]?.customRulesRemoved || 0) +
+                      (domainStats[currentDomain]?.chromeAdTagRemoved || 0)}{" "}
                     elements
                   </span>
                 </div>

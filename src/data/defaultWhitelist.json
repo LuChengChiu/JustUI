@@ -1,5 +1,6 @@
 [
   "google.com",
+  "chrome.com",
   "youtube.com",
   "instagram.com",
   "facebook.com",
@@ -24,5 +25,7 @@
   "zeabur.com",
   "figma.com",
   "cloudflare.com",
-  "excalidraw.com"
+  "excalidraw.com",
+  "notion.so",
+  "hackmd.io"
 ]
