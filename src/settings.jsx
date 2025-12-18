@@ -6,7 +6,11 @@ function Settings() {
   const [defaultRulesEnabled, setDefaultRulesEnabled] = useState(true);
   const [customRulesEnabled, setCustomRulesEnabled] = useState(true);
   const [patternRulesEnabled, setPatternRulesEnabled] = useState(true);
+  const [chromeAdTagEnabled, setChromeAdTagEnabled] = useState(true);
   const [navigationGuardEnabled, setNavigationGuardEnabled] = useState(true);
+  const [popUnderProtectionEnabled, setPopUnderProtectionEnabled] = useState(true);
+  const [scriptAnalysisEnabled, setScriptAnalysisEnabled] = useState(true);
+  const [cspProtectionEnabled, setCspProtectionEnabled] = useState(true);
   const [whitelist, setWhitelist] = useState([]);
   const [defaultRules, setDefaultRules] = useState([]);
   const [customRules, setCustomRules] = useState([]);
@@ -20,7 +24,11 @@ function Settings() {
       'defaultRulesEnabled',
       'customRulesEnabled', 
       'patternRulesEnabled',
+      'chromeAdTagEnabled',
       'navigationGuardEnabled',
+      'popUnderProtectionEnabled',
+      'scriptAnalysisEnabled',
+      'cspProtectionEnabled',
       'whitelist',
       'defaultRules',
       'customRules',
@@ -29,7 +37,11 @@ function Settings() {
       setDefaultRulesEnabled(result.defaultRulesEnabled !== false);
       setCustomRulesEnabled(result.customRulesEnabled !== false);
       setPatternRulesEnabled(result.patternRulesEnabled !== false);
+      setChromeAdTagEnabled(result.chromeAdTagEnabled !== false);
       setNavigationGuardEnabled(result.navigationGuardEnabled !== false);
+      setPopUnderProtectionEnabled(result.popUnderProtectionEnabled !== false);
+      setScriptAnalysisEnabled(result.scriptAnalysisEnabled !== false);
+      setCspProtectionEnabled(result.cspProtectionEnabled !== false);
       setWhitelist(result.whitelist || []);
       setDefaultRules(result.defaultRules || []);
       setCustomRules(result.customRules || []);
@@ -57,9 +69,29 @@ function Settings() {
     updateSetting('patternRulesEnabled', enabled);
   };
 
+  const handleChromeAdTagToggle = (enabled) => {
+    setChromeAdTagEnabled(enabled);
+    updateSetting('chromeAdTagEnabled', enabled);
+  };
+
   const handleNavigationGuardToggle = (enabled) => {
     setNavigationGuardEnabled(enabled);
     updateSetting('navigationGuardEnabled', enabled);
+  };
+
+  const handlePopUnderProtectionToggle = (enabled) => {
+    setPopUnderProtectionEnabled(enabled);
+    updateSetting('popUnderProtectionEnabled', enabled);
+  };
+
+  const handleScriptAnalysisToggle = (enabled) => {
+    setScriptAnalysisEnabled(enabled);
+    updateSetting('scriptAnalysisEnabled', enabled);
+  };
+
+  const handleCspProtectionToggle = (enabled) => {
+    setCspProtectionEnabled(enabled);
+    updateSetting('cspProtectionEnabled', enabled);
   };
 
   const resetNavigationStats = () => {
@@ -141,6 +173,19 @@ function Settings() {
               />
             </div>
 
+            {/* Chrome Ad Tag Detection */}
+            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div>
+                <h3 className="font-medium text-gray-800">Chrome Ad Tag Detection</h3>
+                <p className="text-sm text-gray-600">Leverage Chrome's native ad detection and heavy ad intervention reports</p>
+                <p className="text-xs text-gray-500">Detects Google ad attributes, ad network iframes, and intervention reports</p>
+              </div>
+              <Switch 
+                checked={chromeAdTagEnabled} 
+                onChange={handleChromeAdTagToggle} 
+              />
+            </div>
+
             {/* Custom Rules Toggle */}
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
@@ -194,6 +239,80 @@ function Settings() {
                 >
                   Reset Statistics
                 </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Pop-Under Protection Controls */}
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">🛡️ Pop-Under Protection</h2>
+          <p className="text-gray-600 mb-4">Advanced protection against pop-under advertisements and malicious script injection</p>
+          
+          <div className="space-y-4">
+            {/* Pop-Under Protection Master Toggle */}
+            <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200">
+              <div>
+                <h3 className="font-medium text-gray-800">Pop-Under Advertisement Blocking</h3>
+                <p className="text-sm text-gray-600">Comprehensive protection against pop-under ads and click hijacking</p>
+                <p className="text-xs text-gray-500">Blocks window.open() abuse, malicious click listeners, and focus manipulation</p>
+              </div>
+              <Switch 
+                checked={popUnderProtectionEnabled} 
+                onChange={handlePopUnderProtectionToggle} 
+              />
+            </div>
+
+            {/* Script Analysis */}
+            <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <div>
+                <h3 className="font-medium text-gray-800">Real-time Script Analysis</h3>
+                <p className="text-sm text-gray-600">Analyze JavaScript content for pop-under signatures and malicious patterns</p>
+                <p className="text-xs text-gray-500">Advanced threat scoring with 8 pop-under pattern detectors</p>
+              </div>
+              <Switch 
+                checked={scriptAnalysisEnabled} 
+                onChange={handleScriptAnalysisToggle} 
+              />
+            </div>
+
+            {/* CSP Protection */}
+            <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div>
+                <h3 className="font-medium text-gray-800">Content Security Policy Protection</h3>
+                <p className="text-sm text-gray-600">Inject strict CSP headers to prevent inline script execution</p>
+                <p className="text-xs text-gray-500">Blocks eval(), inline scripts, and restricts script sources</p>
+              </div>
+              <Switch 
+                checked={cspProtectionEnabled} 
+                onChange={handleCspProtectionToggle} 
+              />
+            </div>
+
+            {/* Protection Details */}
+            {popUnderProtectionEnabled && (
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-medium text-gray-800 mb-3">Protection Features</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-3 bg-white rounded-lg border">
+                    <h4 className="font-medium text-red-800 mb-2">🚫 Script Blocking</h4>
+                    <ul className="text-sm text-gray-700 space-y-1">
+                      <li>• Pop-under function detection</li>
+                      <li>• Malicious event listener removal</li>
+                      <li>• LocalStorage abuse prevention</li>
+                      <li>• Dynamic script injection blocking</li>
+                    </ul>
+                  </div>
+                  <div className="p-3 bg-white rounded-lg border">
+                    <h4 className="font-medium text-blue-800 mb-2">🔍 Analysis Methods</h4>
+                    <ul className="text-sm text-gray-700 space-y-1">
+                      <li>• Pattern-based signature detection</li>
+                      <li>• Behavioral analysis scoring</li>
+                      <li>• URL threat assessment</li>
+                      <li>• Focus manipulation detection</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             )}
           </div>

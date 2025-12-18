@@ -38,7 +38,8 @@ The extension operates on all domains EXCEPT those in the whitelist, providing c
 - `src/App.jsx` - Main popup component with toggle, domain status, and quick actions
 - `src/settings.jsx` - Settings page React component
 - `src/components/ui/` - Reusable UI components
-- `src/scripts/content.js` - Content script for DOM manipulation
+- `src/scripts/content.js` - Modular content script orchestrator
+- `src/scripts/modules/` - Protection modules (SecurityProtector, ScriptAnalyzer, NavigationGuardian, etc.)
 - `src/scripts/background.js` - Service worker for extension coordination
 
 **Data Storage Schema:**
@@ -87,7 +88,7 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
    - Intercepts `location.assign()` and `location.replace()` - Complete coverage
    - Runs in page's main world for deep JavaScript interception
 
-2. **DOM Event Interception** (`src/scripts/content.js`):
+2. **DOM Event Interception** (`src/scripts/modules/NavigationGuardian.js`):
    - Link click interception (`<a>` tags) with href analysis
    - Form submission interception for cross-origin form attacks
    - Event capture phase interception for early prevention
@@ -121,13 +122,20 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 - Import/export functionality for rules and settings
 
 *Content Script (src/scripts/content.js):*
-- Monitor DOM for targeted elements using CSS selectors and AI patterns
-- Execute active rules based on current domain and whitelist status
-- Remove elements matching enabled rule selectors
-- Navigation Guardian: Intercept link clicks and form submissions
-- Display confirmation modals for cross-origin navigation attempts
-- Advanced pattern detection using AdDetectionEngine
+- **JustUIController**: Main orchestrator coordinating all protection modules
+- **SecurityProtector**: Event listener protection, localStorage monitoring (blocks pop-under tracking)
+- **ScriptAnalyzer**: Advanced script threat detection and real-time monitoring
+- **NavigationGuardian**: Cross-origin navigation interception with user confirmation modals
+- **ClickHijackingProtector**: Advanced click analysis and suspicious overlay detection
+- **ElementRemover**: DOM element removal with multiple strategies (hide, remove, neutralize)
+- **Pattern Detection**: AI-powered ad detection using AdDetectionEngine
 - Communicate execution results and statistics to background script
+
+*Modular Protection System:*
+- Each protection system operates independently and can be enabled/disabled
+- Modules communicate through well-defined interfaces
+- Centralized configuration and lifecycle management
+- Real-time threat analysis and user notification
 
 *Background Script (src/scripts/background.js):*
 - Coordinate popup ↔ content script communication
@@ -148,17 +156,23 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 ## Development Guidelines
 
 **Data Flow:**
-1. User loads page → Content script checks if domain is whitelisted and extension is active
-2. If active and NOT whitelisted → Execute enabled rules (default + custom)
-3. Content script removes matching elements from DOM
-4. If domain IS whitelisted → Skip element removal (domain is clean/trusted)
-5. Popup displays current domain status and quick actions
+1. User loads page → JustUIController loads settings FIRST (whitelist check before any protections)
+2. If domain IS whitelisted OR extension inactive → Skip all protections, only setup message listeners
+3. If active and NOT whitelisted → Activate SecurityProtector, ScriptAnalyzer, and all protection modules
+4. NavigationGuardian monitors cross-origin navigation attempts
+5. ClickHijackingProtector analyzes and blocks suspicious clicks
+6. Execute enabled rule modules (default + custom + pattern detection)
+7. Popup displays current domain status and comprehensive protection statistics
 
-**Element Removal Logic:**
+**Protection System Logic:**
 - Extension must be active (`isActive = true`)
-- Domain must NOT be in whitelist (whitelist = clean domains that don't need cleanup)
-- At least one rule set must be enabled (defaultRules or customRules)
-- Elements are removed when: `isActive && !isDomainWhitelisted(currentDomain)`
+- Domain must NOT be in whitelist (whitelist = clean domains that don't need any protection)
+- Individual protection modules can be enabled/disabled independently
+- **SecurityProtector**: Event listener protection and localStorage monitoring (no CSP - removed due to breaking legitimate third-party scripts)
+- **ScriptAnalyzer**: Monitors and blocks malicious scripts in real-time
+- **NavigationGuardian**: Protects against cross-origin navigation attacks
+- **Element Removal**: Executes when `isActive && !isDomainWhitelisted(currentDomain)`
+- **Pattern Detection**: AI-powered ad detection with confidence scoring
 
 **Default Rules:**
 Initialize extension with common element removal rules for advertising, tracking, and annoyances. Store in `defaultRules` array with categories like:
@@ -187,9 +201,35 @@ Initialize extension with common clean/trusted domains that DON'T need element r
 - Support subdomain matching (e.g., `*.example.com`)
 - Store domains without protocol (no `https://`)
 
+**Modular Architecture:**
+
+The content script uses a clean modular architecture with specialized protection modules:
+
+```
+src/scripts/
+├── content.js                    // JustUIController orchestrator
+├── modules/
+│   ├── SecurityProtector.js      // Event listener protection, localStorage monitoring
+│   ├── ScriptAnalyzer.js         // Real-time script threat analysis
+│   ├── NavigationGuardian.js     // Cross-origin navigation protection
+│   ├── ClickHijackingProtector.js // Click analysis and overlay detection
+│   ├── ElementRemover.js         // DOM manipulation strategies
+│   ├── ChromeAdTagDetector.js    // Chrome-specific ad detection
+│   └── MutationProtector.js      // DOM change monitoring
+└── injected-script.js            // Page-world JavaScript interception
+```
+
+**Module Benefits:**
+- **Single Responsibility**: Each module handles one specific protection area
+- **Independent Testing**: Modules can be tested and debugged in isolation
+- **Flexible Configuration**: Individual modules can be enabled/disabled
+- **Easy Extensibility**: New protection features can be added as separate modules
+- **Maintainable Code**: Clear separation of concerns and well-defined interfaces
+
 **Testing Extension:**
 1. Run `npm run build` to build to `dist/`
 2. Open Chrome → Extensions → Developer mode → Load unpacked → Select `dist/` folder
-3. Test popup, settings page, and content script functionality
-4. Use Chrome DevTools → Console to debug content script
+3. Test popup, settings page, and modular content script functionality
+4. Use Chrome DevTools → Console to debug individual protection modules
 5. Use Extension DevTools to debug popup and background script
+6. Verify each protection module operates independently
