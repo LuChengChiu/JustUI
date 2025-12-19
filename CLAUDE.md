@@ -122,13 +122,18 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 - Import/export functionality for rules and settings
 
 *Content Script (src/scripts/content.js):*
-- **JustUIController**: Main orchestrator coordinating all protection modules
+- **JustUIController**: Main orchestrator coordinating all protection modules with comprehensive cleanup management
 - **SecurityProtector**: Event listener protection, localStorage monitoring (blocks pop-under tracking)
 - **ScriptAnalyzer**: Advanced script threat detection and real-time monitoring
 - **NavigationGuardian**: Cross-origin navigation interception with user confirmation modals
 - **ClickHijackingProtector**: Advanced click analysis and suspicious overlay detection
 - **ElementRemover**: DOM element removal with multiple strategies (hide, remove, neutralize)
-- **Pattern Detection**: AI-powered ad detection using AdDetectionEngine
+- **PerformanceTracker**: Adaptive batch sizing for optimal pattern detection performance
+- **RequestBlockingProtector**: Request interception and blocking capabilities
+- **SuspiciousElementDetector**: Advanced suspicious element detection algorithms
+- **CleanupRegistry**: Centralized cleanup management for memory leak prevention
+- **Pattern Detection**: AI-powered ad detection using AdDetectionEngine with time-slicing optimization
+- **Chrome API Safety**: Robust Chrome storage operations with context validation and retry mechanisms
 - Communicate execution results and statistics to background script
 
 *Modular Protection System:*
@@ -168,7 +173,7 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 - Extension must be active (`isActive = true`)
 - Domain must NOT be in whitelist (whitelist = clean domains that don't need any protection)
 - Individual protection modules can be enabled/disabled independently
-- **SecurityProtector**: Event listener protection and localStorage monitoring (no CSP - removed due to breaking legitimate third-party scripts)
+- **SecurityProtector**: Event listener protection and localStorage monitoring
 - **ScriptAnalyzer**: Monitors and blocks malicious scripts in real-time
 - **NavigationGuardian**: Protects against cross-origin navigation attacks
 - **Element Removal**: Executes when `isActive && !isDomainWhitelisted(currentDomain)`
@@ -207,16 +212,23 @@ The content script uses a clean modular architecture with specialized protection
 
 ```
 src/scripts/
-├── content.js                    // JustUIController orchestrator
+├── content.js                         // JustUIController orchestrator
+├── constants.js                       // Shared constants and performance tuning parameters
 ├── modules/
-│   ├── SecurityProtector.js      // Event listener protection, localStorage monitoring
-│   ├── ScriptAnalyzer.js         // Real-time script threat analysis
-│   ├── NavigationGuardian.js     // Cross-origin navigation protection
-│   ├── ClickHijackingProtector.js // Click analysis and overlay detection
-│   ├── ElementRemover.js         // DOM manipulation strategies
-│   ├── ChromeAdTagDetector.js    // Chrome-specific ad detection
-│   └── MutationProtector.js      // DOM change monitoring
-└── injected-script.js            // Page-world JavaScript interception
+│   ├── SecurityProtector.js           // Event listener protection, localStorage monitoring
+│   ├── ScriptAnalyzer.js              // Real-time script threat analysis
+│   ├── NavigationGuardian.js          // Cross-origin navigation protection
+│   ├── ClickHijackingProtector.js     // Click analysis and overlay detection
+│   ├── ElementRemover.js              // DOM manipulation strategies
+│   ├── ChromeAdTagDetector.js         // Chrome-specific ad detection
+│   ├── MutationProtector.js           // DOM change monitoring
+│   ├── PerformanceTracker.js          // Adaptive batch sizing for pattern detection
+│   ├── RequestBlockingProtector.js    // Request interception and blocking
+│   ├── SuspiciousElementDetector.js   // Advanced suspicious element detection
+│   └── ICleanable.js                  // Cleanup interface and registry for memory leak prevention
+├── utils/
+│   └── chromeApiSafe.js               // Safe Chrome API operations with context validation
+└── injected-script.js                 // Page-world JavaScript interception
 ```
 
 **Module Benefits:**
@@ -225,6 +237,25 @@ src/scripts/
 - **Flexible Configuration**: Individual modules can be enabled/disabled
 - **Easy Extensibility**: New protection features can be added as separate modules
 - **Maintainable Code**: Clear separation of concerns and well-defined interfaces
+- **Memory Leak Prevention**: Comprehensive cleanup system with ICleanable interface and CleanupRegistry
+- **Performance Optimization**: Adaptive batch sizing and performance tracking for optimal resource usage
+
+**Cleanup Architecture:**
+
+The extension implements a comprehensive cleanup system to prevent memory leaks:
+
+- **ICleanable Interface**: Standardized cleanup contract for all modules
+- **CleanupRegistry**: Central registry managing module cleanup lifecycle
+- **Automatic Lifecycle Management**: Comprehensive event handling for page navigation, extension reload, and context invalidation
+- **Resource Monitoring**: Tracks cleanup success/failure for debugging and optimization
+- **Graceful Degradation**: Safe operation even when Chrome extension context becomes invalid
+
+**Performance Optimization:**
+
+- **PerformanceTracker**: Adaptive batch sizing for pattern detection operations
+- **Time-Slicing**: Non-blocking execution that respects frame budgets
+- **Chrome API Safety**: Robust Chrome storage operations with retry mechanisms and context validation
+- **Debounced Operations**: Reduced API call frequency through intelligent debouncing
 
 **Testing Extension:**
 1. Run `npm run build` to build to `dist/`
