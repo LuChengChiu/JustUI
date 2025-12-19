@@ -10,7 +10,6 @@ function Settings() {
   const [navigationGuardEnabled, setNavigationGuardEnabled] = useState(true);
   const [popUnderProtectionEnabled, setPopUnderProtectionEnabled] = useState(true);
   const [scriptAnalysisEnabled, setScriptAnalysisEnabled] = useState(true);
-  const [cspProtectionEnabled, setCspProtectionEnabled] = useState(true);
   const [whitelist, setWhitelist] = useState([]);
   const [defaultRules, setDefaultRules] = useState([]);
   const [customRules, setCustomRules] = useState([]);
@@ -28,7 +27,6 @@ function Settings() {
       'navigationGuardEnabled',
       'popUnderProtectionEnabled',
       'scriptAnalysisEnabled',
-      'cspProtectionEnabled',
       'whitelist',
       'defaultRules',
       'customRules',
@@ -41,7 +39,6 @@ function Settings() {
       setNavigationGuardEnabled(result.navigationGuardEnabled !== false);
       setPopUnderProtectionEnabled(result.popUnderProtectionEnabled !== false);
       setScriptAnalysisEnabled(result.scriptAnalysisEnabled !== false);
-      setCspProtectionEnabled(result.cspProtectionEnabled !== false);
       setWhitelist(result.whitelist || []);
       setDefaultRules(result.defaultRules || []);
       setCustomRules(result.customRules || []);
@@ -89,10 +86,6 @@ function Settings() {
     updateSetting('scriptAnalysisEnabled', enabled);
   };
 
-  const handleCspProtectionToggle = (enabled) => {
-    setCspProtectionEnabled(enabled);
-    updateSetting('cspProtectionEnabled', enabled);
-  };
 
   const resetNavigationStats = () => {
     const resetStats = { blockedCount: 0, allowedCount: 0 };
@@ -276,18 +269,6 @@ function Settings() {
               />
             </div>
 
-            {/* CSP Protection */}
-            <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-              <div>
-                <h3 className="font-medium text-gray-800">Content Security Policy Protection</h3>
-                <p className="text-sm text-gray-600">Inject strict CSP headers to prevent inline script execution</p>
-                <p className="text-xs text-gray-500">Blocks eval(), inline scripts, and restricts script sources</p>
-              </div>
-              <Switch 
-                checked={cspProtectionEnabled} 
-                onChange={handleCspProtectionToggle} 
-              />
-            </div>
 
             {/* Protection Details */}
             {popUnderProtectionEnabled && (

@@ -268,7 +268,6 @@ chrome.runtime.onInstalled.addListener(async () => {
       "navigationGuardEnabled",
       "popUnderProtectionEnabled",
       "scriptAnalysisEnabled",
-      "cspProtectionEnabled",
       "navigationStats",
       "blockRequestList",
       "requestBlockingEnabled",
@@ -292,8 +291,6 @@ chrome.runtime.onInstalled.addListener(async () => {
         updates.popUnderProtectionEnabled = true;
       if (result.scriptAnalysisEnabled === undefined)
         updates.scriptAnalysisEnabled = true;
-      if (result.cspProtectionEnabled === undefined)
-        updates.cspProtectionEnabled = true;
       if (!result.navigationStats)
         updates.navigationStats = { blockedCount: 0, allowedCount: 0 };
       if (!result.blockRequestList)
