@@ -304,6 +304,16 @@ export class ChromeAdTagDetector {
   }
 
   /**
+   * Clean up all resources and observers
+   */
+  cleanup() {
+    this.disable(); // This disconnects the observer
+    this.detectedCount = 0;
+    this.interventionReports = [];
+    console.log('JustUI: ChromeAdTagDetector cleaned up');
+  }
+
+  /**
    * Clear statistics and reports
    */
   clearStats() {

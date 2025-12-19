@@ -8,6 +8,7 @@ export class ClickHijackingProtector {
   constructor() {
     this.isActive = false;
     this.capturedClicks = new Set();
+    this.eventListeners = [];
     this.setupDocumentProtection();
   }
 
@@ -28,45 +29,73 @@ export class ClickHijackingProtector {
   }
 
   /**
+   * Clean up all event listeners and resources
+   */
+  cleanup() {
+    this.isActive = false;
+    
+    // Remove all tracked event listeners
+    this.eventListeners.forEach(({ element, type, handler, options }) => {
+      try {
+        element.removeEventListener(type, handler, options);
+      } catch (error) {
+        console.warn(`JustUI: Error removing ${type} listener:`, error);
+      }
+    });
+    
+    // Clear the listeners array
+    this.eventListeners = [];
+    this.capturedClicks.clear();
+    
+    console.log("JustUI: Click hijacking protection cleaned up");
+  }
+
+  /**
    * Setup document-level click capture
    * Intercepts clicks before malicious overlays can handle them
    */
   setupDocumentProtection() {
     // Capture phase - runs before any other click handlers
-    document.addEventListener(
-      "click",
-      (event) => {
-        if (!this.isActive) return;
+    const clickHandler = (event) => {
+      if (!this.isActive) return;
 
-        // Run advanced click analysis first
-        const clickAllowed = this.handleAdvancedClickProtection(event);
-        if (!clickAllowed) {
-          return; // Click was blocked by advanced protection
-        }
-
-        const clickedElement = event.target;
-        const suspiciousOverlay = this.findSuspiciousOverlay(clickedElement);
-
-        if (suspiciousOverlay) {
-          console.warn("JustUI: Blocked click on suspicious overlay", {
-            overlay: suspiciousOverlay,
-            clickTarget: clickedElement,
-          });
-
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-
-          // Remove the overlay immediately
-          this.removeSuspiciousOverlay(suspiciousOverlay);
-          return false;
-        }
-      },
-      {
-        capture: true, // Capture phase - highest priority
-        passive: false, // Allow preventDefault
+      // Run advanced click analysis first
+      const clickAllowed = this.handleAdvancedClickProtection(event);
+      if (!clickAllowed) {
+        return; // Click was blocked by advanced protection
       }
-    );
+
+      const clickedElement = event.target;
+      const suspiciousOverlay = this.findSuspiciousOverlay(clickedElement);
+
+      if (suspiciousOverlay) {
+        console.warn("JustUI: Blocked click on suspicious overlay", {
+          overlay: suspiciousOverlay,
+          clickTarget: clickedElement,
+        });
+
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        // Remove the overlay immediately
+        this.removeSuspiciousOverlay(suspiciousOverlay);
+        return false;
+      }
+    };
+
+    const clickOptions = {
+      capture: true, // Capture phase - highest priority
+      passive: false, // Allow preventDefault
+    };
+
+    document.addEventListener("click", clickHandler, clickOptions);
+    this.eventListeners.push({
+      element: document,
+      type: "click",
+      handler: clickHandler,
+      options: clickOptions
+    });
 
     // Additional protection against pointer events
     this.setupPointerProtection();
@@ -191,28 +220,33 @@ export class ClickHijackingProtector {
     const events = ["pointerdown", "pointerup", "mousedown", "mouseup"];
 
     events.forEach((eventType) => {
-      document.addEventListener(
-        eventType,
-        (event) => {
-          if (!this.isActive) return;
+      const handler = (event) => {
+        if (!this.isActive) return;
 
-          const target = event.target;
-          if (this.isSuspiciousInterceptor(target)) {
-            console.warn(
-              `JustUI: Blocked ${eventType} on suspicious element`,
-              target
-            );
-            event.preventDefault();
-            event.stopPropagation();
-            event.stopImmediatePropagation();
+        const target = event.target;
+        if (this.isSuspiciousInterceptor(target)) {
+          console.warn(
+            `JustUI: Blocked ${eventType} on suspicious element`,
+            target
+          );
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
 
-            // Remove the interceptor
-            target.remove();
-            return false;
-          }
-        },
-        { capture: true, passive: false }
-      );
+          // Remove the interceptor
+          target.remove();
+          return false;
+        }
+      };
+
+      const options = { capture: true, passive: false };
+      document.addEventListener(eventType, handler, options);
+      this.eventListeners.push({
+        element: document,
+        type: eventType,
+        handler: handler,
+        options: options
+      });
     });
   }
 

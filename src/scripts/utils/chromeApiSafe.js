@@ -118,19 +118,34 @@ export async function safeStorageSet(items, options = {}) {
  */
 export const debouncedStorageSet = (() => {
   const timeouts = new Map();
+  const MAX_ENTRIES = 100;
   
   return function(key, items, delay = 500) {
     return new Promise((resolve) => {
       // Clear existing timeout for this key
       if (timeouts.has(key)) {
         clearTimeout(timeouts.get(key));
+        timeouts.delete(key);
+      }
+
+      // Prevent unbounded growth by removing oldest entries
+      if (timeouts.size >= MAX_ENTRIES) {
+        const firstKey = timeouts.keys().next().value;
+        clearTimeout(timeouts.get(firstKey));
+        timeouts.delete(firstKey);
+        console.warn(`JustUI: debouncedStorageSet map reached max size (${MAX_ENTRIES}), removed oldest entry`);
       }
 
       // Set new timeout
       const timeoutId = setTimeout(async () => {
         timeouts.delete(key);
-        await safeStorageSet(items);
-        resolve();
+        try {
+          await safeStorageSet(items);
+          resolve();
+        } catch (error) {
+          console.warn('JustUI: debouncedStorageSet failed:', error);
+          resolve(); // Still resolve to prevent hanging promises
+        }
       }, delay);
 
       timeouts.set(key, timeoutId);

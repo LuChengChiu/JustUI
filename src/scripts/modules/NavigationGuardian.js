@@ -11,6 +11,7 @@ export class NavigationGuardian {
     this.pendingNavigationModals = new Map();
     this.whitelist = [];
     this.whitelistCache = null;
+    this.eventListeners = [];
     console.log('JustUI: NavigationGuardian initialized');
   }
 
@@ -48,13 +49,35 @@ export class NavigationGuardian {
    */
   setupEventListeners() {
     // Listen for link clicks (capture phase to intercept early)
-    document.addEventListener('click', this.handleLinkClick.bind(this), true);
+    const clickHandler = this.handleLinkClick.bind(this);
+    const submitHandler = this.handleFormSubmit.bind(this);
+    const messageHandler = this.handleNavigationMessage.bind(this);
+    
+    document.addEventListener('click', clickHandler, true);
+    this.eventListeners.push({
+      element: document,
+      type: 'click',
+      handler: clickHandler,
+      options: true
+    });
     
     // Listen for form submissions (capture phase)
-    document.addEventListener('submit', this.handleFormSubmit.bind(this), true);
+    document.addEventListener('submit', submitHandler, true);
+    this.eventListeners.push({
+      element: document,
+      type: 'submit', 
+      handler: submitHandler,
+      options: true
+    });
     
     // Listen for messages from injected script
-    window.addEventListener('message', this.handleNavigationMessage.bind(this));
+    window.addEventListener('message', messageHandler);
+    this.eventListeners.push({
+      element: window,
+      type: 'message',
+      handler: messageHandler,
+      options: undefined
+    });
     
     console.log('JustUI: Navigation Guardian listeners setup complete');
   }
@@ -570,5 +593,38 @@ export class NavigationGuardian {
   updateWhitelist(whitelist) {
     this.whitelist = whitelist;
     this.whitelistCache = null;
+  }
+
+  /**
+   * Clean up all event listeners and resources
+   */
+  cleanup() {
+    this.isEnabled = false;
+    
+    // Remove all tracked event listeners
+    this.eventListeners.forEach(({ element, type, handler, options }) => {
+      try {
+        element.removeEventListener(type, handler, options);
+      } catch (error) {
+        console.warn(`JustUI: Error removing NavigationGuardian ${type} listener:`, error);
+      }
+    });
+    
+    // Clear the listeners array
+    this.eventListeners = [];
+    
+    // Clear pending modals
+    this.pendingNavigationModals.clear();
+    
+    // Remove any existing modal
+    const existingModal = document.getElementById('justui-navigation-modal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+    
+    // Clear cache
+    this.whitelistCache = null;
+    
+    console.log('JustUI: NavigationGuardian cleaned up');
   }
 }

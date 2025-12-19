@@ -12,6 +12,7 @@ import { ChromeAdTagDetector } from './modules/ChromeAdTagDetector.js';
 import { SecurityProtector } from './modules/SecurityProtector.js';
 import { ScriptAnalyzer } from './modules/ScriptAnalyzer.js';
 import { NavigationGuardian } from './modules/NavigationGuardian.js';
+import { CleanupRegistry } from './modules/ICleanable.js';
 import { safeStorageGet, safeStorageSet, debouncedStorageSet, isExtensionContextValid } from './utils/chromeApiSafe.js';
 import AdDetectionEngine from './adDetectionEngine.js';
 
@@ -33,13 +34,27 @@ class JustUIController {
     this.customRulesEnabled = true;
     this.patternRulesEnabled = true;
     
+    // Cleanup registry for memory leak prevention
+    this.cleanupRegistry = new CleanupRegistry();
+    
     // Protection modules
     this.securityProtector = new SecurityProtector();
+    this.cleanupRegistry.register(this.securityProtector, 'SecurityProtector');
+    
     this.scriptAnalyzer = new ScriptAnalyzer();
+    this.cleanupRegistry.register(this.scriptAnalyzer, 'ScriptAnalyzer');
+    
     this.clickProtector = new ClickHijackingProtector();
+    this.cleanupRegistry.register(this.clickProtector, 'ClickHijackingProtector');
+    
     this.navigationGuardian = new NavigationGuardian();
+    this.cleanupRegistry.register(this.navigationGuardian, 'NavigationGuardian');
+    
     this.mutationProtector = new MutationProtector(this.clickProtector);
+    this.cleanupRegistry.register(this.mutationProtector, 'MutationProtector');
+    
     this.chromeAdDetector = new ChromeAdTagDetector();
+    this.cleanupRegistry.register(this.chromeAdDetector, 'ChromeAdTagDetector');
     
     // Navigation Guardian settings (managed by NavigationGuardian module)
     this.navigationGuardEnabled = true;
@@ -50,6 +65,7 @@ class JustUIController {
     this.adDetectionEngine = null;
     
     console.log('JustUI: Controller initialized for domain:', this.currentDomain);
+    console.log('JustUI: Registered', this.cleanupRegistry.getModuleCount(), 'cleanable modules:', this.cleanupRegistry.getModuleNames());
   }
 
   /**
@@ -274,38 +290,85 @@ class JustUIController {
   }
 
   /**
-   * Execute pattern-based detection rules
+   * Execute pattern-based detection rules with time-slicing optimization
    */
   async executePatternRules() {
     if (!this.adDetectionEngine) return 0;
 
     let removedCount = 0;
     const suspiciousElements = document.querySelectorAll('div, iframe, section, aside, nav, header');
+    
+    if (suspiciousElements.length === 0) return 0;
 
-    for (const element of suspiciousElements) {
-      if (ElementRemover.isProcessed(element)) continue;
+    // Adaptive batch sizing based on element count
+    const batchSize = this.calculateOptimalBatchSize(suspiciousElements.length);
+    const framebudgetMs = 5; // Max 5ms per batch to maintain 60fps
+    
+    console.log(`JustUI: Pattern detection starting - ${suspiciousElements.length} elements to analyze (batch size: ${batchSize})`);
 
-      try {
-        const analysis = await this.adDetectionEngine.analyze(element);
-        
-        if (analysis.isAd && analysis.confidence > 0.7) {
-          element.setAttribute('data-justui-confidence', Math.round(analysis.confidence * 100));
-          element.setAttribute('data-justui-rules', analysis.matchedRules.map(r => r.rule).join(','));
+    // Process elements in time-sliced batches
+    for (let i = 0; i < suspiciousElements.length; i += batchSize) {
+      const batch = Array.from(suspiciousElements).slice(i, i + batchSize);
+      const batchStartTime = performance.now();
+      
+      for (const element of batch) {
+        if (ElementRemover.isProcessed(element)) continue;
+
+        try {
+          const analysis = await this.adDetectionEngine.analyze(element);
           
-          if (ElementRemover.removeElement(element, `pattern-${analysis.totalScore}`, ElementRemover.REMOVAL_STRATEGIES.REMOVE)) {
-            removedCount++;
-            console.log(`JustUI: Pattern detection removed element (score: ${analysis.totalScore}, confidence: ${Math.round(analysis.confidence * 100)}%)`, {
-              rules: analysis.matchedRules,
-              element: element.tagName + (element.className ? `.${element.className}` : '')
-            });
+          if (analysis.isAd && analysis.confidence > 0.7) {
+            element.setAttribute('data-justui-confidence', Math.round(analysis.confidence * 100));
+            element.setAttribute('data-justui-rules', analysis.matchedRules.map(r => r.rule).join(','));
+            
+            if (ElementRemover.removeElement(element, `pattern-${analysis.totalScore}`, ElementRemover.REMOVAL_STRATEGIES.REMOVE)) {
+              removedCount++;
+              console.log(`JustUI: Pattern detection removed element (score: ${analysis.totalScore}, confidence: ${Math.round(analysis.confidence * 100)}%)`, {
+                rules: analysis.matchedRules,
+                element: element.tagName + (element.className ? `.${element.className}` : '')
+              });
+            }
           }
+          
+          // Check if we've exceeded our frame budget
+          if (performance.now() - batchStartTime > framebudgetMs) {
+            break;
+          }
+        } catch (error) {
+          console.error('JustUI: Error in pattern analysis:', error);
         }
-      } catch (error) {
-        console.error('JustUI: Error in pattern analysis:', error);
+      }
+
+      // Yield control to the main thread between batches
+      if (i + batchSize < suspiciousElements.length) {
+        await this.yieldToMainThread();
       }
     }
 
+    console.log(`JustUI: Pattern detection completed - ${removedCount} elements removed`);
     return removedCount;
+  }
+
+  /**
+   * Calculate optimal batch size based on element count
+   */
+  calculateOptimalBatchSize(elementCount) {
+    if (elementCount < 100) return 25;      // Small sites
+    if (elementCount < 500) return 50;      // Medium sites  
+    return 75;                              // Large sites
+  }
+
+  /**
+   * Yield control to the main thread using cooperative scheduling
+   */
+  async yieldToMainThread() {
+    return new Promise(resolve => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(resolve, { timeout: 100 });
+      } else {
+        setTimeout(resolve, 0);
+      }
+    });
   }
 
   /**
@@ -531,6 +594,40 @@ class JustUIController {
       // Continue execution - stats are still updated in memory
     }
   }
+
+  /**
+   * Comprehensive cleanup destructor - prevents memory leaks
+   * Uses registry pattern to follow SOLID principles
+   */
+  destructor() {
+    console.log('JustUI: Starting controller destructor...');
+    
+    // Stop all protection systems first
+    this.stopProtection();
+    
+    // Use cleanup registry to clean up all modules (follows Open/Closed Principle)
+    const results = this.cleanupRegistry.cleanupAll();
+    
+    // Log cleanup results for debugging
+    const successful = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+    console.log(`JustUI: Cleanup completed - ${successful} successful, ${failed} failed`);
+    
+    // Clear controller state
+    this.isActive = false;
+    this.whitelist = [];
+    this.defaultRules = [];
+    this.customRules = [];
+    this.domainStats = {};
+    this.navigationStats = { blockedCount: 0, allowedCount: 0 };
+    this.whitelistCache = null;
+    this.adDetectionEngine = null;
+    
+    // Note: We don't null out module references since they might still be used elsewhere
+    // The cleanup registry handles the actual resource cleanup
+    
+    console.log('JustUI: Controller destructor completed');
+  }
 }
 
 // Initialize controller when DOM is ready
@@ -542,10 +639,52 @@ if (document.readyState === 'loading') {
   justUIController.initialize();
 }
 
-// Cleanup on unload
-window.addEventListener('beforeunload', () => {
-  justUIController.stopProtection();
+// Comprehensive lifecycle cleanup - prevents memory leaks
+let isCleanedUp = false;
+
+const performCleanup = (reason) => {
+  if (isCleanedUp) return;
+  isCleanedUp = true;
+  
+  console.log(`JustUI: Performing cleanup due to: ${reason}`);
+  justUIController.destructor();
+};
+
+// Page navigation/unload cleanup (modern approach - no deprecated 'unload' event)
+window.addEventListener('beforeunload', () => performCleanup('beforeunload'));
+window.addEventListener('pagehide', () => performCleanup('pagehide'));
+
+// Visibility change cleanup (tab becomes hidden)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    // Don't fully cleanup on visibility change, but ensure we can cleanup later
+    console.log('JustUI: Page hidden, prepared for cleanup');
+  }
 });
+
+// Extension context invalidation cleanup
+const checkExtensionContext = () => {
+  if (!isExtensionContextValid()) {
+    performCleanup('extension-context-invalidated');
+  }
+};
+
+// Check extension context periodically for the first few seconds
+let contextCheckCount = 0;
+const contextCheckInterval = setInterval(() => {
+  checkExtensionContext();
+  contextCheckCount++;
+  
+  // Stop checking after 10 attempts (5 seconds)
+  if (contextCheckCount >= 10 || isCleanedUp) {
+    clearInterval(contextCheckInterval);
+  }
+}, 500);
+
+// Chrome extension suspend/shutdown cleanup
+if (chrome?.runtime?.onSuspend) {
+  chrome.runtime.onSuspend.addListener(() => performCleanup('extension-suspend'));
+}
 
 // Export for testing/debugging
 window.JustUIController = justUIController;

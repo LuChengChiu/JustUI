@@ -247,6 +247,16 @@ export class ScriptAnalyzer {
   }
 
   /**
+   * Clean up all resources and monitoring
+   */
+  cleanup() {
+    this.isActive = false;
+    this.stopMonitoring();
+    this.blockedScriptsCount = 0;
+    console.log('JustUI: ScriptAnalyzer cleaned up');
+  }
+
+  /**
    * Reset statistics
    */
   resetStats() {

@@ -62,6 +62,28 @@ export class MutationProtector {
   }
 
   /**
+   * Clean up all resources and observers
+   */
+  cleanup() {
+    // Stop the mutation observer
+    this.stop();
+    
+    // Clear all callbacks
+    Object.keys(this.callbacks).forEach(eventType => {
+      this.callbacks[eventType] = [];
+    });
+    
+    // Clear execution callback
+    this.executeRulesCallback = null;
+    
+    // Reset state
+    this.immediateRemovalCount = 0;
+    this.clickProtector = null;
+    
+    console.log('JustUI: Mutation protector cleaned up');
+  }
+
+  /**
    * Setup the MutationObserver with enhanced immediate response
    */
   setupObserver() {

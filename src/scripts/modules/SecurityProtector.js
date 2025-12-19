@@ -153,6 +153,15 @@ export class SecurityProtector {
   }
 
   /**
+   * Clean up all security protections and resources
+   */
+  cleanup() {
+    this.isActive = false;
+    this.cleanupProtections();
+    console.log('JustUI: SecurityProtector cleaned up');
+  }
+
+  /**
    * Get current protection status
    * @returns {Object} Current status of all protections
    */

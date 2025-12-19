@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JustUI Performance Test - Large DOM</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-info { background: #f0f8ff; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .performance-metrics { background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .element-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+        .test-element { 
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4); 
+            height: 100px; 
+            border-radius: 5px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: white; 
+            font-weight: bold;
+        }
+        .ad-element { background: linear-gradient(45deg, #ff9999, #ffcc99) !important; }
+        .suspicious-iframe { border: 2px solid red; background: #ffe6e6; }
+    </style>
+</head>
+<body>
+    <div class="test-info">
+        <h1>JustUI Time-Slicing Performance Test</h1>
+        <p>This page contains <strong id="elementCount">0</strong> DOM elements to test pattern detection performance.</p>
+        <p>The time-slicing optimization should prevent UI freezing during element analysis.</p>
+        <button onclick="testAnimation()">Test UI Responsiveness</button>
+        <div id="animationBox" style="width: 50px; height: 50px; background: blue; transition: margin-left 2s;"></div>
+    </div>
+
+    <div class="performance-metrics">
+        <h3>Performance Metrics</h3>
+        <div id="metrics">Extension not detected yet...</div>
+    </div>
+
+    <div class="element-grid" id="elementGrid">
+        <!-- Large number of elements will be generated here -->
+    </div>
+
+    <script>
+        // Generate large number of test elements
+        function generateTestElements() {
+            const grid = document.getElementById('elementGrid');
+            const elementCount = 1200; // Large DOM to test performance
+            
+            for (let i = 0; i < elementCount; i++) {
+                const element = document.createElement('div');
+                element.className = 'test-element';
+                
+                // Mix different element types that pattern detection targets
+                if (i % 7 === 0) {
+                    element.innerHTML = `<span>Advertisement ${i}</span>`;
+                    element.className += ' ad-element';
+                } else if (i % 11 === 0) {
+                    const iframe = document.createElement('iframe');
+                    iframe.className = 'suspicious-iframe';
+                    iframe.style.width = '100%';
+                    iframe.style.height = '80px';
+                    iframe.src = 'data:text/html,<p>Iframe Content</p>';
+                    element.appendChild(iframe);
+                } else if (i % 13 === 0) {
+                    element.innerHTML = `<nav>Navigation ${i}</nav>`;
+                } else if (i % 17 === 0) {
+                    element.innerHTML = `<header>Header ${i}</header>`;
+                } else if (i % 19 === 0) {
+                    element.innerHTML = `<aside>Sidebar ${i}</aside>`;
+                } else if (i % 23 === 0) {
+                    element.innerHTML = `<section>Section ${i}</section>`;
+                } else {
+                    element.innerHTML = `Element ${i}`;
+                }
+                
+                grid.appendChild(element);
+            }
+            
+            document.getElementById('elementCount').textContent = elementCount;
+            console.log(`Generated ${elementCount} test elements for performance testing`);
+        }
+
+        // Test UI responsiveness during pattern detection
+        function testAnimation() {
+            const box = document.getElementById('animationBox');
+            box.style.marginLeft = box.style.marginLeft === '200px' ? '0px' : '200px';
+        }
+
+        // Monitor console for JustUI performance logs
+        function monitorPerformance() {
+            const originalLog = console.log;
+            console.log = function(...args) {
+                if (args[0] && args[0].includes && args[0].includes('JustUI: Pattern detection')) {
+                    document.getElementById('metrics').innerHTML += '<p>' + args[0] + '</p>';
+                }
+                originalLog.apply(console, args);
+            };
+        }
+
+        // Initialize test
+        window.addEventListener('load', () => {
+            generateTestElements();
+            monitorPerformance();
+            
+            // Add some delay to see the time-slicing in action
+            setTimeout(() => {
+                console.log('JustUI Performance Test: Page loaded with ' + 
+                           document.querySelectorAll('div, iframe, section, aside, nav, header').length + 
+                           ' elements that match pattern detection selectors');
+            }, 1000);
+        });
+
+        // Simulate some dynamic content changes
+        setInterval(() => {
+            if (Math.random() < 0.1) { // 10% chance every second
+                const newElement = document.createElement('div');
+                newElement.className = 'test-element ad-element';
+                newElement.innerHTML = '<span>Dynamic Ad ' + Date.now() + '</span>';
+                document.getElementById('elementGrid').appendChild(newElement);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
