@@ -9,8 +9,19 @@
  */
 export function isExtensionContextValid() {
   try {
-    return !!(chrome?.runtime?.id);
+    // Check if chrome.runtime exists and has an id
+    if (!chrome?.runtime?.id) {
+      return false;
+    }
+    
+    // Additional check: try to access chrome.storage to ensure full context validity
+    if (!chrome?.storage?.local) {
+      return false;
+    }
+    
+    return true;
   } catch (error) {
+    // Any error accessing chrome APIs indicates invalid context
     return false;
   }
 }
@@ -72,7 +83,7 @@ export async function safeStorageSet(items, options = {}) {
   const { maxRetries = 3, retryDelay = 1000 } = options;
 
   if (!isExtensionContextValid()) {
-    console.warn('Chrome API Safe: Extension context invalid, skipping storage.set');
+    console.debug('Chrome API Safe: Extension context invalid, skipping storage.set');
     return Promise.resolve(); // Graceful degradation - don't throw
   }
 
@@ -93,7 +104,7 @@ export async function safeStorageSet(items, options = {}) {
       
       // Check if this is a context invalidation error
       if (error.message?.includes('Extension context invalidated') || !isExtensionContextValid()) {
-        console.warn('Chrome API Safe: Extension context invalidated, aborting storage operation');
+        console.debug('Chrome API Safe: Extension context invalidated, aborting storage operation');
         return; // Don't retry context invalidation errors
       }
 

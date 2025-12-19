@@ -12,9 +12,11 @@ import { ChromeAdTagDetector } from './modules/ChromeAdTagDetector.js';
 import { SecurityProtector } from './modules/SecurityProtector.js';
 import { ScriptAnalyzer } from './modules/ScriptAnalyzer.js';
 import { NavigationGuardian } from './modules/NavigationGuardian.js';
+import { PerformanceTracker } from './modules/PerformanceTracker.js';
 import { CleanupRegistry } from './modules/ICleanable.js';
 import { safeStorageGet, safeStorageSet, debouncedStorageSet, isExtensionContextValid } from './utils/chromeApiSafe.js';
 import AdDetectionEngine from './adDetectionEngine.js';
+import { PATTERN_DETECTION_CONFIG } from './constants.js';
 
 /**
  * Main JustUI Controller - Orchestrates all protection modules
@@ -290,37 +292,51 @@ class JustUIController {
   }
 
   /**
-   * Execute pattern-based detection rules with time-slicing optimization
+   * Execute pattern-based detection rules with adaptive time-slicing optimization
    */
   async executePatternRules() {
     if (!this.adDetectionEngine) return 0;
 
     let removedCount = 0;
     const suspiciousElements = document.querySelectorAll('div, iframe, section, aside, nav, header');
-    
+
     if (suspiciousElements.length === 0) return 0;
 
-    // Adaptive batch sizing based on element count
-    const batchSize = this.calculateOptimalBatchSize(suspiciousElements.length);
-    const framebudgetMs = 5; // Max 5ms per batch to maintain 60fps
-    
-    console.log(`JustUI: Pattern detection starting - ${suspiciousElements.length} elements to analyze (batch size: ${batchSize})`);
+    // Initialize performance tracker
+    const perfTracker = new PerformanceTracker();
+    const startTime = performance.now();
 
-    // Process elements in time-sliced batches
-    for (let i = 0; i < suspiciousElements.length; i += batchSize) {
-      const batch = Array.from(suspiciousElements).slice(i, i + batchSize);
+    console.log(`JustUI: Pattern detection starting - ${suspiciousElements.length} elements`);
+
+    let i = 0;
+    while (i < suspiciousElements.length) {
+      // Check total timeout
+      if (performance.now() - startTime > PATTERN_DETECTION_CONFIG.MAX_TOTAL_TIME) {
+        console.warn(`JustUI: Pattern detection timeout after ${Math.round(performance.now() - startTime)}ms, processed ${i}/${suspiciousElements.length} elements`);
+        break;
+      }
+
+      // Calculate adaptive batch size
+      const batchSize = perfTracker.calculateNextBatchSize(PATTERN_DETECTION_CONFIG.TARGET_FRAME_BUDGET);
+      const batchEnd = Math.min(i + batchSize, suspiciousElements.length);
       const batchStartTime = performance.now();
-      
-      for (const element of batch) {
+      let batchProcessedCount = 0;
+
+      // Process batch
+      for (let j = i; j < batchEnd; j++) {
+        const element = suspiciousElements[j];
+
         if (ElementRemover.isProcessed(element)) continue;
+
+        const elementStartTime = performance.now();
 
         try {
           const analysis = await this.adDetectionEngine.analyze(element);
-          
+
           if (analysis.isAd && analysis.confidence > 0.7) {
             element.setAttribute('data-justui-confidence', Math.round(analysis.confidence * 100));
             element.setAttribute('data-justui-rules', analysis.matchedRules.map(r => r.rule).join(','));
-            
+
             if (ElementRemover.removeElement(element, `pattern-${analysis.totalScore}`, ElementRemover.REMOVAL_STRATEGIES.REMOVE)) {
               removedCount++;
               console.log(`JustUI: Pattern detection removed element (score: ${analysis.totalScore}, confidence: ${Math.round(analysis.confidence * 100)}%)`, {
@@ -329,34 +345,43 @@ class JustUIController {
               });
             }
           }
-          
-          // Check if we've exceeded our frame budget
-          if (performance.now() - batchStartTime > framebudgetMs) {
-            break;
+
+          batchProcessedCount++;
+
+          // Emergency break for slow elements
+          const elementTime = performance.now() - elementStartTime;
+          if (elementTime > PATTERN_DETECTION_CONFIG.MAX_ELEMENT_TIME) {
+            console.warn(`JustUI: Slow element detected (${Math.round(elementTime)}ms), skipping:`, element.tagName);
+            ElementRemover.removeElement(element, 'slow-element', ElementRemover.REMOVAL_STRATEGIES.NEUTRALIZE);
           }
+
         } catch (error) {
           console.error('JustUI: Error in pattern analysis:', error);
+          batchProcessedCount++;
         }
       }
 
-      // Yield control to the main thread between batches
-      if (i + batchSize < suspiciousElements.length) {
+      // Record batch performance
+      const batchTime = performance.now() - batchStartTime;
+      perfTracker.recordBatch(batchProcessedCount, batchTime);
+
+      // Log batch stats
+      console.log(`JustUI: Batch complete - ${batchProcessedCount} elements in ${Math.round(batchTime)}ms (next batch: ${perfTracker.calculateNextBatchSize(PATTERN_DETECTION_CONFIG.TARGET_FRAME_BUDGET)} elements)`);
+
+      // Move to next batch
+      i = batchEnd;
+
+      // Yield to main thread if more work remains
+      if (i < suspiciousElements.length) {
         await this.yieldToMainThread();
       }
     }
 
-    console.log(`JustUI: Pattern detection completed - ${removedCount} elements removed`);
+    const totalTime = performance.now() - startTime;
+    console.log(`JustUI: Pattern detection completed - ${removedCount} elements removed in ${Math.round(totalTime)}ms`);
     return removedCount;
   }
 
-  /**
-   * Calculate optimal batch size based on element count
-   */
-  calculateOptimalBatchSize(elementCount) {
-    if (elementCount < 100) return 25;      // Small sites
-    if (elementCount < 500) return 50;      // Medium sites  
-    return 75;                              // Large sites
-  }
 
   /**
    * Yield control to the main thread using cooperative scheduling
@@ -569,7 +594,8 @@ class JustUIController {
   async updateDomainStats(stats) {
     // Check extension context before proceeding
     if (!isExtensionContextValid()) {
-      console.warn('JustUI: Extension context invalid, skipping domain stats update');
+      // Use debug-level logging for expected scenario (page unload, extension reload)
+      console.debug('JustUI: Extension context invalid, skipping domain stats update');
       return;
     }
 
@@ -588,9 +614,19 @@ class JustUIController {
 
     // Store in Chrome storage using debounced safe method to reduce API calls
     try {
-      await debouncedStorageSet('domainStats', { domainStats: this.domainStats });
+      // Double-check context validity before storage operation
+      if (isExtensionContextValid()) {
+        await debouncedStorageSet('domainStats', { domainStats: this.domainStats });
+      } else {
+        console.debug('JustUI: Extension context became invalid during stats update, skipping storage');
+      }
     } catch (error) {
-      console.warn('JustUI: Failed to update domain stats in storage:', error.message);
+      // Only log as warning if it's not a context invalidation error
+      if (error.message?.includes('Extension context invalidated') || !isExtensionContextValid()) {
+        console.debug('JustUI: Extension context invalidated during storage operation:', error.message);
+      } else {
+        console.warn('JustUI: Failed to update domain stats in storage:', error.message);
+      }
       // Continue execution - stats are still updated in memory
     }
   }
@@ -665,6 +701,7 @@ document.addEventListener('visibilitychange', () => {
 // Extension context invalidation cleanup
 const checkExtensionContext = () => {
   if (!isExtensionContextValid()) {
+    console.debug('JustUI: Extension context invalidated, triggering cleanup');
     performCleanup('extension-context-invalidated');
   }
 };
