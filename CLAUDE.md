@@ -8,8 +8,9 @@ JustUI is a comprehensive Chrome Extension built with React 19, Vite 7, and Tail
 
 1. **Element Removal System** - Removes unwanted DOM elements (ads, trackers, etc.) using CSS selectors
 2. **Navigation Guardian** - Intercepts and blocks malicious cross-origin navigation attempts with user confirmation modals  
-3. **Advanced Pattern Detection** - AI-powered ad detection engine using pattern analysis
-4. **Whitelist Management** - Clean domains that are exempt from all protection systems
+3. **Advanced Pattern Detection** - Heuristic-based ad detection engine using pattern analysis
+4. **Network Request Blocking** - Block malicious domains and tracking requests at the network level
+5. **Whitelist Management** - Clean domains that are exempt from all protection systems
 
 The extension operates on all domains EXCEPT those in the whitelist, providing comprehensive protection against ads, trackers, pop-unders, malicious redirects, and other unwanted content.
 
@@ -25,10 +26,11 @@ The extension operates on all domains EXCEPT those in the whitelist, providing c
 1. **Main Toggle** - Enable/disable entire extension functionality
 2. **Element Removal System** - CSS selector-based element removal with default/custom rules
 3. **Navigation Guardian** - Cross-origin navigation interception with user confirmation modals
-4. **Advanced Pattern Detection** - AI-powered ad detection using behavioral analysis
-5. **Whitelist System** - Manage clean domains that are EXEMPT from all protection systems (trusted sites)
-6. **Statistics & Analytics** - Real-time tracking of blocked elements and navigation attempts
-7. **Settings Management** - Comprehensive user configuration interface
+4. **Advanced Pattern Detection** - Heuristic-based ad detection using behavioral analysis
+5. **Network Request Blocking** - Block malicious domains and tracking requests with configurable patterns
+6. **Whitelist System** - Manage clean domains that are EXEMPT from all protection systems (trusted sites)
+7. **Statistics & Analytics** - Real-time tracking of blocked elements and navigation attempts
+8. **Settings Management** - Comprehensive user configuration interface with modular beta version
 
 **Chrome Extension Structure:**
 - `manifest.json` - Chrome Extension Manifest V3 configuration
@@ -37,7 +39,11 @@ The extension operates on all domains EXCEPT those in the whitelist, providing c
 - `src/popup.jsx` - React entry point
 - `src/App.jsx` - Main popup component with toggle, domain status, and quick actions
 - `src/settings.jsx` - Settings page React component
-- `src/components/ui/` - Reusable UI components
+- `src/settings-beta.jsx` - Modern beta settings page with modular components
+- `settings-beta.html` - Entry point for beta settings interface
+- `src/components/ui/` - Reusable UI components (buttons, inputs, typography, etc.)
+- `src/components/settings/` - Modular settings components (whitelist, rules, navigation guardian, etc.)
+- `src/data/` - Default configuration files (rules, whitelist, blocked domains)
 - `src/scripts/content.js` - Modular content script orchestrator
 - `src/scripts/modules/` - Protection modules (SecurityProtector, ScriptAnalyzer, NavigationGuardian, etc.)
 - `src/scripts/background.js` - Service worker for extension coordination
@@ -51,8 +57,10 @@ The extension operates on all domains EXCEPT those in the whitelist, providing c
   customRules: Rule[],                  // User-defined rules
   defaultRulesEnabled: boolean,         // Toggle for default rules
   customRulesEnabled: boolean,          // Toggle for custom rules
-  patternRulesEnabled: boolean,         // Toggle for AI pattern detection
+  patternRulesEnabled: boolean,         // Toggle for Advanced Pattern Detection
   navigationGuardEnabled: boolean,      // Toggle for Navigation Guardian
+  defaultBlockRequestEnabled: boolean,  // Toggle for network request blocking
+  networkBlockPatterns: string[],       // Custom network blocking patterns
   navigationStats: {                    // Navigation Guardian statistics
     blockedCount: number,               // Total blocked navigation attempts
     allowedCount: number                // Total allowed navigation attempts
@@ -117,9 +125,17 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 - Whitelist CRUD operations
 - Default rules toggle panel with individual rule controls
 - Custom rule editor with form validation
-- Pattern detection (AI) toggle controls
+- Advanced Pattern Detection toggle controls
 - Navigation Guardian toggle and statistics management
+- Network request blocking configuration
 - Import/export functionality for rules and settings
+
+*Beta Settings Page (src/settings-beta.jsx):*
+- Modern modular interface with improved UX
+- Component-based architecture using `/src/components/settings/`
+- WhitelistManager, CustomRulesManager, NavigationGuardian, BlockRequestsManager components
+- Enhanced visual design with Tailwind CSS styling
+- Improved form validation and user feedback
 
 *Content Script (src/scripts/content.js):*
 - **JustUIController**: Main orchestrator coordinating all protection modules with comprehensive cleanup management
@@ -132,7 +148,7 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 - **RequestBlockingProtector**: Request interception and blocking capabilities
 - **SuspiciousElementDetector**: Advanced suspicious element detection algorithms
 - **CleanupRegistry**: Centralized cleanup management for memory leak prevention
-- **Pattern Detection**: AI-powered ad detection using AdDetectionEngine with time-slicing optimization
+- **Pattern Detection**: Advanced pattern detection using AdDetectionEngine with time-slicing optimization
 - **Chrome API Safety**: Robust Chrome storage operations with context validation and retry mechanisms
 - Communicate execution results and statistics to background script
 
@@ -177,7 +193,7 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 - **ScriptAnalyzer**: Monitors and blocks malicious scripts in real-time
 - **NavigationGuardian**: Protects against cross-origin navigation attacks
 - **Element Removal**: Executes when `isActive && !isDomainWhitelisted(currentDomain)`
-- **Pattern Detection**: AI-powered ad detection with confidence scoring
+- **Pattern Detection**: Advanced pattern detection with confidence scoring
 
 **Default Rules:**
 Initialize extension with common element removal rules for advertising, tracking, and annoyances. Store in `defaultRules` array with categories like:
@@ -193,6 +209,14 @@ Initialize extension with common clean/trusted domains that DON'T need element r
 - User-preferred sites without intrusive ads
 - Users can add/remove domains as needed - these are just sensible defaults for clean sites
 
+**Network Request Blocking:**
+Block malicious domains and tracking requests at the network level. Store in `src/data/defaultBlockRequests.json`:
+- Tracking domains (doubleclick.net, google-analytics.com)
+- Malicious ad networks (adexchangeclear.com, pubfuture-ad.com)
+- Cryptojacking sites (coin-hive.com)
+- Analytics and telemetry services (api.segment.io)
+- Support for regex patterns and multiple resource types (xmlhttprequest, script, iframe, etc.)
+
 **Storage Keys:**
 - `isActive` - Main extension toggle
 - `whitelist` - Array of clean/trusted domains EXEMPT from element removal
@@ -200,6 +224,11 @@ Initialize extension with common clean/trusted domains that DON'T need element r
 - `customRules` - User-created rules array
 - `defaultRulesEnabled` - Boolean for default rules toggle
 - `customRulesEnabled` - Boolean for custom rules toggle
+- `patternRulesEnabled` - Boolean for Advanced Pattern Detection toggle
+- `navigationGuardEnabled` - Boolean for Navigation Guardian toggle
+- `defaultBlockRequestEnabled` - Boolean for network blocking toggle
+- `networkBlockPatterns` - Array of custom network blocking patterns
+- `navigationStats` - Navigation Guardian statistics (blocked/allowed counts)
 
 **Domain Handling:**
 - Extract domain from current tab URL using `new URL(tab.url).hostname`
@@ -214,13 +243,17 @@ The content script uses a clean modular architecture with specialized protection
 src/scripts/
 ├── content.js                         // JustUIController orchestrator
 ├── constants.js                       // Shared constants and performance tuning parameters
+├── adDetectionEngine.js               // Advanced pattern detection engine
 ├── modules/
 │   ├── SecurityProtector.js           // Event listener protection, localStorage monitoring
 │   ├── ScriptAnalyzer.js              // Real-time script threat analysis
 │   ├── NavigationGuardian.js          // Cross-origin navigation protection
 │   ├── ClickHijackingProtector.js     // Click analysis and overlay detection
 │   ├── ElementRemover.js              // DOM manipulation strategies
-│   ├── ChromeAdTagDetector.js         // Chrome-specific ad detection
+│   ├── ElementClassifier.js           // Element classification for hybrid processing
+│   ├── HybridProcessor.js             // Dual-strategy processing orchestrator
+│   ├── MemoryMonitor.js               // Memory leak detection and monitoring
+│   ├── SnapshotManager.js             // Batch geometry capture for layout optimization
 │   ├── MutationProtector.js           // DOM change monitoring
 │   ├── PerformanceTracker.js          // Adaptive batch sizing for pattern detection
 │   ├── RequestBlockingProtector.js    // Request interception and blocking
@@ -239,6 +272,8 @@ src/scripts/
 - **Maintainable Code**: Clear separation of concerns and well-defined interfaces
 - **Memory Leak Prevention**: Comprehensive cleanup system with ICleanable interface and CleanupRegistry
 - **Performance Optimization**: Adaptive batch sizing and performance tracking for optimal resource usage
+- **Hybrid Processing**: Dual-strategy approach with real-time critical element processing and bulk optimization
+- **Layout Optimization**: Snapshot-based geometry capture eliminates DOM thrashing
 
 **Cleanup Architecture:**
 
@@ -256,6 +291,10 @@ The extension implements a comprehensive cleanup system to prevent memory leaks:
 - **Time-Slicing**: Non-blocking execution that respects frame budgets
 - **Chrome API Safety**: Robust Chrome storage operations with retry mechanisms and context validation
 - **Debounced Operations**: Reduced API call frequency through intelligent debouncing
+- **Hybrid Processing Strategy**: ElementClassifier separates critical elements requiring real-time analysis from bulk elements suitable for batch processing
+- **SnapshotManager**: Eliminates layout thrashing through batch geometry capture with read-write separation
+- **MemoryMonitor**: Continuous memory leak detection with automatic garbage collection recommendations
+- **HybridProcessor**: Orchestrates dual processing strategies for optimal performance vs accuracy balance
 
 **Testing Extension:**
 1. Run `npm run build` to build to `dist/`
