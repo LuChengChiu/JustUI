@@ -1,7 +1,9 @@
 @import "tailwindcss";
 @source "../popup.html";
+@source "../settings.html";
 @source "./**/*.jsx";
 
 @theme {
   --font-days-one: "Days One", cursive;
+  --font-barlow: "Barlow", sans-serif;
 }

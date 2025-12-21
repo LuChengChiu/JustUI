@@ -8,18 +8,31 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [domainStats, setDomainStats] = useState({});
   const [navigationGuardEnabled, setNavigationGuardEnabled] = useState(true);
-  const [navigationStats, setNavigationStats] = useState({ blockedCount: 0, allowedCount: 0 });
+  const [navigationStats, setNavigationStats] = useState({
+    blockedCount: 0,
+    allowedCount: 0,
+  });
 
   useEffect(() => {
     const initializeExtension = async () => {
       try {
         // Load extension state from storage
-        chrome.storage.local.get(["isActive", "domainStats", "navigationGuardEnabled", "navigationStats"], (result) => {
-          setIsActive(result.isActive || false);
-          setDomainStats(result.domainStats || {});
-          setNavigationGuardEnabled(result.navigationGuardEnabled !== false);
-          setNavigationStats(result.navigationStats || { blockedCount: 0, allowedCount: 0 });
-        });
+        chrome.storage.local.get(
+          [
+            "isActive",
+            "domainStats",
+            "navigationGuardEnabled",
+            "navigationStats",
+          ],
+          (result) => {
+            setIsActive(result.isActive || false);
+            setDomainStats(result.domainStats || {});
+            setNavigationGuardEnabled(result.navigationGuardEnabled !== false);
+            setNavigationStats(
+              result.navigationStats || { blockedCount: 0, allowedCount: 0 }
+            );
+          }
+        );
 
         // Get current domain with timeout
         const domainResponse = await new Promise((resolve) => {
@@ -90,7 +103,12 @@ function App() {
           setNavigationGuardEnabled(changes.navigationGuardEnabled.newValue);
         }
         if (changes.navigationStats) {
-          setNavigationStats(changes.navigationStats.newValue || { blockedCount: 0, allowedCount: 0 });
+          setNavigationStats(
+            changes.navigationStats.newValue || {
+              blockedCount: 0,
+              allowedCount: 0,
+            }
+          );
         }
       }
     };
@@ -238,9 +256,9 @@ function App() {
             <h3 className="text-md font-semibold text-gray-800">
               Navigation Protection
             </h3>
-            <Switch 
-              checked={navigationGuardEnabled} 
-              onChange={handleNavigationGuardToggle} 
+            <Switch
+              checked={navigationGuardEnabled}
+              onChange={handleNavigationGuardToggle}
             />
           </div>
           <p className="text-sm text-gray-600">
@@ -250,15 +268,19 @@ function App() {
               ? "🛡️ Domain is trusted (no navigation protection)"
               : "🔓 Navigation protection disabled"}
           </p>
-          
+
           {navigationGuardEnabled && (
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="text-center p-2 bg-red-50 rounded">
-                <div className="text-lg font-bold text-red-600">{navigationStats.blockedCount}</div>
+                <div className="text-lg font-bold text-red-600">
+                  {navigationStats.blockedCount}
+                </div>
                 <div className="text-xs text-red-700">Blocked</div>
               </div>
               <div className="text-center p-2 bg-green-50 rounded">
-                <div className="text-lg font-bold text-green-600">{navigationStats.allowedCount}</div>
+                <div className="text-lg font-bold text-green-600">
+                  {navigationStats.allowedCount}
+                </div>
                 <div className="text-xs text-green-700">Allowed</div>
               </div>
             </div>
@@ -317,7 +339,8 @@ function App() {
                   <span className="text-sm font-bold text-gray-900">
                     {(domainStats[currentDomain]?.defaultRulesRemoved || 0) +
                       (domainStats[currentDomain]?.customRulesRemoved || 0) +
-                      (domainStats[currentDomain]?.chromeAdTagRemoved || 0)}{" "}
+                      (domainStats[currentDomain]?.chromeAdTagRemoved ||
+                        0)}{" "}
                     elements
                   </span>
                 </div>
@@ -329,7 +352,23 @@ function App() {
         {/* Settings Link */}
         <div className="pt-4 border-t border-gray-600">
           <button
-            onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL('settings.html') })}
+            onClick={() =>
+              chrome.tabs.create({
+                url: chrome.runtime.getURL("settings.html"),
+              })
+            }
+            className="w-full px-3 py-2 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
+          >
+            ⚙️ Advanced Settings
+          </button>
+        </div>
+        <div className="pt-4 border-t border-gray-600">
+          <button
+            onClick={() =>
+              chrome.tabs.create({
+                url: chrome.runtime.getURL("settings-beta.html"),
+              })
+            }
             className="w-full px-3 py-2 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
           >
             ⚙️ Advanced Settings
