@@ -8,9 +8,9 @@ import DefaultSelectorRuleManager from "./components/settings/selector-rules";
 import CustomRulesManager from "./components/settings/custom-rules";
 import BlockRequestsManager from "./components/settings/block-requests";
 import NavigationGuardian from "./components/settings/navigation-guardian";
+import PatternRules from "./components/settings/pattern-rules";
 
 function SettingsBeta() {
-  // State for all settings
   const [defaultRulesEnabled, setDefaultRulesEnabled] = useState(true);
   const [customRulesEnabled, setCustomRulesEnabled] = useState(true);
   const [patternRulesEnabled, setPatternRulesEnabled] = useState(true);
@@ -84,6 +84,11 @@ function SettingsBeta() {
   const handleCustomRulesToggle = (enabled) => {
     setCustomRulesEnabled(enabled);
     updateSetting("customRulesEnabled", enabled);
+  };
+
+  const handlePatternRulesToggle = (enabled) => {
+    setPatternRulesEnabled(enabled);
+    updateSetting("patternRulesEnabled", enabled);
   };
 
   // Handle removing custom rule
@@ -167,6 +172,11 @@ function SettingsBeta() {
               onRemoveCustomRule={handleRemoveCustomRule}
               onAddNewRule={handleAddNewRule}
               onEditRule={handleEditCustomRule}
+            />
+
+            <PatternRules
+              enabled={patternRulesEnabled}
+              onToggleCheck={handlePatternRulesToggle}
             />
 
             <BlockRequestsManager

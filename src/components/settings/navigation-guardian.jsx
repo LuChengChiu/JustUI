@@ -23,7 +23,7 @@ export default function NavigationGuardian({
       >
         {enabled && (
           <div className="mt-3 p-3 bg-purple-50 rounded-lg">
-            <div className="flex items-center justify-between">
+            <div className="flex gap-x-2 items-center justify-between">
               <Text color="accent">
                 Blocked:{" "}
                 <Text as="span" className="font-semibold">

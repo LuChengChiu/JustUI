@@ -3,6 +3,7 @@ import TagsInput from "../ui/tags-input";
 import Button from "../ui/button";
 import { H3, Text } from "../ui/typography";
 import RuleEditModal from "./rule-edit-modal";
+import CheckboxCard from "../ui/checkbox/card";
 
 const emptyRule = (
   <div className="text-center p-6  bg-gray-100 rounded-lg">
