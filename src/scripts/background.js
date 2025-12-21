@@ -162,7 +162,7 @@ function createBlockingRules(blockRequests) {
     }
 
     // Use safe ID range starting from 10000 to avoid conflicts
-    const baseId = parseInt(entry.id.replace(/\D/g, "")) || (index + 1);
+    const baseId = parseInt(entry.id.replace(/\D/g, "")) || index + 1;
     const rule = {
       id: 10000 + baseId, // uBO_011 becomes 10011, avoiding conflicts
       priority,
@@ -175,7 +175,7 @@ function createBlockingRules(blockRequests) {
       id: rule.id,
       urlFilter: condition.urlFilter,
       resourceTypes: condition.resourceTypes,
-      priority: rule.priority
+      priority: rule.priority,
     });
 
     return rule;
@@ -186,7 +186,7 @@ function createBlockingRules(blockRequests) {
 async function updateBlockingRules() {
   try {
     console.log("JustUI: Starting updateBlockingRules...");
-    
+
     const { blockRequestList = [], requestBlockingEnabled = true } =
       await chrome.storage.local.get([
         "blockRequestList",
@@ -196,7 +196,10 @@ async function updateBlockingRules() {
     console.log("JustUI: Storage retrieved:", {
       blockRequestListCount: blockRequestList.length,
       requestBlockingEnabled,
-      blockRequestList: blockRequestList.map(r => ({ id: r.id, trigger: r.trigger }))
+      blockRequestList: blockRequestList.map((r) => ({
+        id: r.id,
+        trigger: r.trigger,
+      })),
     });
 
     if (!requestBlockingEnabled) {
@@ -233,7 +236,9 @@ async function updateBlockingRules() {
       removedCount: existingRuleIds.length,
       addedCount: newRules.length,
       finalRulesCount: finalRules.length,
-      pubfutureRule: finalRules.find(r => r.condition?.urlFilter?.includes('pubfuture-ad.com'))
+      pubfutureRule: finalRules.find((r) =>
+        r.condition?.urlFilter?.includes("pubfuture-ad.com")
+      ),
     });
 
     console.log(
@@ -300,10 +305,14 @@ chrome.runtime.onInstalled.addListener(async () => {
 
       // Always update default rules from remote
       updates.defaultRules = defaultRules;
-      
+
       // FORCE UPDATE: Always refresh blockRequestList with latest data
       updates.blockRequestList = defaultBlockRequests;
-      console.log("JustUI: FORCE updating blockRequestList with", defaultBlockRequests.length, "entries");
+      console.log(
+        "JustUI: FORCE updating blockRequestList with",
+        defaultBlockRequests.length,
+        "entries"
+      );
 
       // Merge default whitelist with user's custom additions
       const customWhitelist = result.customWhitelist || [];
@@ -503,6 +512,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       chrome.storage.local.set({ blockedRequestStats: stats });
     });
     return false; // No response needed
+  }
+
+  if (request.action === "getRemoteRulesUrl") {
+    sendResponse({ url: REMOTE_RULES_URL });
+    return false;
   }
 });
 
