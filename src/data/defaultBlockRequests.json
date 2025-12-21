@@ -90,5 +90,13 @@
     "reason": "Malicious ads from manhwaclan.com",
     "severity": "high",
     "resourceTypes": ["xmlhttprequest", "script", "sub_frame", "fetch", "other"]
+  },
+  {
+    "id": "uBO_013",
+    "trigger": "oyo4d.com",
+    "type": "domain",
+    "reason": "Malicious ads from kunmanga.com",
+    "severity": "high",
+    "resourceTypes": ["xmlhttprequest", "script", "sub_frame", "xhr", "other"]
   }
 ]
