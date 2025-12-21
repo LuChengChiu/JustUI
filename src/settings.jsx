@@ -6,7 +6,6 @@ function Settings() {
   const [defaultRulesEnabled, setDefaultRulesEnabled] = useState(true);
   const [customRulesEnabled, setCustomRulesEnabled] = useState(true);
   const [patternRulesEnabled, setPatternRulesEnabled] = useState(true);
-  const [chromeAdTagEnabled, setChromeAdTagEnabled] = useState(true);
   const [navigationGuardEnabled, setNavigationGuardEnabled] = useState(true);
   const [popUnderProtectionEnabled, setPopUnderProtectionEnabled] = useState(true);
   const [scriptAnalysisEnabled, setScriptAnalysisEnabled] = useState(true);
@@ -23,7 +22,6 @@ function Settings() {
       'defaultRulesEnabled',
       'customRulesEnabled', 
       'patternRulesEnabled',
-      'chromeAdTagEnabled',
       'navigationGuardEnabled',
       'popUnderProtectionEnabled',
       'scriptAnalysisEnabled',
@@ -35,7 +33,6 @@ function Settings() {
       setDefaultRulesEnabled(result.defaultRulesEnabled !== false);
       setCustomRulesEnabled(result.customRulesEnabled !== false);
       setPatternRulesEnabled(result.patternRulesEnabled !== false);
-      setChromeAdTagEnabled(result.chromeAdTagEnabled !== false);
       setNavigationGuardEnabled(result.navigationGuardEnabled !== false);
       setPopUnderProtectionEnabled(result.popUnderProtectionEnabled !== false);
       setScriptAnalysisEnabled(result.scriptAnalysisEnabled !== false);
@@ -66,10 +63,6 @@ function Settings() {
     updateSetting('patternRulesEnabled', enabled);
   };
 
-  const handleChromeAdTagToggle = (enabled) => {
-    setChromeAdTagEnabled(enabled);
-    updateSetting('chromeAdTagEnabled', enabled);
-  };
 
   const handleNavigationGuardToggle = (enabled) => {
     setNavigationGuardEnabled(enabled);
@@ -184,18 +177,6 @@ function Settings() {
               />
             </div>
 
-            {/* Chrome Ad Tag Detection */}
-            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div>
-                <h3 className="font-medium text-gray-800">Chrome Ad Tag Detection</h3>
-                <p className="text-sm text-gray-600">Leverage Chrome's native ad detection and heavy ad intervention reports</p>
-                <p className="text-xs text-gray-500">Detects Google ad attributes, ad network iframes, and intervention reports</p>
-              </div>
-              <Switch 
-                checked={chromeAdTagEnabled} 
-                onChange={handleChromeAdTagToggle} 
-              />
-            </div>
 
             {/* Custom Rules Toggle */}
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">

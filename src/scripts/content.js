@@ -8,7 +8,6 @@ import { ElementRemover } from './modules/ElementRemover.js';
 import { ClickHijackingProtector } from './modules/ClickHijackingProtector.js';
 import { SuspiciousElementDetector } from './modules/SuspiciousElementDetector.js';
 import { MutationProtector } from './modules/MutationProtector.js';
-import { ChromeAdTagDetector } from './modules/ChromeAdTagDetector.js';
 import { SecurityProtector } from './modules/SecurityProtector.js';
 import { ScriptAnalyzer } from './modules/ScriptAnalyzer.js';
 import { NavigationGuardian } from './modules/NavigationGuardian.js';
@@ -71,8 +70,6 @@ class JustUIController {
     this.mutationProtector = new MutationProtector();
     this.cleanupRegistry.register(this.mutationProtector, 'MutationProtector', 'protection');
     
-    this.chromeAdDetector = new ChromeAdTagDetector();
-    this.cleanupRegistry.register(this.chromeAdDetector, 'ChromeAdTagDetector', 'detection');
     
     // Hybrid processing modules with compartmentalization
     this.elementClassifier = new ElementClassifier();
@@ -185,10 +182,6 @@ class JustUIController {
       executeRulesCallback: () => this.executeRules()
     });
     
-    // Start Chrome ad detection if enabled
-    if (this.chromeAdTagEnabled) {
-      this.chromeAdDetector.enable();
-    }
     
     // Initial rule execution
     this.executeRules();
@@ -208,7 +201,6 @@ class JustUIController {
     this.clickProtector.deactivate();
     this.navigationGuardian.disable();
     this.mutationProtector.stop();
-    this.chromeAdDetector.disable();
   }
 
   /**
@@ -229,7 +221,6 @@ class JustUIController {
     const stats = {
       defaultRulesRemoved: 0,
       customRulesRemoved: 0,
-      chromeAdTagRemoved: 0,
       patternRulesRemoved: 0
     };
 
@@ -243,10 +234,6 @@ class JustUIController {
       stats.customRulesRemoved = await this.executeCustomRules();
     }
 
-    // Execute Chrome ad tag detection
-    if (this.chromeAdTagEnabled) {
-      stats.chromeAdTagRemoved = await this.executeChromeAdTagRules();
-    }
 
     // Execute pattern-based detection
     if (this.patternRulesEnabled && this.adDetectionEngine) {
@@ -324,27 +311,6 @@ class JustUIController {
     return removedCount;
   }
 
-  /**
-   * Execute Chrome ad tag detection rules
-   */
-  async executeChromeAdTagRules() {
-    if (!this.chromeAdDetector.isEnabled) return 0;
-
-    const detectedElements = this.chromeAdDetector.scanForChromeAdElements();
-    let removedCount = 0;
-
-    detectedElements.forEach(({ element, type, confidence }) => {
-      if (ElementRemover.removeElement(element, `chrome-${type}`, ElementRemover.REMOVAL_STRATEGIES.REMOVE)) {
-        removedCount++;
-        console.log(`JustUI: Chrome ad tag removed (${type}, confidence: ${Math.round(confidence * 100)}%)`, {
-          element: element.tagName,
-          src: element.src
-        });
-      }
-    });
-
-    return removedCount;
-  }
 
   /**
    * Execute pattern-based detection rules using Hybrid Processing Strategy
@@ -479,11 +445,6 @@ class JustUIController {
     // Get script analysis statistics
     const scriptStats = this.scriptAnalyzer.getStats();
     
-    // Scan for Chrome ad elements
-    if (this.chromeAdDetector.isEnabled) {
-      const chromeAds = this.chromeAdDetector.scanForChromeAdElements();
-      console.log(`JustUI: Initial scan found ${chromeAds.length} Chrome ad elements`);
-    }
     
     console.log(`JustUI: Initial scan complete. Removed ${removedOverlays} suspicious overlays, blocked ${scriptStats.blockedScriptsCount} scripts`);
   }
@@ -501,7 +462,6 @@ class JustUIController {
         'defaultRulesEnabled',
         'customRulesEnabled',
         'patternRulesEnabled',
-        'chromeAdTagEnabled',
         'navigationGuardEnabled',
         'navigationStats'
       ]);
@@ -513,7 +473,6 @@ class JustUIController {
       this.defaultRulesEnabled = result.defaultRulesEnabled !== false;
       this.customRulesEnabled = result.customRulesEnabled !== false;
       this.patternRulesEnabled = result.patternRulesEnabled !== false;
-      this.chromeAdTagEnabled = result.chromeAdTagEnabled !== false;
       this.navigationGuardEnabled = result.navigationGuardEnabled !== false;
       this.navigationStats = result.navigationStats || { blockedCount: 0, allowedCount: 0 };
       this.domainStats = {};
@@ -529,7 +488,6 @@ class JustUIController {
           defaultRules: this.defaultRulesEnabled,
           customRules: this.customRulesEnabled,
           patternRules: this.patternRulesEnabled,
-          chromeAdTag: this.chromeAdTagEnabled,
           navigationGuard: this.navigationGuardEnabled
         }
       });
@@ -545,7 +503,6 @@ class JustUIController {
       this.defaultRulesEnabled = false;
       this.customRulesEnabled = false;
       this.patternRulesEnabled = false;
-      this.chromeAdTagEnabled = false;
       this.navigationGuardEnabled = false;
       this.navigationStats = { blockedCount: 0, allowedCount: 0 };
       this.domainStats = {};
@@ -591,10 +548,6 @@ class JustUIController {
       shouldRestart = true;
     }
 
-    if (changes.chromeAdTagEnabled) {
-      this.chromeAdTagEnabled = changes.chromeAdTagEnabled.newValue;
-      shouldRestart = true;
-    }
 
     if (changes.navigationGuardEnabled) {
       this.navigationGuardEnabled = changes.navigationGuardEnabled.newValue;
@@ -674,14 +627,12 @@ class JustUIController {
       this.domainStats[this.currentDomain] = {
         defaultRulesRemoved: 0,
         customRulesRemoved: 0,
-        chromeAdTagRemoved: 0
       };
     }
 
     // Update session stats
     this.domainStats[this.currentDomain].defaultRulesRemoved = stats.defaultRulesRemoved + stats.patternRulesRemoved;
     this.domainStats[this.currentDomain].customRulesRemoved = stats.customRulesRemoved;
-    this.domainStats[this.currentDomain].chromeAdTagRemoved = stats.chromeAdTagRemoved;
 
     // Store in Chrome storage using debounced safe method to reduce API calls
     try {

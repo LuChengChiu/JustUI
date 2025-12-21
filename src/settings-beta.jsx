@@ -14,7 +14,6 @@ function SettingsBeta() {
   const [defaultRulesEnabled, setDefaultRulesEnabled] = useState(true);
   const [customRulesEnabled, setCustomRulesEnabled] = useState(true);
   const [patternRulesEnabled, setPatternRulesEnabled] = useState(true);
-  const [chromeAdTagEnabled, setChromeAdTagEnabled] = useState(true);
   const [navigationGuardEnabled, setNavigationGuardEnabled] = useState(true);
   const [popUnderProtectionEnabled, setPopUnderProtectionEnabled] =
     useState(true);
@@ -41,7 +40,6 @@ function SettingsBeta() {
         "defaultRulesEnabled",
         "customRulesEnabled",
         "patternRulesEnabled",
-        "chromeAdTagEnabled",
         "navigationGuardEnabled",
         "popUnderProtectionEnabled",
         "scriptAnalysisEnabled",
@@ -56,7 +54,6 @@ function SettingsBeta() {
         setDefaultRulesEnabled(result.defaultRulesEnabled !== false);
         setCustomRulesEnabled(result.customRulesEnabled !== false);
         setPatternRulesEnabled(result.patternRulesEnabled !== false);
-        setChromeAdTagEnabled(result.chromeAdTagEnabled !== false);
         setNavigationGuardEnabled(result.navigationGuardEnabled !== false);
         setPopUnderProtectionEnabled(
           result.popUnderProtectionEnabled !== false
