@@ -115,6 +115,7 @@ export default defineConfig(({ mode }) => ({
       input: {
         popup: "popup.html",
         settings: "settings.html",
+        "settings-beta": "settings-beta.html",
       },
       output: {
         entryFileNames: "[name].js",

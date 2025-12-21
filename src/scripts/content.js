@@ -13,10 +13,14 @@ import { SecurityProtector } from './modules/SecurityProtector.js';
 import { ScriptAnalyzer } from './modules/ScriptAnalyzer.js';
 import { NavigationGuardian } from './modules/NavigationGuardian.js';
 import { PerformanceTracker } from './modules/PerformanceTracker.js';
+import { ElementClassifier } from './modules/ElementClassifier.js';
+import { SnapshotManager } from './modules/SnapshotManager.js';
+import { HybridProcessor } from './modules/HybridProcessor.js';
 import { CleanupRegistry } from './modules/ICleanable.js';
+import { MemoryMonitor } from './modules/MemoryMonitor.js';
 import { safeStorageGet, safeStorageSet, debouncedStorageSet, isExtensionContextValid } from './utils/chromeApiSafe.js';
 import AdDetectionEngine from './adDetectionEngine.js';
-import { PATTERN_DETECTION_CONFIG } from './constants.js';
+import { PATTERN_DETECTION_CONFIG, HYBRID_CONFIG } from './constants.js';
 
 /**
  * Main JustUI Controller - Orchestrates all protection modules
@@ -36,27 +40,58 @@ class JustUIController {
     this.customRulesEnabled = true;
     this.patternRulesEnabled = true;
     
-    // Cleanup registry for memory leak prevention
-    this.cleanupRegistry = new CleanupRegistry();
+    // Cleanup registry for memory leak prevention with compartments
+    this.cleanupRegistry = new CleanupRegistry({
+      maxCompartmentSize: 20,
+      compartmentTTL: 300000, // 5 minutes
+      enablePeriodicCleanup: true
+    });
     
-    // Protection modules
+    // Memory monitoring for leak detection and verification
+    this.memoryMonitor = new MemoryMonitor({
+      monitoringInterval: 30000, // 30 seconds
+      memoryThreshold: 50 * 1024 * 1024, // 50MB
+      enablePerformanceMarking: true
+    });
+    this.cleanupRegistry.register(this.memoryMonitor, 'MemoryMonitor', 'monitoring');
+    
+    // Protection modules with compartmentalization
     this.securityProtector = new SecurityProtector();
-    this.cleanupRegistry.register(this.securityProtector, 'SecurityProtector');
+    this.cleanupRegistry.register(this.securityProtector, 'SecurityProtector', 'protection');
     
     this.scriptAnalyzer = new ScriptAnalyzer();
-    this.cleanupRegistry.register(this.scriptAnalyzer, 'ScriptAnalyzer');
+    this.cleanupRegistry.register(this.scriptAnalyzer, 'ScriptAnalyzer', 'analysis');
     
     this.clickProtector = new ClickHijackingProtector();
-    this.cleanupRegistry.register(this.clickProtector, 'ClickHijackingProtector');
+    this.cleanupRegistry.register(this.clickProtector, 'ClickHijackingProtector', 'protection');
     
     this.navigationGuardian = new NavigationGuardian();
-    this.cleanupRegistry.register(this.navigationGuardian, 'NavigationGuardian');
+    this.cleanupRegistry.register(this.navigationGuardian, 'NavigationGuardian', 'protection');
     
-    this.mutationProtector = new MutationProtector(this.clickProtector);
-    this.cleanupRegistry.register(this.mutationProtector, 'MutationProtector');
+    this.mutationProtector = new MutationProtector();
+    this.cleanupRegistry.register(this.mutationProtector, 'MutationProtector', 'protection');
     
     this.chromeAdDetector = new ChromeAdTagDetector();
-    this.cleanupRegistry.register(this.chromeAdDetector, 'ChromeAdTagDetector');
+    this.cleanupRegistry.register(this.chromeAdDetector, 'ChromeAdTagDetector', 'detection');
+    
+    // Hybrid processing modules with compartmentalization
+    this.elementClassifier = new ElementClassifier();
+    this.cleanupRegistry.register(this.elementClassifier, 'ElementClassifier', 'analysis');
+    
+    this.snapshotManager = new SnapshotManager(HYBRID_CONFIG);
+    this.cleanupRegistry.register(this.snapshotManager, 'SnapshotManager', 'caching');
+    
+    // Performance tracking (singleton to avoid repeated allocations)
+    this.performanceTracker = new PerformanceTracker();
+    this.cleanupRegistry.register(this.performanceTracker, 'PerformanceTracker', 'monitoring');
+    
+    // HybridProcessor will be initialized after AdDetectionEngine is available
+    this.hybridProcessor = null;
+    
+    // Hybrid processing settings
+    this.hybridProcessingEnabled = HYBRID_CONFIG.ADAPTIVE_DETECTION_ENABLED;
+    this.bulkValidationEnabled = HYBRID_CONFIG.BULK_VALIDATION_ENABLED;
+    this.fallbackToRealTime = HYBRID_CONFIG.FALLBACK_TO_REALTIME;
     
     // Navigation Guardian settings (managed by NavigationGuardian module)
     this.navigationGuardEnabled = true;
@@ -85,8 +120,18 @@ class JustUIController {
     // 3. Initialize AdDetectionEngine
     this.adDetectionEngine = new AdDetectionEngine();
     console.log('JustUI: AdDetectionEngine initialized');
+    
+    // 4. Initialize HybridProcessor with AdDetectionEngine
+    this.hybridProcessor = new HybridProcessor(this.adDetectionEngine, {
+      criticalElementTimeout: HYBRID_CONFIG.CRITICAL_ELEMENT_TIMEOUT,
+      bulkValidationEnabled: this.bulkValidationEnabled,
+      fallbackToRealTime: this.fallbackToRealTime,
+      adaptiveDetectionEnabled: this.hybridProcessingEnabled
+    });
+    this.cleanupRegistry.register(this.hybridProcessor, 'HybridProcessor', 'analysis');
+    console.log('JustUI: HybridProcessor initialized');
 
-    // 4. Check whitelist/active state BEFORE applying security protections
+    // 5. Check whitelist/active state BEFORE applying security protections
     if (!this.isActive || this.isDomainWhitelisted()) {
       console.log('JustUI: Skipping protections - extension inactive or domain whitelisted', {
         isActive: this.isActive,
@@ -95,18 +140,21 @@ class JustUIController {
       return; // Exit early - no protections needed
     }
 
-    // 5. NOW activate security protections (domain is not whitelisted & extension is active)
+    // 6. NOW activate security protections (domain is not whitelisted & extension is active)
     this.securityProtector.activate();
     this.scriptAnalyzer.activate();
 
-    // 6. Initialize NavigationGuardian with loaded settings
+    // 7. Initialize NavigationGuardian with loaded settings
     this.navigationGuardian.initialize(this.whitelist, this.navigationStats);
     this.navigationGuardian.enable();
 
-    // 7. Start all other protection systems
+    // 8. Start all other protection systems
     this.startProtection();
 
-    console.log('JustUI: Initialization complete');
+    // 9. Start memory monitoring after all systems are initialized
+    this.memoryMonitor.startMonitoring(this);
+
+    console.log('JustUI: Initialization complete with memory monitoring');
   }
 
   /**
@@ -122,6 +170,13 @@ class JustUIController {
     
     // Start click hijacking protection
     this.clickProtector.activate();
+    
+    // Set up event-driven communication between MutationProtector and ClickHijackingProtector
+    this.mutationProtector.onEvent('onClickHijackingDetected', (data) => {
+      if (data.action === 'scan_overlays') {
+        this.clickProtector.scanAndRemoveExistingOverlays();
+      }
+    });
     
     // Start mutation protection with rule execution callback
     this.mutationProtector.start({
@@ -292,9 +347,81 @@ class JustUIController {
   }
 
   /**
-   * Execute pattern-based detection rules with adaptive time-slicing optimization
+   * Execute pattern-based detection rules using Hybrid Processing Strategy
+   * Combines bulk optimization with real-time processing for critical elements
    */
   async executePatternRules() {
+    if (!this.adDetectionEngine || !this.hybridProcessor) {
+      console.warn('JustUI: AdDetectionEngine or HybridProcessor not available, skipping pattern rules');
+      return 0;
+    }
+
+    // Check if hybrid processing is enabled
+    if (!this.hybridProcessingEnabled) {
+      return this._executePatternRulesLegacy();
+    }
+
+    const suspiciousElements = document.querySelectorAll('div, iframe, section, aside, nav, header');
+    if (suspiciousElements.length === 0) return 0;
+
+    const startTime = performance.now();
+    console.log(`JustUI: Hybrid pattern detection starting - ${suspiciousElements.length} elements`);
+
+    // Reset performance tracker state to prevent contamination between cycles
+    this.performanceTracker.reset();
+
+    try {
+      // Execute hybrid strategy with all required dependencies
+      const removedCount = await this.hybridProcessor.executeHybridStrategy(suspiciousElements, {
+        elementClassifier: this.elementClassifier,
+        snapshotManager: this.snapshotManager,
+        perfTracker: this.performanceTracker // Use singleton instance
+      });
+
+      const totalTime = performance.now() - startTime;
+      console.log(`JustUI: Hybrid pattern detection completed - ${removedCount} elements removed in ${Math.round(totalTime)}ms`);
+
+      // Log hybrid performance summary
+      const hybridStats = this.hybridProcessor.getStats();
+      const perfStats = this.performanceTracker.getHybridSummary();
+      
+      console.log('JustUI: Hybrid Performance Summary:', {
+        processing: {
+          totalElements: suspiciousElements.length,
+          criticalElements: hybridStats.criticalProcessed,
+          bulkElements: hybridStats.bulkProcessed,
+          criticalRatio: hybridStats.processingRatio
+        },
+        efficiency: {
+          totalRemoved: removedCount,
+          removalRate: hybridStats.removalEfficiency,
+          fallbackRate: hybridStats.errorRate,
+          processingTime: `${Math.round(totalTime)}ms`
+        }
+      });
+
+      return removedCount;
+
+    } catch (error) {
+      console.error('JustUI: Error in hybrid pattern detection:', error);
+      
+      // Fallback to legacy processing if enabled
+      if (this.fallbackToRealTime) {
+        console.warn('JustUI: Falling back to legacy pattern detection');
+        return this._executePatternRulesLegacy();
+      }
+      
+      return 0;
+    }
+  }
+
+  /**
+   * Legacy pattern detection implementation (fallback)
+   * Maintains the previous optimized READ-write separation approach
+   */
+  async _executePatternRulesLegacy() {
+    console.log('JustUI: Executing legacy pattern detection');
+    
     if (!this.adDetectionEngine) return 0;
 
     let removedCount = 0;
@@ -302,85 +429,29 @@ class JustUIController {
 
     if (suspiciousElements.length === 0) return 0;
 
-    // Initialize performance tracker
-    const perfTracker = new PerformanceTracker();
-    const startTime = performance.now();
+    // Use simplified sequential processing as fallback
+    for (const element of suspiciousElements) {
+      try {
+        if (!element.isConnected || ElementRemover.isProcessed(element)) continue;
 
-    console.log(`JustUI: Pattern detection starting - ${suspiciousElements.length} elements`);
-
-    let i = 0;
-    while (i < suspiciousElements.length) {
-      // Check total timeout
-      if (performance.now() - startTime > PATTERN_DETECTION_CONFIG.MAX_TOTAL_TIME) {
-        console.warn(`JustUI: Pattern detection timeout after ${Math.round(performance.now() - startTime)}ms, processed ${i}/${suspiciousElements.length} elements`);
-        break;
-      }
-
-      // Calculate adaptive batch size
-      const batchSize = perfTracker.calculateNextBatchSize(PATTERN_DETECTION_CONFIG.TARGET_FRAME_BUDGET);
-      const batchEnd = Math.min(i + batchSize, suspiciousElements.length);
-      const batchStartTime = performance.now();
-      let batchProcessedCount = 0;
-
-      // Process batch
-      for (let j = i; j < batchEnd; j++) {
-        const element = suspiciousElements[j];
-
-        if (ElementRemover.isProcessed(element)) continue;
-
-        const elementStartTime = performance.now();
-
-        try {
-          const analysis = await this.adDetectionEngine.analyze(element);
-
-          if (analysis.isAd && analysis.confidence > 0.7) {
-            element.setAttribute('data-justui-confidence', Math.round(analysis.confidence * 100));
-            element.setAttribute('data-justui-rules', analysis.matchedRules.map(r => r.rule).join(','));
-
-            if (ElementRemover.removeElement(element, `pattern-${analysis.totalScore}`, ElementRemover.REMOVAL_STRATEGIES.REMOVE)) {
-              removedCount++;
-              console.log(`JustUI: Pattern detection removed element (score: ${analysis.totalScore}, confidence: ${Math.round(analysis.confidence * 100)}%)`, {
-                rules: analysis.matchedRules,
-                element: element.tagName + (element.className ? `.${element.className}` : '')
-              });
-            }
+        const analysis = await this.adDetectionEngine.analyze(element);
+        
+        if (analysis.isAd && analysis.confidence > 0.7) {
+          element.setAttribute('data-justui-confidence', Math.round(analysis.confidence * 100));
+          element.setAttribute('data-justui-rules', analysis.matchedRules.map(r => r.rule).join(','));
+          
+          if (ElementRemover.removeElement(element, `legacy-${analysis.totalScore}`, ElementRemover.REMOVAL_STRATEGIES.REMOVE)) {
+            removedCount++;
           }
-
-          batchProcessedCount++;
-
-          // Emergency break for slow elements
-          const elementTime = performance.now() - elementStartTime;
-          if (elementTime > PATTERN_DETECTION_CONFIG.MAX_ELEMENT_TIME) {
-            console.warn(`JustUI: Slow element detected (${Math.round(elementTime)}ms), skipping:`, element.tagName);
-            ElementRemover.removeElement(element, 'slow-element', ElementRemover.REMOVAL_STRATEGIES.NEUTRALIZE);
-          }
-
-        } catch (error) {
-          console.error('JustUI: Error in pattern analysis:', error);
-          batchProcessedCount++;
         }
-      }
-
-      // Record batch performance
-      const batchTime = performance.now() - batchStartTime;
-      perfTracker.recordBatch(batchProcessedCount, batchTime);
-
-      // Log batch stats
-      console.log(`JustUI: Batch complete - ${batchProcessedCount} elements in ${Math.round(batchTime)}ms (next batch: ${perfTracker.calculateNextBatchSize(PATTERN_DETECTION_CONFIG.TARGET_FRAME_BUDGET)} elements)`);
-
-      // Move to next batch
-      i = batchEnd;
-
-      // Yield to main thread if more work remains
-      if (i < suspiciousElements.length) {
-        await this.yieldToMainThread();
+      } catch (error) {
+        console.error('JustUI: Error in legacy pattern analysis:', error);
       }
     }
 
-    const totalTime = performance.now() - startTime;
-    console.log(`JustUI: Pattern detection completed - ${removedCount} elements removed in ${Math.round(totalTime)}ms`);
     return removedCount;
   }
+
 
 
   /**
@@ -633,16 +704,26 @@ class JustUIController {
 
   /**
    * Comprehensive cleanup destructor - prevents memory leaks
-   * Uses registry pattern to follow SOLID principles
+   * Uses registry pattern to follow SOLID principles with memory verification
    */
   destructor() {
     console.log('JustUI: Starting controller destructor...');
+    
+    // Take pre-cleanup memory snapshot
+    const beforeSnapshot = this.memoryMonitor.takeMemorySnapshot('cleanup');
     
     // Stop all protection systems first
     this.stopProtection();
     
     // Use cleanup registry to clean up all modules (follows Open/Closed Principle)
     const results = this.cleanupRegistry.cleanupAll();
+    
+    // Take post-cleanup memory snapshot and verify effectiveness
+    const afterSnapshot = this.memoryMonitor.takeMemorySnapshot('cleanup');
+    const verificationResults = this.memoryMonitor.verifyCleanupEffectiveness(beforeSnapshot, afterSnapshot);
+    
+    // Force garbage collection to maximize cleanup effectiveness
+    this.memoryMonitor.forceGarbageCollection();
     
     // Log cleanup results for debugging
     const successful = results.filter(r => r.success).length;
@@ -659,10 +740,23 @@ class JustUIController {
     this.whitelistCache = null;
     this.adDetectionEngine = null;
     
+    // Clean up ElementRemover static state
+    if (typeof this.constructor.ElementRemover?.cleanup === 'function') {
+      this.constructor.ElementRemover.cleanup();
+    }
+    
     // Note: We don't null out module references since they might still be used elsewhere
     // The cleanup registry handles the actual resource cleanup
     
-    console.log('JustUI: Controller destructor completed');
+    // Log final memory report
+    const memoryReport = this.memoryMonitor.getMemoryReport();
+    console.log('JustUI: Final memory report:', {
+      verificationResults,
+      recommendations: memoryReport.recommendations,
+      memoryHistory: memoryReport.history.length
+    });
+    
+    console.log('JustUI: Controller destructor completed with verification');
   }
 }
 

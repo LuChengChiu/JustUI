@@ -8,10 +8,12 @@ export class NavigationGuardian {
   constructor() {
     this.isEnabled = true;
     this.navigationStats = { blockedCount: 0, allowedCount: 0 };
-    this.pendingNavigationModals = new Map();
+    this.pendingNavigationModals = new WeakMap(); // Use WeakMap for auto GC
+    this.pendingModalKeys = new Map(); // Separate storage for string keys with limits
     this.whitelist = [];
     this.whitelistCache = null;
     this.eventListeners = [];
+    this.maxModalCache = 50; // Limit pending modals to prevent memory bloat
     console.log('JustUI: NavigationGuardian initialized');
   }
 
@@ -161,7 +163,7 @@ export class NavigationGuardian {
       const { url, messageId, popUnderAnalysis } = event.data;
       
       // If this messageId is already being processed, ignore duplicate
-      if (this.pendingNavigationModals.has(messageId)) {
+      if (this.pendingModalKeys.has(messageId)) {
         return;
       }
       
@@ -190,11 +192,13 @@ export class NavigationGuardian {
         };
         
         // Track this modal to prevent duplicates
-        this.pendingNavigationModals.set(messageId, true);
+        // Enforce cache limits before adding new entry
+        this.enforcePendingModalLimits();
+        this.pendingModalKeys.set(messageId, true);
         
         this.showNavigationModal(url, (userAllowed) => {
           // Remove from pending map
-          this.pendingNavigationModals.delete(messageId);
+          this.pendingModalKeys.delete(messageId);
           
           // Send response with the user's decision
           window.postMessage({
@@ -614,7 +618,7 @@ export class NavigationGuardian {
     this.eventListeners = [];
     
     // Clear pending modals
-    this.pendingNavigationModals.clear();
+    this.pendingModalKeys.clear();
     
     // Remove any existing modal
     const existingModal = document.getElementById('justui-navigation-modal');
@@ -626,5 +630,22 @@ export class NavigationGuardian {
     this.whitelistCache = null;
     
     console.log('JustUI: NavigationGuardian cleaned up');
+  }
+
+  /**
+   * Enforce limits on pending modal cache using LRU eviction
+   */
+  enforcePendingModalLimits() {
+    if (this.pendingModalKeys.size > this.maxModalCache) {
+      // Convert to array and remove oldest entries
+      const entries = Array.from(this.pendingModalKeys.keys());
+      const toRemove = entries.slice(0, Math.floor(this.maxModalCache * 0.2));
+      
+      for (const key of toRemove) {
+        this.pendingModalKeys.delete(key);
+      }
+      
+      console.log(`JustUI: NavigationGuardian pending modal cache cleaned up, removed ${toRemove.length} entries`);
+    }
   }
 }

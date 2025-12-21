@@ -14,8 +14,10 @@ class RequestBlockingProtector {
   constructor() {
     this.isEnabled = false;
     this.blockRequestList = [];
-    this.blockedRequests = new Map(); // Track blocked requests
+    this.blockedRequests = new WeakMap(); // Use WeakMap for automatic GC of request objects
+    this.requestCache = new Map(); // Separate cache for URL tracking with limits
     this.observer = null;
+    this.maxCacheSize = 1000; // Limit cache size to prevent memory bloat
   }
 
   async initialize() {
@@ -148,13 +150,17 @@ class RequestBlockingProtector {
 
   recordBlockedRequest(url, type) {
     const key = `${type}:${url}`;
-    const existing = this.blockedRequests.get(key);
+    
+    // Use limited cache instead of growing Map to prevent memory bloat
+    this.enforceCacheLimit();
+    
+    const existing = this.requestCache.get(key);
     
     if (existing) {
       existing.count++;
       existing.lastBlocked = Date.now();
     } else {
-      this.blockedRequests.set(key, {
+      this.requestCache.set(key, {
         url,
         type,
         count: 1,
@@ -177,10 +183,12 @@ class RequestBlockingProtector {
       totalBlocked: 0,
       byType: {},
       byDomain: {},
-      recentBlocks: []
+      recentBlocks: [],
+      cacheSize: this.requestCache.size,
+      cacheLimit: this.maxCacheSize
     };
     
-    for (const [key, data] of this.blockedRequests) {
+    for (const [key, data] of this.requestCache) {
       stats.totalBlocked += data.count;
       stats.byType[data.type] = (stats.byType[data.type] || 0) + data.count;
       
@@ -215,9 +223,41 @@ class RequestBlockingProtector {
     }
   }
 
-  destroy() {
+  /**
+   * Enforce cache size limits using LRU eviction
+   */
+  enforceCacheLimit() {
+    if (this.requestCache.size > this.maxCacheSize) {
+      // Convert to array and sort by lastBlocked (oldest first)
+      const entries = Array.from(this.requestCache.entries())
+        .sort((a, b) => a[1].lastBlocked - b[1].lastBlocked);
+      
+      // Remove oldest 20% of entries
+      const toRemove = Math.floor(this.maxCacheSize * 0.2);
+      for (let i = 0; i < toRemove; i++) {
+        this.requestCache.delete(entries[i][0]);
+      }
+      
+      console.log(`JustUI: RequestBlockingProtector cache cleaned up, removed ${toRemove} old entries`);
+    }
+  }
+
+  /**
+   * Clean up all resources
+   */
+  cleanup() {
     this.stopMonitoring();
-    this.blockedRequests.clear();
+    this.requestCache.clear();
+    
+    // Create new WeakMap to clear any references
+    this.blockedRequests = new WeakMap();
+    
+    console.log('JustUI: RequestBlockingProtector cleaned up');
+  }
+
+  // Backward compatibility
+  destroy() {
+    this.cleanup();
   }
 }
 

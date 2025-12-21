@@ -74,11 +74,29 @@ function Settings() {
   const handleNavigationGuardToggle = (enabled) => {
     setNavigationGuardEnabled(enabled);
     updateSetting('navigationGuardEnabled', enabled);
+    
+    // Smart dependency: Auto-enable Script Analysis for complete protection
+    if (enabled && !scriptAnalysisEnabled) {
+      setScriptAnalysisEnabled(true);
+      updateSetting('scriptAnalysisEnabled', true);
+    }
   };
 
   const handlePopUnderProtectionToggle = (enabled) => {
     setPopUnderProtectionEnabled(enabled);
     updateSetting('popUnderProtectionEnabled', enabled);
+    
+    // Master toggle: Auto-enable both detection and blocking layers for complete protection
+    if (enabled) {
+      if (!scriptAnalysisEnabled) {
+        setScriptAnalysisEnabled(true);
+        updateSetting('scriptAnalysisEnabled', true);
+      }
+      if (!navigationGuardEnabled) {
+        setNavigationGuardEnabled(true);
+        updateSetting('navigationGuardEnabled', true);
+      }
+    }
   };
 
   const handleScriptAnalysisToggle = (enabled) => {

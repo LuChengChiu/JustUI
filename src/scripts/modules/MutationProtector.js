@@ -7,16 +7,18 @@ import { ElementRemover } from './ElementRemover.js';
 import { MAX_Z_INDEX } from '../constants.js';
 
 export class MutationProtector {
-  constructor(clickProtector = null) {
+  constructor() {
     this.observer = null;
     this.isActive = false;
-    this.clickProtector = clickProtector;
     this.executionTimeout = null;
     this.immediateRemovalCount = 0;
+    
+    // Event-based communication instead of direct module reference
     this.callbacks = {
       onSuspiciousElementDetected: [],
       onImmediateRemoval: [],
-      onScheduledExecution: []
+      onScheduledExecution: [],
+      onClickHijackingDetected: [] // New callback for click hijacking events
     };
   }
 
@@ -78,7 +80,6 @@ export class MutationProtector {
     
     // Reset state
     this.immediateRemovalCount = 0;
-    this.clickProtector = null;
     
     console.log('JustUI: Mutation protector cleaned up');
   }
@@ -167,9 +168,14 @@ export class MutationProtector {
           if (ElementRemover.removeElement(element, `mutation-${threatType}`, ElementRemover.REMOVAL_STRATEGIES.REMOVE)) {
             immediatelyRemovedCount++;
             
-            // Notify click protector if available
-            if (this.clickProtector && threatType === 'click-hijacking') {
-              this.clickProtector.scanAndRemoveExistingOverlays();
+            // Emit event instead of direct call to avoid circular dependency
+            if (threatType === 'click-hijacking') {
+              this.notifyCallbacks('onClickHijackingDetected', {
+                element,
+                threatType,
+                confidence,
+                action: 'scan_overlays'
+              });
             }
           }
         });

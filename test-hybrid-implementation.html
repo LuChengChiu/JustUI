@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JustUI Hybrid Processing Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            line-height: 1.6; 
+        }
+        .test-container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+        }
+        
+        /* Critical elements that should trigger real-time processing */
+        .critical-iframe { 
+            width: 300px; 
+            height: 250px; 
+            border: 2px solid red;
+            margin: 10px;
+        }
+        .critical-fixed { 
+            position: fixed; 
+            top: 10px; 
+            right: 10px; 
+            width: 200px; 
+            height: 100px; 
+            background: rgba(255, 0, 0, 0.3); 
+            border: 2px solid red;
+            z-index: 999999;
+        }
+        .critical-high-z { 
+            position: absolute; 
+            z-index: 2000000; 
+            width: 150px; 
+            height: 75px; 
+            background: rgba(255, 165, 0, 0.5); 
+            border: 2px solid orange;
+            top: 120px;
+            right: 10px;
+        }
+        .critical-animated { 
+            animation: pulse 2s infinite; 
+            width: 250px; 
+            height: 100px; 
+            background: rgba(255, 0, 255, 0.3); 
+            border: 2px solid magenta;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 0.5; transform: scale(1); }
+        }
+        
+        /* Bulk elements that should use snapshot processing */
+        .bulk-div { 
+            width: 300px; 
+            height: 200px; 
+            background: #f0f0f0; 
+            border: 1px solid #ccc; 
+            margin: 10px;
+            display: inline-block;
+        }
+        .bulk-section { 
+            width: 400px; 
+            height: 150px; 
+            background: #e8f4f8; 
+            border: 1px solid #b3d9ff; 
+            margin: 10px;
+        }
+        
+        /* Suspicious elements for testing pattern detection */
+        .suspicious-ad { 
+            background: #ffcccc; 
+            border: 2px solid #ff6666;
+        }
+        .hidden-element { 
+            display: none; 
+        }
+        .tiny-element { 
+            width: 5px; 
+            height: 5px; 
+        }
+        
+        /* Test results styling */
+        .test-results {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #4caf50;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .element-count {
+            font-weight: bold;
+            color: #2196f3;
+        }
+        .performance-stats {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>JustUI Hybrid Processing Test Page</h1>
+        
+        <div class="test-results" id="test-results">
+            <h3>Test Results (Check Browser Console for Detailed Logs)</h3>
+            <p>This page contains various element types to test the hybrid processing approach:</p>
+            <ul>
+                <li><span class="element-count" id="critical-count">...</span> Critical elements (iframes, fixed position, high z-index, animated)</li>
+                <li><span class="element-count" id="bulk-count">...</span> Bulk elements (divs, sections, standard content)</li>
+                <li><span class="element-count" id="total-count">...</span> Total suspicious elements</li>
+            </ul>
+            <div class="performance-stats" id="performance-stats">
+                Performance stats will appear here after processing...
+            </div>
+        </div>
+
+        <!-- Critical Elements Section -->
+        <div class="test-section">
+            <h2>Critical Elements (Real-time Processing)</h2>
+            
+            <h3>Iframes</h3>
+            <iframe class="critical-iframe" src="about:blank" sandbox="allow-popups allow-scripts allow-same-origin"></iframe>
+            <iframe class="critical-iframe" src="about:blank" srcdoc="<html><body>Test iframe content</body></html>"></iframe>
+            
+            <h3>Fixed Position Elements</h3>
+            <div class="critical-fixed">Fixed Position Overlay</div>
+            
+            <h3>High Z-Index Elements</h3>
+            <div class="critical-high-z">High Z-Index Element</div>
+            
+            <h3>Animated Elements</h3>
+            <div class="critical-animated">Animated Element</div>
+        </div>
+
+        <!-- Bulk Elements Section -->
+        <div class="test-section">
+            <h2>Bulk Elements (Snapshot Processing)</h2>
+            
+            <h3>Regular Divs</h3>
+            <div class="bulk-div">Regular Div 1</div>
+            <div class="bulk-div">Regular Div 2</div>
+            <div class="bulk-div suspicious-ad">Suspicious Ad-like Div</div>
+            <div class="bulk-div">Regular Div 4</div>
+            
+            <h3>Section Elements</h3>
+            <section class="bulk-section">Section Content 1</section>
+            <section class="bulk-section suspicious-ad">Suspicious Section</section>
+            <section class="bulk-section">Section Content 3</section>
+        </div>
+
+        <!-- Edge Cases Section -->
+        <div class="test-section">
+            <h2>Edge Cases</h2>
+            
+            <h3>Hidden Elements (Should be filtered out)</h3>
+            <div class="bulk-div hidden-element">Hidden Element</div>
+            <div class="bulk-div tiny-element">Tiny Element</div>
+            
+            <h3>Nested Elements (Hierarchy testing)</h3>
+            <div class="bulk-div suspicious-ad" id="parent-container">
+                Parent Container
+                <div class="bulk-div">Child 1</div>
+                <div class="bulk-div">Child 2</div>
+                <div class="bulk-div">Child 3</div>
+            </div>
+        </div>
+
+        <!-- Dynamic Content Generation -->
+        <div class="test-section">
+            <h2>Generated Content</h2>
+            <div id="generated-content"></div>
+            <button onclick="generateMoreElements()">Generate More Test Elements</button>
+        </div>
+    </div>
+
+    <script>
+        // Test utilities and element generation
+        function generateMoreElements() {
+            const container = document.getElementById('generated-content');
+            const elementsToGenerate = 50;
+            
+            for (let i = 0; i < elementsToGenerate; i++) {
+                const div = document.createElement('div');
+                div.className = 'bulk-div';
+                div.textContent = `Generated Element ${i + 1}`;
+                
+                // Make some elements suspicious
+                if (i % 5 === 0) {
+                    div.classList.add('suspicious-ad');
+                    div.setAttribute('onclick', 'window.open("https://suspicious-site.com")');
+                }
+                
+                // Add some iframes
+                if (i % 10 === 0) {
+                    const iframe = document.createElement('iframe');
+                    iframe.className = 'critical-iframe';
+                    iframe.src = 'about:blank';
+                    iframe.setAttribute('sandbox', 'allow-popups allow-scripts');
+                    container.appendChild(iframe);
+                }
+                
+                container.appendChild(div);
+            }
+            
+            updateElementCounts();
+        }
+
+        function updateElementCounts() {
+            const allSuspicious = document.querySelectorAll('div, iframe, section, aside, nav, header');
+            const criticalElements = document.querySelectorAll('iframe, [style*="position: fixed"], [style*="position:fixed"], [style*="z-index"], [style*="animation"]');
+            const bulkElements = allSuspicious.length - criticalElements.length;
+            
+            document.getElementById('total-count').textContent = `${allSuspicious.length}`;
+            document.getElementById('critical-count').textContent = `${criticalElements.length}`;
+            document.getElementById('bulk-count').textContent = `${bulkElements}`;
+        }
+
+        // Performance testing function
+        function testHybridPerformance() {
+            const startTime = performance.now();
+            const allElements = document.querySelectorAll('div, iframe, section, aside, nav, header');
+            const queryTime = performance.now() - startTime;
+            
+            // Simulate classification
+            let criticalCount = 0;
+            let bulkCount = 0;
+            
+            allElements.forEach(element => {
+                if (element.tagName === 'IFRAME' || 
+                    element.style.position === 'fixed' ||
+                    parseInt(element.style.zIndex || 0) > 1000000 ||
+                    element.style.animation !== '') {
+                    criticalCount++;
+                } else {
+                    bulkCount++;
+                }
+            });
+            
+            const results = {
+                queryTime: queryTime.toFixed(2),
+                totalElements: allElements.length,
+                criticalElements: criticalCount,
+                bulkElements: bulkCount,
+                criticalRatio: (criticalCount / allElements.length * 100).toFixed(1),
+                expectedPerformance: {
+                    originalApproach: (allElements.length * 2).toFixed(0) + 'ms',
+                    hybridApproach: (criticalCount * 2 + bulkCount * 0.1).toFixed(0) + 'ms',
+                    estimatedImprovement: (((allElements.length * 2) - (criticalCount * 2 + bulkCount * 0.1)) / (allElements.length * 2) * 100).toFixed(1) + '%'
+                }
+            };
+            
+            document.getElementById('performance-stats').innerHTML = `
+                <strong>Performance Analysis:</strong><br>
+                DOM Query Time: ${results.queryTime}ms<br>
+                Element Classification: ${results.criticalElements} critical, ${results.bulkElements} bulk (${results.criticalRatio}% critical)<br>
+                <br>
+                <strong>Expected Performance:</strong><br>
+                Original Approach: ~${results.expectedPerformance.originalApproach}<br>
+                Hybrid Approach: ~${results.expectedPerformance.hybridApproach}<br>
+                <strong>Estimated Improvement: ${results.expectedPerformance.estimatedImprovement}</strong>
+            `;
+            
+            console.log('JustUI Test: Performance Analysis Results:', results);
+            return results;
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            updateElementCounts();
+            setTimeout(() => {
+                testHybridPerformance();
+            }, 500);
+            
+            console.log('JustUI Test: Page loaded with test elements for hybrid processing verification');
+            console.log('JustUI Test: Check browser DevTools console for hybrid processing logs');
+            console.log('JustUI Test: Look for classification, snapshot creation, and processing metrics');
+        });
+
+        // Monitor for JustUI processing
+        let justUIProcessingDetected = false;
+        const originalConsoleLog = console.log;
+        console.log = function(...args) {
+            if (args[0] && args[0].includes && args[0].includes('JustUI:')) {
+                if (!justUIProcessingDetected) {
+                    justUIProcessingDetected = true;
+                    document.getElementById('performance-stats').innerHTML += '<br><br><strong>✅ JustUI Processing Detected!</strong><br>Check console for detailed hybrid processing logs.';
+                }
+            }
+            originalConsoleLog.apply(console, args);
+        };
+    </script>
+</body>
+</html>

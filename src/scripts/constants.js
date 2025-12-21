@@ -18,3 +18,18 @@ export const PATTERN_DETECTION_CONFIG = {
   INITIAL_BATCH_SIZE: 10,        // Starting batch size
   PERF_WINDOW_SIZE: 5            // Moving average window size
 };
+
+// Hybrid processing configuration
+export const HYBRID_CONFIG = {
+  SNAPSHOT_MAX_AGE: 100,           // ms - maximum snapshot age before considered stale
+  CRITICAL_ELEMENT_TIMEOUT: 30,   // ms - maximum time per critical element analysis
+  BULK_VALIDATION_THRESHOLD: 10,  // px - maximum geometry change threshold
+  ADAPTIVE_DETECTION_ENABLED: true, // enable evasion detection
+  GEOMETRY_CHANGE_THRESHOLD: 10,  // px - threshold for detecting geometry changes
+  VALIDATION_RETRY_LIMIT: 2,      // maximum validation retries
+  FALLBACK_TO_REALTIME: true,     // fallback to real-time processing on hybrid failure
+  BULK_VALIDATION_ENABLED: true,  // enable snapshot validation before removal
+  MUTATION_DETECTION_ENABLED: true, // enable mutation monitoring for critical elements
+  CACHE_ENABLED: true,             // enable element classification caching
+  DEBUG_LOGGING: false            // enable detailed debug logging for hybrid processing
+};

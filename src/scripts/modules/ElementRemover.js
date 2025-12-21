@@ -1,6 +1,7 @@
 /**
  * Element Removal Module - Handles DOM element removal strategies
  * Follows Single Responsibility Principle
+ * Uses WeakSet for automatic memory management of processed elements
  */
 export class ElementRemover {
   static REMOVAL_STRATEGIES = {
@@ -9,6 +10,9 @@ export class ElementRemover {
     NEUTRALIZE: 'neutralize'
   };
 
+  // WeakSet for automatic garbage collection of processed elements
+  static processedElements = new WeakSet();
+
   /**
    * Remove element completely from DOM
    * @param {HTMLElement} element - Element to remove
@@ -16,11 +20,14 @@ export class ElementRemover {
    * @param {string} strategy - Removal strategy to use
    */
   static removeElement(element, ruleId, strategy = this.REMOVAL_STRATEGIES.REMOVE) {
-    if (!element || element.hasAttribute('data-justui-removed')) {
+    if (!element || this.processedElements.has(element)) {
       return false;
     }
 
-    // Mark element before removal for debugging
+    // Mark element as processed using WeakSet for automatic memory management
+    this.processedElements.add(element);
+    
+    // Keep debugging attributes for development (these will be GC'd with element)
     element.setAttribute('data-justui-removed', ruleId);
     element.setAttribute('data-justui-timestamp', Date.now());
 
@@ -67,7 +74,7 @@ export class ElementRemover {
    * @returns {boolean} - True if already processed
    */
   static isProcessed(element) {
-    return element.hasAttribute('data-justui-removed');
+    return this.processedElements.has(element);
   }
 
   /**
@@ -87,5 +94,27 @@ export class ElementRemover {
     });
 
     return count;
+  }
+
+  /**
+   * Get statistics about processed elements
+   * Note: WeakSet doesn't allow enumeration, so we can't return count
+   * @returns {object} - Statistics object
+   */
+  static getStats() {
+    return {
+      note: 'WeakSet-based tracking prevents memory leaks but doesn\'t support size counting',
+      hasProcessedElements: 'Use isProcessed(element) to check individual elements'
+    };
+  }
+
+  /**
+   * Cleanup method for memory management
+   * WeakSet automatically cleans up when elements are garbage collected
+   */
+  static cleanup() {
+    // Create new WeakSet to release any references
+    this.processedElements = new WeakSet();
+    console.log('JustUI: ElementRemover processed elements WeakSet reset');
   }
 }

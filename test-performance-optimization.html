@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JustUI Performance Test - Layout Optimization</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-container { max-width: 800px; margin: 0 auto; }
+        .ad-like { 
+            width: 300px; 
+            height: 250px; 
+            background: #f0f0f0; 
+            border: 2px solid #ccc; 
+            margin: 10px;
+            display: inline-block;
+            position: relative;
+        }
+        .suspicious { 
+            background: #ffcccc; 
+            border-color: #ff9999;
+        }
+        .malicious-iframe {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 999999;
+            opacity: 0.01;
+            pointer-events: none;
+        }
+        .performance-stats {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .test-content {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .nested-ad {
+            margin: 5px;
+            padding: 10px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>JustUI Performance Test - DOM Layout Optimization</h1>
+        
+        <div class="performance-stats">
+            <h3>Performance Testing:</h3>
+            <p>This page contains <span id="element-count">...</span> elements designed to test the optimized pattern detection.</p>
+            <p>The new implementation separates READ and WRITE phases to prevent layout thrashing.</p>
+            <div id="perf-results"></div>
+        </div>
+
+        <div class="test-content">
+            <h2>Test Elements</h2>
+            <p>Various elements that should trigger pattern detection:</p>
+            
+            <!-- Regular content -->
+            <div class="ad-like">Regular div content</div>
+            <section class="ad-like">Section content</section>
+            <aside class="ad-like">Sidebar content</aside>
+            
+            <!-- Suspicious elements -->
+            <div class="ad-like suspicious" onclick="window.open('https://example.com')">
+                Clickable div with window.open
+            </div>
+            
+            <!-- Nested suspicious content (hierarchy pruning test) -->
+            <div class="ad-like suspicious" id="parent-ad">
+                Parent ad container
+                <div class="nested-ad">Child 1</div>
+                <div class="nested-ad">Child 2</div>
+                <div class="nested-ad">Child 3</div>
+            </div>
+            
+            <!-- High z-index overlay -->
+            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2147483647; opacity: 0.1; background: red; pointer-events: none;">
+                High z-index overlay
+            </div>
+            
+            <!-- Malicious iframe -->
+            <iframe class="malicious-iframe" src="about:blank" sandbox="allow-popups allow-scripts allow-same-origin"></iframe>
+            
+            <!-- Generate many elements for performance testing -->
+            <div id="bulk-elements"></div>
+        </div>
+    </div>
+
+    <script>
+        // Generate bulk elements for performance testing
+        function generateBulkElements() {
+            const container = document.getElementById('bulk-elements');
+            const elementCount = 200; // Moderate count for testing
+            
+            for (let i = 0; i < elementCount; i++) {
+                const div = document.createElement('div');
+                div.className = 'ad-like';
+                div.innerHTML = `Test element ${i}`;
+                
+                // Add some suspicious attributes to some elements
+                if (i % 10 === 0) {
+                    div.setAttribute('onclick', 'window.open("https://suspicious-site.com")');
+                    div.classList.add('suspicious');
+                }
+                
+                if (i % 15 === 0) {
+                    const iframe = document.createElement('iframe');
+                    iframe.src = 'about:blank';
+                    iframe.setAttribute('sandbox', 'allow-popups allow-scripts');
+                    div.appendChild(iframe);
+                }
+                
+                container.appendChild(div);
+            }
+            
+            // Update element count
+            const totalElements = document.querySelectorAll('div, iframe, section, aside, nav, header').length;
+            document.getElementById('element-count').textContent = totalElements;
+            
+            console.log(`Generated ${elementCount} test elements, total elements: ${totalElements}`);
+        }
+
+        // Performance testing function
+        function testPatternDetectionPerformance() {
+            const startTime = performance.now();
+            const elements = document.querySelectorAll('div, iframe, section, aside, nav, header');
+            const queryTime = performance.now() - startTime;
+            
+            console.log(`Query time for ${elements.length} elements: ${queryTime.toFixed(2)}ms`);
+            
+            // Simulate the optimizations
+            let filteredCount = 0;
+            let skipCount = 0;
+            
+            elements.forEach(element => {
+                // Simulate isConnected check
+                if (!element.isConnected) {
+                    skipCount++;
+                    return;
+                }
+                
+                // Simulate visibility check
+                const rect = element.getBoundingClientRect();
+                if (rect.width < 10 || rect.height < 10) {
+                    skipCount++;
+                    return;
+                }
+                
+                filteredCount++;
+            });
+            
+            const results = document.getElementById('perf-results');
+            results.innerHTML = `
+                <strong>Performance Results:</strong><br>
+                Initial Query: ${queryTime.toFixed(2)}ms for ${elements.length} elements<br>
+                After Filtering: ${filteredCount} elements to analyze (skipped ${skipCount})<br>
+                Estimated Improvement: ${((skipCount / elements.length) * 100).toFixed(1)}% reduction in analysis work
+            `;
+        }
+
+        // Initialize test
+        document.addEventListener('DOMContentLoaded', () => {
+            generateBulkElements();
+            setTimeout(testPatternDetectionPerformance, 100);
+            
+            console.log('Performance test page loaded. Check browser console for JustUI pattern detection logs.');
+        });
+    </script>
+</body>
+</html>
