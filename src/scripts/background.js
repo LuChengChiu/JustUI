@@ -296,6 +296,21 @@ chrome.runtime.onInstalled.addListener(async () => {
         updates.popUnderProtectionEnabled = true;
       if (result.scriptAnalysisEnabled === undefined)
         updates.scriptAnalysisEnabled = true;
+      
+      // Smart dependency: Ensure Script Analysis is enabled when Navigation Guardian is active
+      if (result.navigationGuardEnabled !== false && result.scriptAnalysisEnabled === false) {
+        updates.scriptAnalysisEnabled = true;
+      }
+      
+      // Master toggle dependency: Auto-enable both layers when Pop-under Protection is active
+      if (result.popUnderProtectionEnabled !== false) {
+        if (result.scriptAnalysisEnabled === false) {
+          updates.scriptAnalysisEnabled = true;
+        }
+        if (result.navigationGuardEnabled === false) {
+          updates.navigationGuardEnabled = true;
+        }
+      }
       if (!result.navigationStats)
         updates.navigationStats = { blockedCount: 0, allowedCount: 0 };
       if (!result.blockRequestList)
@@ -523,6 +538,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Handle storage changes and notify content scripts
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === "local") {
+    // Smart dependency enforcement: Auto-enable Script Analysis when Navigation Guardian is enabled
+    if (changes.navigationGuardEnabled && changes.navigationGuardEnabled.newValue === true) {
+      chrome.storage.local.get(['scriptAnalysisEnabled'], (result) => {
+        if (!result.scriptAnalysisEnabled) {
+          chrome.storage.local.set({ scriptAnalysisEnabled: true });
+        }
+      });
+    }
+    
+    // Master toggle enforcement: Auto-enable both layers when Pop-under Protection is enabled
+    if (changes.popUnderProtectionEnabled && changes.popUnderProtectionEnabled.newValue === true) {
+      chrome.storage.local.get(['scriptAnalysisEnabled', 'navigationGuardEnabled'], (result) => {
+        const updates = {};
+        if (!result.scriptAnalysisEnabled) {
+          updates.scriptAnalysisEnabled = true;
+        }
+        if (!result.navigationGuardEnabled) {
+          updates.navigationGuardEnabled = true;
+        }
+        if (Object.keys(updates).length > 0) {
+          chrome.storage.local.set(updates);
+        }
+      });
+    }
+
     // Update blocking rules if request blocking settings changed
     if (changes.blockRequestList || changes.requestBlockingEnabled) {
       updateBlockingRules();
