@@ -84,12 +84,14 @@ const validateWhitelistDomain = (domain) => {
  * @param {string[]} props.domains - Current whitelist domains
  * @param {function} props.onDomainsChange - Callback when domains change
  * @param {boolean} [props.disabled] - Whether input is disabled
+ * @param {number} [props.maxLines=3] - Maximum lines of tags to display before showing "more" button
  * @param {string} [props.className] - Additional CSS classes
  */
 export default function WhitelistManager({
   domains = [],
   onDomainsChange,
   disabled = false,
+  maxLines = 3,
   className = "",
 }) {
   /**
@@ -127,6 +129,7 @@ export default function WhitelistManager({
         size="md"
         variant="outline"
         disabled={disabled}
+        maxLines={maxLines}
         className="w-full"
         aria-label="Domain whitelist input"
       >

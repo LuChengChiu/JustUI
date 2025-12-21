@@ -1,146 +1,162 @@
-import { useState, useRef, useEffect, createContext, useContext, forwardRef } from 'react';
+import {
+  useState,
+  useRef,
+  useEffect,
+  createContext,
+  useContext,
+  forwardRef,
+  useCallback,
+  useMemo,
+} from "react";
 
-// Context for component communication
-const TagsInputContext = createContext();
+const TagsInputContext = createContext(null);
 
 const useTagsInputContext = () => {
   const context = useContext(TagsInputContext);
   if (!context) {
-    throw new Error('TagsInput components must be used within TagsInput.Root');
+    throw new Error("TagsInput components must be used within TagsInput.Root");
   }
   return context;
 };
 
-// Main TagsInput Root component
 const TagsInputRoot = ({
   value,
   defaultValue = [],
   onChange,
+  onTagClick,
   max = Infinity,
-  delimiter = ',',
+  maxLines = Infinity,
+  delimiter = ",",
   validate,
   allowDuplicates = false,
   disabled = false,
   readOnly = false,
-  size = 'md',
-  variant = 'outline',
+  size = "md",
+  variant = "outline",
   addOnPaste = false,
   editable = true,
-  blurBehavior = 'clear',
-  className = '',
+  blurBehavior = "clear",
+  className = "",
   children,
   ...props
 }) => {
   const [tags, setTags] = useState(value || defaultValue);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [editingIndex, setEditingIndex] = useState(-1);
-  const [validationError, setValidationError] = useState('');
+  const [validationError, setValidationError] = useState("");
   const inputRef = useRef(null);
 
   // Handle controlled vs uncontrolled
   const isControlled = value !== undefined;
   const currentTags = isControlled ? value : tags;
 
-  const updateTags = (newTags) => {
-    if (!isControlled) {
-      setTags(newTags);
-    }
-    onChange?.(newTags);
-  };
+  const updateTags = useCallback(
+    (newTags) => {
+      if (!isControlled) {
+        setTags(newTags);
+      }
+      onChange?.(newTags);
+    },
+    [isControlled, onChange]
+  );
 
-  const addTag = (tagValue) => {
-    const trimmedValue = tagValue.trim();
-    setValidationError('');
-    
-    if (!trimmedValue) {
-      setValidationError('Domain cannot be empty');
-      return false;
-    }
+  const addTag = useCallback(
+    (tagValue) => {
+      const trimmedValue = tagValue.trim();
+      setValidationError("");
 
-    // Check max limit
-    if (currentTags.length >= max) {
-      setValidationError(`Maximum ${max} domains allowed`);
-      return false;
-    }
+      if (!trimmedValue) {
+        setValidationError("Domain cannot be empty");
+        return false;
+      }
 
-    // Check duplicates
-    if (!allowDuplicates && currentTags.includes(trimmedValue)) {
-      setValidationError('Domain already exists in the list');
-      return false;
-    }
+      if (currentTags.length >= max) {
+        setValidationError(`Maximum ${max} domains allowed`);
+        return false;
+      }
 
-    // Validate tag with specific error messages
-    if (validate && !validate(trimmedValue)) {
-      setValidationError(getValidationErrorMessage(trimmedValue));
-      return false;
-    }
+      if (!allowDuplicates && currentTags.includes(trimmedValue)) {
+        setValidationError("Domain already exists in the list");
+        return false;
+      }
 
-    updateTags([...currentTags, trimmedValue]);
-    setValidationError('');
-    return true;
-  };
+      if (validate && !validate(trimmedValue)) {
+        setValidationError(getValidationErrorMessage(trimmedValue));
+        return false;
+      }
+
+      updateTags([...currentTags, trimmedValue]);
+      setValidationError("");
+      return true;
+    },
+    [currentTags, max, allowDuplicates, validate, updateTags]
+  );
 
   const getValidationErrorMessage = (domain) => {
-    // Pure numbers check
     if (/^\d+$/.test(domain)) {
       return 'Pure numbers are not valid domains. Try adding a TLD like ".com"';
     }
-    
-    // No dot check
-    if (!domain.includes('.')) {
-      return 'Domain must include a TLD (e.g., example.com)';
+
+    if (!domain.includes(".")) {
+      return "Domain must include a TLD (e.g., example.com)";
     }
-    
-    // Invalid characters or format
+
     if (!/^[a-zA-Z0-9.*:-]+$/.test(domain)) {
-      return 'Domain contains invalid characters';
-    }
-    
-    // Generic message for other validation failures
-    return 'Invalid domain format. Use format like: example.com, *.example.com, or localhost:3000';
-  };
-
-  const removeTag = (index) => {
-    updateTags(currentTags.filter((_, i) => i !== index));
-  };
-
-  const updateTag = (index, newValue) => {
-    const trimmedValue = newValue.trim();
-    if (!trimmedValue) {
-      removeTag(index);
-      return;
+      return "Domain contains invalid characters";
     }
 
-    // Validate updated tag
-    if (validate && !validate(trimmedValue)) return false;
-
-    // Check duplicates (excluding current index)
-    if (!allowDuplicates && currentTags.some((tag, i) => i !== index && tag === trimmedValue)) return false;
-
-    const newTags = [...currentTags];
-    newTags[index] = trimmedValue;
-    updateTags(newTags);
-    return true;
+    return "Invalid domain format. Use format like: example.com, *.example.com, or localhost:3000";
   };
+
+  const removeTag = useCallback(
+    (index) => {
+      updateTags(currentTags.filter((_, i) => i !== index));
+    },
+    [currentTags, updateTags]
+  );
+
+  const updateTag = useCallback(
+    (index, newValue) => {
+      const trimmedValue = newValue.trim();
+      if (!trimmedValue) {
+        removeTag(index);
+        return;
+      }
+
+      if (validate && !validate(trimmedValue)) return false;
+
+      if (
+        !allowDuplicates &&
+        currentTags.some((tag, i) => i !== index && tag === trimmedValue)
+      )
+        return false;
+
+      const newTags = [...currentTags];
+      newTags[index] = trimmedValue;
+      updateTags(newTags);
+      return true;
+    },
+    [currentTags, allowDuplicates, validate, removeTag, updateTags]
+  );
 
   const handleInputKeyDown = (e) => {
     if (disabled || readOnly) return;
 
     switch (e.key) {
-      case 'Enter':
+      case "Enter":
       case delimiter:
         e.preventDefault();
         const trimmedValue = inputValue.trim();
         if (trimmedValue) {
           const success = addTag(trimmedValue);
           if (success) {
-            setInputValue('');
+            setInputValue("");
           }
         }
         break;
 
-      case 'Backspace':
+      case "Backspace":
         if (!inputValue && currentTags.length > 0) {
           if (focusedIndex >= 0) {
             removeTag(focusedIndex);
@@ -151,21 +167,21 @@ const TagsInputRoot = ({
         }
         break;
 
-      case 'ArrowLeft':
+      case "ArrowLeft":
         if (!inputValue || e.target.selectionStart === 0) {
           e.preventDefault();
-          setFocusedIndex(prev => 
+          setFocusedIndex((prev) =>
             prev >= 0 ? Math.max(0, prev - 1) : currentTags.length - 1
           );
         }
         break;
 
-      case 'ArrowRight':
+      case "ArrowRight":
         if (!inputValue || e.target.selectionStart === inputValue.length) {
           e.preventDefault();
           if (focusedIndex >= 0) {
             if (focusedIndex < currentTags.length - 1) {
-              setFocusedIndex(prev => prev + 1);
+              setFocusedIndex((prev) => prev + 1);
             } else {
               setFocusedIndex(-1);
               inputRef.current?.focus();
@@ -174,7 +190,7 @@ const TagsInputRoot = ({
         }
         break;
 
-      case 'Escape':
+      case "Escape":
         setFocusedIndex(-1);
         setEditingIndex(-1);
         break;
@@ -182,8 +198,8 @@ const TagsInputRoot = ({
   };
 
   const handleInputBlur = () => {
-    if (blurBehavior === 'add' && inputValue && addTag(inputValue)) {
-      setInputValue('');
+    if (blurBehavior === "add" && inputValue && addTag(inputValue)) {
+      setInputValue("");
     }
     setFocusedIndex(-1);
   };
@@ -191,61 +207,100 @@ const TagsInputRoot = ({
   const handlePaste = (e) => {
     if (!addOnPaste) return;
 
-    const paste = e.clipboardData.getData('text');
-    const tags = paste.split(new RegExp(delimiter, 'g')).map(tag => tag.trim()).filter(Boolean);
-    
+    const paste = e.clipboardData.getData("text");
+    const tags = paste
+      .split(new RegExp(delimiter, "g"))
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+
     if (tags.length > 0) {
       e.preventDefault();
-      tags.forEach(tag => addTag(tag));
-      setInputValue('');
+      tags.forEach((tag) => addTag(tag));
+      setInputValue("");
     }
   };
 
   const sizeStyles = {
-    xs: 'text-xs px-2 py-1 min-h-[24px]',
-    sm: 'text-sm px-3 py-1.5 min-h-[32px]',
-    md: 'text-base px-3 py-2 min-h-[40px]',
-    lg: 'text-lg px-4 py-2.5 min-h-[48px]'
+    xs: "text-xs px-2 py-1 min-h-[24px]",
+    sm: "text-sm px-3 py-1.5 min-h-[32px]",
+    md: "text-base px-3 py-2 min-h-[40px]",
+    lg: "text-lg px-4 py-2.5 min-h-[48px]",
   };
 
-  const variantStyles = {
-    outline: `border-2 ${validationError ? 'border-red-500 focus-within:border-red-600 focus-within:shadow-[0_0_0_1px_rgba(239,68,68,0.5)]' : 'border-gray-300 focus-within:border-blue-600 focus-within:shadow-[0_0_0_1px_rgba(59,130,246,0.5)]'} bg-white`,
-    subtle: `border ${validationError ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'} focus-within:bg-white focus-within:border-gray-300`,
-    flushed: `border-0 border-b-2 ${validationError ? 'border-red-500' : 'border-gray-300'} bg-transparent rounded-none focus-within:border-blue-600`
-  };
+  const variantStyles = useMemo(
+    () => ({
+      outline: `border-2 ${
+        validationError
+          ? "border-red-500 focus-within:border-red-600 focus-within:shadow-[0_0_0_1px_rgba(239,68,68,0.5)]"
+          : "border-gray-300 focus-within:border-[#913ced] focus-within:shadow-[0_0_0_1px_rgba(59,130,246,0.5)]"
+      } bg-white`,
+      subtle: `border ${
+        validationError
+          ? "border-red-300 bg-red-50"
+          : "border-gray-200 bg-gray-50"
+      } focus-within:bg-white focus-within:border-gray-300`,
+      flushed: `border-0 border-b-2 ${
+        validationError ? "border-red-500" : "border-gray-300"
+      } bg-transparent rounded-none focus-within:border-[#913ced]`,
+    }),
+    [validationError]
+  );
 
-  const contextValue = {
-    tags: currentTags,
-    inputValue,
-    setInputValue,
-    focusedIndex,
-    setFocusedIndex,
-    editingIndex,
-    setEditingIndex,
-    addTag,
-    removeTag,
-    updateTag,
-    handleInputKeyDown,
-    handleInputBlur,
-    handlePaste,
-    inputRef,
-    disabled,
-    readOnly,
-    size,
-    editable,
-    validationError,
-    setValidationError
-  };
+  const contextValue = useMemo(
+    () => ({
+      tags: currentTags,
+      inputValue,
+      setInputValue,
+      focusedIndex,
+      setFocusedIndex,
+      editingIndex,
+      setEditingIndex,
+      addTag,
+      removeTag,
+      updateTag,
+      handleInputKeyDown,
+      handleInputBlur,
+      handlePaste,
+      inputRef,
+      disabled,
+      readOnly,
+      size,
+      editable,
+      validationError,
+      setValidationError,
+      onTagClick,
+      maxLines,
+    }),
+    [
+      currentTags,
+      inputValue,
+      focusedIndex,
+      editingIndex,
+      addTag,
+      removeTag,
+      updateTag,
+      handleInputKeyDown,
+      handleInputBlur,
+      handlePaste,
+      disabled,
+      readOnly,
+      size,
+      editable,
+      validationError,
+      onTagClick,
+      maxLines,
+    ]
+  );
 
   return (
     <TagsInputContext.Provider value={contextValue}>
       <div>
-        <div 
+        <div
           className={`
             font-barlow flex flex-wrap items-center gap-1 rounded-md transition-all
             ${sizeStyles[size]}
             ${variantStyles[variant]}
-            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+            ${disabled ? "opacity-50 cursor-not-allowed" : ""}
             ${className}
           `}
           {...props}
@@ -262,10 +317,9 @@ const TagsInputRoot = ({
   );
 };
 
-// Label component
-const TagsInputLabel = ({ children, className = '', ...props }) => {
+const TagsInputLabel = ({ children, className = "", ...props }) => {
   return (
-    <label 
+    <label
       className={`block text-sm font-medium text-gray-700 mb-1 font-barlow ${className}`}
       {...props}
     >
@@ -274,84 +328,83 @@ const TagsInputLabel = ({ children, className = '', ...props }) => {
   );
 };
 
-// Control container
-const TagsInputControl = ({ children, className = '', ...props }) => {
+const TagsInputControl = ({ children, className = "", ...props }) => {
   return (
-    <div className={`flex flex-wrap items-center gap-1 w-full ${className}`} {...props}>
+    <div
+      className={`flex flex-wrap items-center gap-1 w-full ${className}`}
+      {...props}
+    >
       {children}
     </div>
   );
 };
 
-// Input component
-const TagsInputInput = forwardRef(({ 
-  placeholder = 'Add tag...', 
-  className = '', 
-  ...props 
-}, ref) => {
-  const { 
-    inputValue, 
-    setInputValue, 
-    handleInputKeyDown, 
-    handleInputBlur, 
-    handlePaste, 
-    inputRef, 
-    disabled, 
-    readOnly,
-    size,
-    validationError,
-    setValidationError 
-  } = useTagsInputContext();
+const TagsInputInput = forwardRef(
+  ({ placeholder = "Add tag...", className = "", ...props }, ref) => {
+    const {
+      inputValue,
+      setInputValue,
+      handleInputKeyDown,
+      handleInputBlur,
+      handlePaste,
+      inputRef,
+      disabled,
+      readOnly,
+      size,
+      validationError,
+      setValidationError,
+    } = useTagsInputContext();
 
-  const sizeStyles = {
-    xs: 'text-xs px-1 py-0.5 min-w-[60px]',
-    sm: 'text-sm px-1 py-1 min-w-[80px]',
-    md: 'text-base px-1 py-1 min-w-[100px]',
-    lg: 'text-lg px-1 py-1 min-w-[120px]'
-  };
+    const sizeStyles = {
+      xs: "text-xs px-1 py-0.5 min-w-[60px]",
+      sm: "text-sm px-1 py-1 min-w-[80px]",
+      md: "text-base px-1 py-1 min-w-[100px]",
+      lg: "text-lg px-1 py-1 min-w-[120px]",
+    };
 
-  return (
-    <input
-      ref={ref || inputRef}
-      type="text"
-      value={inputValue}
-      onChange={(e) => {
-        setInputValue(e.target.value);
-        // Clear validation error when user starts typing
-        if (validationError) {
-          setValidationError('');
-        }
-      }}
-      onKeyDown={handleInputKeyDown}
-      onBlur={handleInputBlur}
-      onPaste={handlePaste}
-      placeholder={placeholder}
-      disabled={disabled}
-      readOnly={readOnly}
-      className={`
+    return (
+      <input
+        ref={ref || inputRef}
+        type="text"
+        value={inputValue}
+        onChange={(e) => {
+          setInputValue(e.target.value);
+          // Clear validation error when user starts typing
+          if (validationError) {
+            setValidationError("");
+          }
+        }}
+        onKeyDown={handleInputKeyDown}
+        onBlur={handleInputBlur}
+        onPaste={handlePaste}
+        placeholder={placeholder}
+        disabled={disabled}
+        readOnly={readOnly}
+        className={`
         font-barlow flex-1 border-0 outline-none bg-transparent
         ${sizeStyles[size]}
-        ${disabled ? 'cursor-not-allowed' : ''}
+        ${disabled ? "cursor-not-allowed" : ""}
         ${className}
       `}
-      {...props}
-    />
-  );
-});
+        {...props}
+      />
+    );
+  }
+);
 
-TagsInputInput.displayName = 'TagsInputInput';
+TagsInputInput.displayName = "TagsInputInput";
 
 // Tag component
-const TagsInputTag = ({ 
-  tag, 
-  index, 
-  onRemove, 
-  className = '', 
+const TagsInputTag = ({
+  tag,
+  index,
+  onRemove,
+  className = "",
   children,
-  ...props 
+  ...props
 }) => {
-  const { 
-    focusedIndex, 
+  const {
+    focusedIndex,
     setFocusedIndex,
     editingIndex,
     setEditingIndex,
@@ -359,7 +412,8 @@ const TagsInputTag = ({
     disabled,
     readOnly,
     size,
-    editable
+    editable,
+    onTagClick,
   } = useTagsInputContext();
 
   const [editValue, setEditValue] = useState(tag);
@@ -381,6 +435,15 @@ const TagsInputTag = ({
     setEditValue(tag);
   };
 
+  const handleTagClick = () => {
+    if (disabled || readOnly) return;
+    if (onTagClick) {
+      onTagClick(tag, index);
+    } else if (editable) {
+      handleEdit();
+    }
+  };
+
   const handleEditSubmit = () => {
     if (updateTag(index, editValue)) {
       setEditingIndex(-1);
@@ -389,11 +452,11 @@ const TagsInputTag = ({
 
   const handleEditKeyDown = (e) => {
     switch (e.key) {
-      case 'Enter':
+      case "Enter":
         e.preventDefault();
         handleEditSubmit();
         break;
-      case 'Escape':
+      case "Escape":
         e.preventDefault();
         setEditingIndex(-1);
         setEditValue(tag);
@@ -402,15 +465,15 @@ const TagsInputTag = ({
   };
 
   const sizeStyles = {
-    xs: 'text-xs px-2 py-0.5 h-5',
-    sm: 'text-sm px-2 py-1 h-6',
-    md: 'text-sm px-3 py-1 h-7',
-    lg: 'text-base px-3 py-1.5 h-8'
+    xs: "text-xs px-2 py-0.5 h-5",
+    sm: "text-sm px-2 py-1 h-6",
+    md: "text-sm px-3 py-1 h-7",
+    lg: "text-base px-3 py-1.5 h-8",
   };
 
   if (isEditing) {
     return (
-      <span 
+      <span
         className={`
           inline-flex items-center rounded-md bg-blue-100 border border-blue-300
           ${sizeStyles[size]}
@@ -431,22 +494,26 @@ const TagsInputTag = ({
   }
 
   return (
-    <span 
+    <span
       className={`
         inline-flex items-center rounded-md bg-gray-100 text-gray-800 group
         ${sizeStyles[size]}
-        ${isFocused ? 'ring-2 ring-blue-500 ring-offset-1' : ''}
-        ${editable && !disabled && !readOnly ? 'cursor-pointer hover:bg-gray-200' : ''}
+        ${isFocused ? "ring-2 ring-blue-500 ring-offset-1" : ""}
+        ${
+          (editable || onTagClick) && !disabled && !readOnly
+            ? "cursor-pointer hover:bg-gray-200"
+            : ""
+        }
         ${className}
       `}
-      onClick={handleEdit}
-      onDoubleClick={handleEdit}
+      onClick={handleTagClick}
+      onDoubleClick={editable ? handleEdit : undefined}
       {...props}
     >
       {children || (
         <>
           <TagsInputTagText>{tag}</TagsInputTagText>
-          <TagsInputTagRemove 
+          <TagsInputTagRemove
             onRemove={() => onRemove?.(index)}
             disabled={disabled || readOnly}
           />
@@ -457,26 +524,28 @@ const TagsInputTag = ({
 };
 
 // Tag text component
-const TagsInputTagText = ({ children, className = '', ...props }) => {
+const TagsInputTagText = ({ children, className = "", ...props }) => {
   return (
-    <span 
-      className={`truncate font-barlow ${className}`} 
-      {...props}
-    >
+    <span className={`truncate font-barlow ${className}`} {...props}>
       {children}
     </span>
   );
 };
 
 // Tag remove button
-const TagsInputTagRemove = ({ onRemove, disabled = false, className = '', ...props }) => {
+const TagsInputTagRemove = ({
+  onRemove,
+  disabled = false,
+  className = "",
+  ...props
+}) => {
   const { size } = useTagsInputContext();
-  
+
   const sizeStyles = {
-    xs: 'w-3 h-3 text-xs',
-    sm: 'w-3.5 h-3.5 text-sm',
-    md: 'w-4 h-4 text-sm',
-    lg: 'w-4 h-4 text-base'
+    xs: "w-3 h-3 text-xs",
+    sm: "w-3.5 h-3.5 text-sm",
+    md: "w-4 h-4 text-sm",
+    lg: "w-4 h-4 text-base",
   };
 
   const handleClick = (e) => {
@@ -495,7 +564,7 @@ const TagsInputTagRemove = ({ onRemove, disabled = false, className = '', ...pro
         ml-1 rounded-full hover:bg-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400
         flex items-center justify-center transition-colors
         ${sizeStyles[size]}
-        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
         ${className}
       `}
       {...props}
@@ -511,12 +580,22 @@ const TagsInputTagRemove = ({ onRemove, disabled = false, className = '', ...pro
 };
 
 // Items shortcut component
-const TagsInputItems = ({ className = '', ...props }) => {
-  const { tags, removeTag } = useTagsInputContext();
+const TagsInputItems = ({ className = "", ...props }) => {
+  const { tags, removeTag, maxLines } = useTagsInputContext();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Rough estimation: assume each tag takes ~120px width, container width ~400px
+  // So approximately 3 tags per line, adjust based on maxLines
+  const estimatedTagsPerLine = 3;
+  const maxVisibleTags =
+    maxLines === Infinity ? tags.length : maxLines * estimatedTagsPerLine;
+
+  const visibleTags = isExpanded ? tags : tags.slice(0, maxVisibleTags);
+  const hasHiddenTags = tags.length > maxVisibleTags && maxLines !== Infinity;
 
   return (
     <>
-      {tags.map((tag, index) => (
+      {visibleTags.map((tag, index) => (
         <TagsInputTag
           key={`${tag}-${index}`}
           tag={tag}
@@ -526,16 +605,25 @@ const TagsInputItems = ({ className = '', ...props }) => {
           {...props}
         />
       ))}
+      {hasHiddenTags && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="
+            text-xs px-2 py-1 rounded-md bg-gray-200 text-gray-600 
+            hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400
+            transition-colors font-barlow
+          "
+        >
+          {isExpanded ? `Show less` : `+${tags.length - maxVisibleTags} more`}
+        </button>
+      )}
     </>
   );
 };
 
 // Clear all button
-const TagsInputClearTrigger = ({ 
-  children, 
-  className = '',
-  ...props 
-}) => {
+const TagsInputClearTrigger = ({ children, className = "", ...props }) => {
   const { tags, updateTags, disabled, size } = useTagsInputContext();
 
   const handleClear = () => {
@@ -545,10 +633,10 @@ const TagsInputClearTrigger = ({
   };
 
   const sizeStyles = {
-    xs: 'text-xs px-1.5 py-0.5',
-    sm: 'text-sm px-2 py-1',
-    md: 'text-sm px-2 py-1',
-    lg: 'text-base px-3 py-1'
+    xs: "text-xs px-1.5 py-0.5",
+    sm: "text-sm px-2 py-1",
+    md: "text-sm px-2 py-1",
+    lg: "text-base px-3 py-1",
   };
 
   if (tags.length === 0) return null;
@@ -562,12 +650,12 @@ const TagsInputClearTrigger = ({
         text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400
         rounded transition-colors
         ${sizeStyles[size]}
-        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
         ${className}
       `}
       {...props}
     >
-      {children || 'Clear all'}
+      {children || "Clear all"}
     </button>
   );
 };
@@ -589,7 +677,7 @@ const TagsInput = Object.assign(TagsInputRoot, {
   TagRemove: TagsInputTagRemove,
   Items: TagsInputItems,
   ClearTrigger: TagsInputClearTrigger,
-  Context: TagsInputContext_
+  Context: TagsInputContext_,
 });
 
 export default TagsInput;
