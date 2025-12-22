@@ -89,7 +89,7 @@
     "type": "domain",
     "reason": "Malicious ads from manhwaclan.com",
     "severity": "high",
-    "resourceTypes": ["xmlhttprequest", "script", "sub_frame", "fetch", "other"]
+    "resourceTypes": ["xmlhttprequest", "script", "sub_frame", "other"]
   },
   {
     "id": "uBO_013",
@@ -97,6 +97,6 @@
     "type": "domain",
     "reason": "Malicious ads from kunmanga.com",
     "severity": "high",
-    "resourceTypes": ["xmlhttprequest", "script", "sub_frame", "xhr", "other"]
+    "resourceTypes": ["xmlhttprequest", "script", "sub_frame", "other"]
   }
 ]

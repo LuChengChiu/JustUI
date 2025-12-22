@@ -351,7 +351,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     ];
 
     if (Object.keys(updates).length > 0) {
-      const installationResult = await safeStorageSetWithValidation(updates, ['blockRequestList', 'defaultRules']);
+      const installationResult = await safeStorageSetWithValidation(updates, ['blockRequestList', 'defaultRules'], { requireValidation: false, validateWrite: false });
       if (!installationResult.success) {
         console.error('JustUI Installation Warning: Some settings may not have been saved properly:', {
           inconsistencies: installationResult.validationResult?.inconsistencies,
@@ -409,7 +409,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         defaultRules,
         whitelist: mergedWhitelist,
         blockRequestList: defaultBlockRequests,
-      }, ['blockRequestList', 'defaultRules', 'whitelist']);
+      }, ['blockRequestList', 'defaultRules', 'whitelist'], { requireValidation: false, validateWrite: false });
       
       if (!updateResult.success) {
         console.error('JustUI Update Failed: Scheduled update could not be completed:', {
