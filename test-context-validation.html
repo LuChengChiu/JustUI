@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chrome Extension Context Validation Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #e8f5e8; border-color: #4caf50; }
+        .warning { background-color: #fff3cd; border-color: #ffc107; }
+        .error { background-color: #f8d7da; border-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>Chrome Extension Context Validation Test</h1>
+    <p>This test page helps verify that the Chrome Extension context validation fix is working correctly.</p>
+    
+    <div class="test-section">
+        <h2>Test Instructions</h2>
+        <ol>
+            <li>Build the extension with <code>npm run build</code></li>
+            <li>Load the extension from the <code>dist/</code> directory in Chrome</li>
+            <li>Open Chrome DevTools → Console</li>
+            <li>Test normal operation first</li>
+            <li>Simulate extension reload scenarios</li>
+            <li>Check for context validation messages in console</li>
+        </ol>
+    </div>
+
+    <div class="test-section warning">
+        <h2>Expected Console Messages</h2>
+        <p>If context validation is working, you should see messages like:</p>
+        <ul>
+            <li><code>JustUI: Extension context invalid during installation, skipping initialization</code></li>
+            <li><code>JustUI: Extension context invalid, skipping blocking rules update</code></li>
+            <li><code>JustUI: Extension context invalid during alarm listener, skipping update</code></li>
+            <li><code>Chrome API Safe: Extension context invalid, skipping storage.set</code></li>
+        </ul>
+    </div>
+
+    <div class="test-section success">
+        <h2>Context Validation Fix Benefits</h2>
+        <ul>
+            <li>✅ Prevents silent failures during extension reloads</li>
+            <li>✅ Uses existing chromeApiSafe.js safety infrastructure</li>
+            <li>✅ Graceful degradation when context becomes invalid</li>
+            <li>✅ Comprehensive error handling and logging</li>
+            <li>✅ Retry logic for temporary failures</li>
+        </ul>
+    </div>
+
+    <script>
+        console.log('Test page loaded - ready to test Chrome Extension context validation');
+    </script>
+</body>
+</html>

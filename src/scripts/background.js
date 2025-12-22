@@ -1,6 +1,12 @@
 // Background script for JustUI Chrome Extension
 // Coordinates communication between popup and content scripts
 
+import {
+  isExtensionContextValid,
+  safeStorageGet,
+  safeStorageSet
+} from './utils/chromeApiSafe.js';
+
 const REMOTE_RULES_URL =
   "https://raw.githubusercontent.com/LuChengChiu/JustUI/main/src/data/defaultRules.json";
 const REMOTE_WHITELIST_URL =
@@ -184,11 +190,17 @@ function createBlockingRules(blockRequests) {
 
 // Update dynamic blocking rules
 async function updateBlockingRules() {
+  // Context validation before proceeding
+  if (!isExtensionContextValid()) {
+    console.warn('JustUI: Extension context invalid, skipping blocking rules update');
+    return;
+  }
+
   try {
     console.log("JustUI: Starting updateBlockingRules...");
 
     const { blockRequestList = [], requestBlockingEnabled = true } =
-      await chrome.storage.local.get([
+      await safeStorageGet([
         "blockRequestList",
         "requestBlockingEnabled",
       ]);
@@ -251,6 +263,12 @@ async function updateBlockingRules() {
 
 // Initialize default storage structure on installation
 chrome.runtime.onInstalled.addListener(async () => {
+  // Early context validation check
+  if (!isExtensionContextValid()) {
+    console.warn('JustUI: Extension context invalid during installation, skipping initialization');
+    return;
+  }
+
   const [defaultRules, defaultWhitelist, defaultBlockRequests] =
     await Promise.all([
       fetchDefaultRules(),
@@ -259,8 +277,8 @@ chrome.runtime.onInstalled.addListener(async () => {
     ]);
 
   // Set default storage values if not already set
-  chrome.storage.local.get(
-    [
+  try {
+    const result = await safeStorageGet([
       "isActive",
       "whitelist",
       "customWhitelist",
@@ -275,74 +293,79 @@ chrome.runtime.onInstalled.addListener(async () => {
       "navigationStats",
       "blockRequestList",
       "requestBlockingEnabled",
-    ],
-    (result) => {
-      const updates = {};
+    ]);
+    const updates = {};
 
-      if (result.isActive === undefined) updates.isActive = false;
-      if (!result.customRules) updates.customRules = [];
-      if (result.defaultRulesEnabled === undefined)
-        updates.defaultRulesEnabled = true;
-      if (result.customRulesEnabled === undefined)
-        updates.customRulesEnabled = true;
-      if (result.patternRulesEnabled === undefined)
-        updates.patternRulesEnabled = true;
-      if (result.navigationGuardEnabled === undefined)
+    if (result.isActive === undefined) updates.isActive = false;
+    if (!result.customRules) updates.customRules = [];
+    if (result.defaultRulesEnabled === undefined)
+      updates.defaultRulesEnabled = true;
+    if (result.customRulesEnabled === undefined)
+      updates.customRulesEnabled = true;
+    if (result.patternRulesEnabled === undefined)
+      updates.patternRulesEnabled = true;
+    if (result.navigationGuardEnabled === undefined)
+      updates.navigationGuardEnabled = true;
+    if (result.popUnderProtectionEnabled === undefined)
+      updates.popUnderProtectionEnabled = true;
+    if (result.scriptAnalysisEnabled === undefined)
+      updates.scriptAnalysisEnabled = true;
+    
+    // Smart dependency: Ensure Script Analysis is enabled when Navigation Guardian is active
+    if (result.navigationGuardEnabled !== false && result.scriptAnalysisEnabled === false) {
+      updates.scriptAnalysisEnabled = true;
+    }
+    
+    // Master toggle dependency: Auto-enable both layers when Pop-under Protection is active
+    if (result.popUnderProtectionEnabled !== false) {
+      if (result.scriptAnalysisEnabled === false) {
+        updates.scriptAnalysisEnabled = true;
+      }
+      if (result.navigationGuardEnabled === false) {
         updates.navigationGuardEnabled = true;
-      if (result.popUnderProtectionEnabled === undefined)
-        updates.popUnderProtectionEnabled = true;
-      if (result.scriptAnalysisEnabled === undefined)
-        updates.scriptAnalysisEnabled = true;
-      
-      // Smart dependency: Ensure Script Analysis is enabled when Navigation Guardian is active
-      if (result.navigationGuardEnabled !== false && result.scriptAnalysisEnabled === false) {
-        updates.scriptAnalysisEnabled = true;
-      }
-      
-      // Master toggle dependency: Auto-enable both layers when Pop-under Protection is active
-      if (result.popUnderProtectionEnabled !== false) {
-        if (result.scriptAnalysisEnabled === false) {
-          updates.scriptAnalysisEnabled = true;
-        }
-        if (result.navigationGuardEnabled === false) {
-          updates.navigationGuardEnabled = true;
-        }
-      }
-      if (!result.navigationStats)
-        updates.navigationStats = { blockedCount: 0, allowedCount: 0 };
-      if (!result.blockRequestList)
-        updates.blockRequestList = defaultBlockRequests;
-      if (result.requestBlockingEnabled === undefined)
-        updates.requestBlockingEnabled = true;
-
-      // Always update default rules from remote
-      updates.defaultRules = defaultRules;
-
-      // FORCE UPDATE: Always refresh blockRequestList with latest data
-      updates.blockRequestList = defaultBlockRequests;
-      console.log(
-        "JustUI: FORCE updating blockRequestList with",
-        defaultBlockRequests.length,
-        "entries"
-      );
-
-      // Merge default whitelist with user's custom additions
-      const customWhitelist = result.customWhitelist || [];
-      updates.whitelist = [
-        ...new Set([...defaultWhitelist, ...customWhitelist]),
-      ];
-
-      if (Object.keys(updates).length > 0) {
-        chrome.storage.local.set(updates, () => {
-          // Initialize request blocking rules after storage is set
-          updateBlockingRules();
-        });
-      } else {
-        // Still need to initialize blocking rules if no updates
-        updateBlockingRules();
       }
     }
-  );
+    if (!result.navigationStats)
+      updates.navigationStats = { blockedCount: 0, allowedCount: 0 };
+    if (!result.blockRequestList)
+      updates.blockRequestList = defaultBlockRequests;
+    if (result.requestBlockingEnabled === undefined)
+      updates.requestBlockingEnabled = true;
+
+    // Always update default rules from remote
+    updates.defaultRules = defaultRules;
+
+    // FORCE UPDATE: Always refresh blockRequestList with latest data
+    updates.blockRequestList = defaultBlockRequests;
+    console.log(
+      "JustUI: FORCE updating blockRequestList with",
+      defaultBlockRequests.length,
+      "entries"
+    );
+
+    // Merge default whitelist with user's custom additions
+    const customWhitelist = result.customWhitelist || [];
+    updates.whitelist = [
+      ...new Set([...defaultWhitelist, ...customWhitelist]),
+    ];
+
+    if (Object.keys(updates).length > 0) {
+      await safeStorageSet(updates);
+      // Initialize request blocking rules after storage is set
+      updateBlockingRules();
+    } else {
+      // Still need to initialize blocking rules if no updates
+      updateBlockingRules();
+    }
+  } catch (error) {
+    console.error('JustUI: Failed to initialize default storage during installation:', error);
+    // Attempt to initialize blocking rules even if storage initialization failed
+    try {
+      updateBlockingRules();
+    } catch (rulesError) {
+      console.error('JustUI: Failed to initialize blocking rules during installation:', rulesError);
+    }
+  }
 
   // Periodically update default rules and whitelist (once per day)
   chrome.alarms.create("updateDefaults", {
@@ -352,33 +375,39 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === "updateDefaults") {
-    const [defaultRules, defaultWhitelist, defaultBlockRequests] =
-      await Promise.all([
-        fetchDefaultRules(),
-        fetchDefaultWhitelist(),
-        fetchDefaultBlockRequests(),
-      ]);
+  // Context validation before proceeding
+  if (!isExtensionContextValid()) {
+    console.warn('JustUI: Extension context invalid during alarm listener, skipping update');
+    return;
+  }
 
-    // Update rules but preserve user's whitelist additions
-    chrome.storage.local.get(["whitelist", "blockRequestList"], (result) => {
+  if (alarm.name === "updateDefaults") {
+    try {
+      const [defaultRules, defaultWhitelist, defaultBlockRequests] =
+        await Promise.all([
+          fetchDefaultRules(),
+          fetchDefaultWhitelist(),
+          fetchDefaultBlockRequests(),
+        ]);
+
+      // Update rules but preserve user's whitelist additions
+      const result = await safeStorageGet(["whitelist", "blockRequestList"]);
       const currentWhitelist = result.whitelist || [];
       const mergedWhitelist = [
         ...new Set([...defaultWhitelist, ...currentWhitelist]),
       ];
 
-      chrome.storage.local.set(
-        {
-          defaultRules,
-          whitelist: mergedWhitelist,
-          blockRequestList: defaultBlockRequests,
-        },
-        () => {
-          // Update blocking rules after storage update
-          updateBlockingRules();
-        }
-      );
-    });
+      await safeStorageSet({
+        defaultRules,
+        whitelist: mergedWhitelist,
+        blockRequestList: defaultBlockRequests,
+      });
+
+      // Update blocking rules after storage update
+      updateBlockingRules();
+    } catch (error) {
+      console.error('JustUI: Failed to update defaults during scheduled alarm:', error);
+    }
   }
 });
 
