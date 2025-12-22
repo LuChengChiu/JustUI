@@ -329,7 +329,8 @@ function App() {
                   </span>
                   <span className="text-sm font-bold text-gray-900">
                     {(domainStats[currentDomain]?.defaultRulesRemoved || 0) +
-                      (domainStats[currentDomain]?.customRulesRemoved || 0)}{" "}
+                      (domainStats[currentDomain]?.customRulesRemoved ||
+                        0)}{" "}
                     elements
                   </span>
                 </div>
@@ -344,18 +345,6 @@ function App() {
             onClick={() =>
               chrome.tabs.create({
                 url: chrome.runtime.getURL("settings.html"),
-              })
-            }
-            className="w-full px-3 py-2 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
-          >
-            ⚙️ Advanced Settings
-          </button>
-        </div>
-        <div className="pt-4 border-t border-gray-600">
-          <button
-            onClick={() =>
-              chrome.tabs.create({
-                url: chrome.runtime.getURL("settings-beta.html"),
               })
             }
             className="w-full px-3 py-2 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors flex items-center justify-center gap-2"
