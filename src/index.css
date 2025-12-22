@@ -6,4 +6,23 @@
 @theme {
   --font-days-one: "Days One", cursive;
   --font-barlow: "Barlow", sans-serif;
+  --animate-terminal-typing: type-and-delete 4s steps(10) infinite, blink-cursor 0.5s step-end infinite alternate;
+  
+  @keyframes blink-cursor {
+    50% {
+      border-right-color: transparent;
+    }
+  }
+  
+  @keyframes type-and-delete {
+    0%, 10% {
+      width: 0;
+    }
+    45%, 55% {
+      width: 5.8em;
+    }
+    90%, 100% {
+      width: 0;
+    }
+  }
 }

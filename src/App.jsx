@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Switch from "./components/ui/switch";
+import Loading from "./components/ui/loading";
 
 function App() {
   const [isActive, setIsActive] = useState(false);
@@ -168,11 +169,7 @@ function App() {
   };
 
   if (loading) {
-    return (
-      <div className="w-80 h-auto p-4 bg-[#1F2937]">
-        <div className="text-white text-center">Loading...</div>
-      </div>
-    );
+    return <Loading />;
   }
 
   return (

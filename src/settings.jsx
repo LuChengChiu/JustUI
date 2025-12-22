@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
 
-import { H1, Text } from "./components/ui/typography";
+import { H1 } from "./components/ui/typography";
 
 import WhitelistManager from "./components/settings/whitelist";
 import DefaultSelectorRuleManager from "./components/settings/selector-rules";
@@ -133,7 +133,11 @@ function SettingsBeta() {
   };
 
   if (loading) {
-    return <Loading />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <Loading />
+      </div>
+    );
   }
 
   return (

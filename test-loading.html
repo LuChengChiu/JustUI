@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading Component Test</title>
+    <script src="https://unpkg.com/react@19/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@19/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    keyframes: {
+                        blinkCursor: {
+                            "50%": { borderRightColor: "transparent" },
+                        },
+                        typeAndDelete: {
+                            "0%, 10%": { width: "0" },
+                            "45%, 55%": { width: "6.2em" },
+                            "90%, 100%": { width: "0" },
+                        },
+                    },
+                    animation: {
+                        terminalTyping:
+                            "typeAndDelete 4s steps(11) infinite, blinkCursor 0.5s step-end infinite alternate",
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-gray-100 p-8">
+    <h1 class="text-2xl font-bold mb-8">Loading Component Test</h1>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        function Loading() {
+            return (
+                <div className="relative box-border w-48 overflow-hidden rounded bg-zinc-900 px-4 py-6 font-mono text-base text-green-500 shadow-md border border-zinc-700">
+                    {/* Header */}
+                    <div className="absolute left-0 right-0 top-0 box-border h-6 rounded-t bg-zinc-800 px-2">
+                        <div className="float-left leading-6 text-zinc-200">Status</div>
+                        <div className="float-right">
+                            <span className="ml-2 inline-block h-2.5 w-2.5 rounded-full bg-red-500" />
+                            <span className="ml-2 inline-block h-2.5 w-2.5 rounded-full bg-yellow-400" />
+                            <span className="ml-2 inline-block h-2.5 w-2.5 rounded-full bg-green-500" />
+                        </div>
+                    </div>
+                    {/* Typing text */}
+                    <div className="mt-6 inline-block whitespace-nowrap overflow-hidden border-r-[0.2em] border-r-green-500 animate-terminalTyping">
+                        Loading...
+                    </div>
+                </div>
+            );
+        }
+        
+        ReactDOM.render(<Loading />, document.getElementById('root'));
+    </script>
+</body>
+</html>
