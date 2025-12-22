@@ -4,7 +4,8 @@
 import {
   isExtensionContextValid,
   safeStorageGet,
-  safeStorageSet
+  safeStorageSet,
+  safeStorageSetWithValidation
 } from './utils/chromeApiSafe.js';
 
 const REMOTE_RULES_URL =
@@ -350,7 +351,14 @@ chrome.runtime.onInstalled.addListener(async () => {
     ];
 
     if (Object.keys(updates).length > 0) {
-      await safeStorageSet(updates);
+      const installationResult = await safeStorageSetWithValidation(updates, ['blockRequestList', 'defaultRules']);
+      if (!installationResult.success) {
+        console.error('JustUI Installation Warning: Some settings may not have been saved properly:', {
+          inconsistencies: installationResult.validationResult?.inconsistencies,
+          context: 'extension-installation'
+        });
+        // Continue anyway - this is installation, partial success is acceptable
+      }
       // Initialize request blocking rules after storage is set
       updateBlockingRules();
     } else {
@@ -391,17 +399,27 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         ]);
 
       // Update rules but preserve user's whitelist additions
-      const result = await safeStorageGet(["whitelist", "blockRequestList"]);
-      const currentWhitelist = result.whitelist || [];
+      const storageResult = await safeStorageGet(["whitelist", "blockRequestList"]);
+      const currentWhitelist = storageResult.whitelist || [];
       const mergedWhitelist = [
         ...new Set([...defaultWhitelist, ...currentWhitelist]),
       ];
 
-      await safeStorageSet({
+      const updateResult = await safeStorageSetWithValidation({
         defaultRules,
         whitelist: mergedWhitelist,
         blockRequestList: defaultBlockRequests,
-      });
+      }, ['blockRequestList', 'defaultRules', 'whitelist']);
+      
+      if (!updateResult.success) {
+        console.error('JustUI Update Failed: Scheduled update could not be completed:', {
+          inconsistencies: updateResult.validationResult?.inconsistencies,
+          context: 'scheduled-update',
+          timestamp: new Date().toISOString()
+        });
+        // For scheduled updates, we can be more strict and skip rule updates if storage failed
+        return;
+      }
 
       // Update blocking rules after storage update
       updateBlockingRules();
@@ -448,16 +466,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.action === "updateWhitelist") {
     const { domain, whitelistAction } = request;
-    chrome.storage.local.get(["whitelist"], (result) => {
-      let whitelist = result.whitelist || [];
+    (async () => {
+      try {
+        const whitelistResult = await safeStorageGet(["whitelist"]);
+        let whitelist = whitelistResult.whitelist || [];
 
-      if (whitelistAction === "add" && !whitelist.includes(domain)) {
-        whitelist.push(domain);
-      } else if (whitelistAction === "remove") {
-        whitelist = whitelist.filter((d) => d !== domain);
-      }
+        if (whitelistAction === "add" && !whitelist.includes(domain)) {
+          whitelist.push(domain);
+        } else if (whitelistAction === "remove") {
+          whitelist = whitelist.filter((d) => d !== domain);
+        }
 
-      chrome.storage.local.set({ whitelist }, () => {
+        const whitelistUpdateResult = await safeStorageSetWithValidation({ whitelist }, ['whitelist']);
+        if (!whitelistUpdateResult.success) {
+          throw new Error(`Whitelist update validation failed: ${whitelistUpdateResult.validationResult?.inconsistencies?.join(', ')}`);
+        }
         sendResponse({ success: true, whitelist });
         // Notify content script of whitelist change
         chrome.tabs.query({}, (tabs) => {
@@ -472,86 +495,136 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
           });
         });
-      });
-    });
+      } catch (error) {
+        console.error('Failed to update whitelist:', error);
+        sendResponse({ 
+          success: false, 
+          error: 'Failed to save whitelist changes. Please try again.',
+          details: error.message 
+        });
+      }
+    })();
     return true;
   }
 
   if (request.action === "refreshDefaultRules") {
-    fetchDefaultRules().then((rules) => {
-      chrome.storage.local.set({ defaultRules: rules }, () => {
+    (async () => {
+      try {
+        const rules = await fetchDefaultRules();
+        await safeStorageSet({ defaultRules: rules });
         sendResponse({ success: true, rules });
-      });
-    });
+      } catch (error) {
+        console.error('Failed to refresh default rules:', error);
+        sendResponse({ 
+          success: false, 
+          error: 'Failed to update default rules. Please check your internet connection.',
+          details: error.message 
+        });
+      }
+    })();
     return true;
   }
 
   if (request.action === "refreshDefaultWhitelist") {
-    fetchDefaultWhitelist().then((whitelist) => {
-      chrome.storage.local.get(["whitelist"], (result) => {
-        const currentWhitelist = result.whitelist || [];
+    (async () => {
+      try {
+        const whitelist = await fetchDefaultWhitelist();
+        const whitelistFetchResult = await safeStorageGet(["whitelist"]);
+        const currentWhitelist = whitelistFetchResult.whitelist || [];
         const mergedWhitelist = [
           ...new Set([...whitelist, ...currentWhitelist]),
         ];
 
-        chrome.storage.local.set({ whitelist: mergedWhitelist }, () => {
-          sendResponse({ success: true, whitelist: mergedWhitelist });
+        await safeStorageSet({ whitelist: mergedWhitelist });
+        sendResponse({ success: true, whitelist: mergedWhitelist });
+      } catch (error) {
+        console.error('Failed to refresh default whitelist:', error);
+        sendResponse({ 
+          success: false, 
+          error: 'Failed to update whitelist. Please check your internet connection.',
+          details: error.message 
         });
-      });
-    });
+      }
+    })();
     return true;
   }
 
   if (request.action === "refreshDefaultBlockRequests") {
-    fetchDefaultBlockRequests().then((blockRequests) => {
-      chrome.storage.local.set({ blockRequestList: blockRequests }, () => {
-        updateBlockingRules().then(() => {
-          sendResponse({ success: true, blockRequests });
+    (async () => {
+      try {
+        const blockRequests = await fetchDefaultBlockRequests();
+        const blockRequestUpdateResult = await safeStorageSetWithValidation({ blockRequestList: blockRequests }, ['blockRequestList']);
+        if (!blockRequestUpdateResult.success) {
+          throw new Error(`Block request list update validation failed: ${blockRequestUpdateResult.validationResult?.inconsistencies?.join(', ')}`);
+        }
+        await updateBlockingRules();
+        sendResponse({ success: true, blockRequests });
+      } catch (error) {
+        console.error('Failed to refresh default block requests:', error);
+        sendResponse({ 
+          success: false, 
+          error: 'Failed to update blocking rules. Some network protection may be unavailable.',
+          details: error.message 
         });
-      });
-    });
+      }
+    })();
     return true;
   }
 
   if (request.action === "updateRequestBlocking") {
     const { enabled } = request;
-    chrome.storage.local.set({ requestBlockingEnabled: enabled }, () => {
-      updateBlockingRules().then(() => {
+    (async () => {
+      try {
+        await safeStorageSet({ requestBlockingEnabled: enabled });
+        await updateBlockingRules();
         sendResponse({ success: true, enabled });
-      });
-    });
+      } catch (error) {
+        console.error('Failed to update request blocking setting:', error);
+        sendResponse({ 
+          success: false, 
+          error: 'Failed to update network blocking settings. Protection status may be inconsistent.',
+          details: error.message 
+        });
+      }
+    })();
     return true;
   }
 
   if (request.action === "recordBlockedRequest") {
     const { data } = request;
-    // Store blocked request statistics
-    chrome.storage.local.get(["blockedRequestStats"], (result) => {
-      const stats = result.blockedRequestStats || {
-        totalBlocked: 0,
-        byType: {},
-        byDomain: {},
-        recentBlocks: [],
-      };
-
-      stats.totalBlocked++;
-      stats.byType[data.type] = (stats.byType[data.type] || 0) + 1;
-
+    // Store blocked request statistics asynchronously
+    (async () => {
       try {
-        const domain = new URL(data.url).hostname;
-        stats.byDomain[domain] = (stats.byDomain[domain] || 0) + 1;
+        const statsResult = await safeStorageGet(["blockedRequestStats"]);
+        const stats = statsResult.blockedRequestStats || {
+          totalBlocked: 0,
+          byType: {},
+          byDomain: {},
+          recentBlocks: [],
+        };
+
+        stats.totalBlocked++;
+        stats.byType[data.type] = (stats.byType[data.type] || 0) + 1;
+
+        try {
+          const domain = new URL(data.url).hostname;
+          stats.byDomain[domain] = (stats.byDomain[domain] || 0) + 1;
+        } catch (error) {
+          // Invalid URL, skip domain stats
+        }
+
+        // Keep only last 100 recent blocks
+        stats.recentBlocks.unshift(data);
+        if (stats.recentBlocks.length > 100) {
+          stats.recentBlocks = stats.recentBlocks.slice(0, 100);
+        }
+
+        await safeStorageSet({ blockedRequestStats: stats });
       } catch (error) {
-        // Invalid URL, skip domain stats
+        console.error('Failed to store blocked request stats:', error);
+        // Note: No user response needed for stats - this is background logging
       }
-
-      // Keep only last 100 recent blocks
-      stats.recentBlocks.unshift(data);
-      if (stats.recentBlocks.length > 100) {
-        stats.recentBlocks = stats.recentBlocks.slice(0, 100);
-      }
-
-      chrome.storage.local.set({ blockedRequestStats: stats });
-    });
+    })();
     return false; // No response needed
   }
 
@@ -566,27 +639,37 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === "local") {
     // Smart dependency enforcement: Auto-enable Script Analysis when Navigation Guardian is enabled
     if (changes.navigationGuardEnabled && changes.navigationGuardEnabled.newValue === true) {
-      chrome.storage.local.get(['scriptAnalysisEnabled'], (result) => {
-        if (!result.scriptAnalysisEnabled) {
-          chrome.storage.local.set({ scriptAnalysisEnabled: true });
+      (async () => {
+        try {
+          const scriptAnalysisResult = await safeStorageGet(['scriptAnalysisEnabled']);
+          if (!scriptAnalysisResult.scriptAnalysisEnabled) {
+            await safeStorageSet({ scriptAnalysisEnabled: true });
+          }
+        } catch (error) {
+          console.error('Failed to enable script analysis for navigation guard dependency:', error);
         }
-      });
+      })();
     }
     
     // Master toggle enforcement: Auto-enable both layers when Pop-under Protection is enabled
     if (changes.popUnderProtectionEnabled && changes.popUnderProtectionEnabled.newValue === true) {
-      chrome.storage.local.get(['scriptAnalysisEnabled', 'navigationGuardEnabled'], (result) => {
-        const updates = {};
-        if (!result.scriptAnalysisEnabled) {
-          updates.scriptAnalysisEnabled = true;
+      (async () => {
+        try {
+          const dependenciesResult = await safeStorageGet(['scriptAnalysisEnabled', 'navigationGuardEnabled']);
+          const updates = {};
+          if (!dependenciesResult.scriptAnalysisEnabled) {
+            updates.scriptAnalysisEnabled = true;
+          }
+          if (!dependenciesResult.navigationGuardEnabled) {
+            updates.navigationGuardEnabled = true;
+          }
+          if (Object.keys(updates).length > 0) {
+            await safeStorageSet(updates);
+          }
+        } catch (error) {
+          console.error('Failed to enable pop-under protection dependencies:', error);
         }
-        if (!result.navigationGuardEnabled) {
-          updates.navigationGuardEnabled = true;
-        }
-        if (Object.keys(updates).length > 0) {
-          chrome.storage.local.set(updates);
-        }
-      });
+      })();
     }
 
     // Update blocking rules if request blocking settings changed
