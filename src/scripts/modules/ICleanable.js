@@ -4,7 +4,18 @@
  */
 
 /**
- * Check if an object implements the Cleanable interface
+ * Lifecycle phases for cleanable modules
+ */
+export const LIFECYCLE_PHASES = {
+  INITIALIZING: 'initializing',
+  ACTIVE: 'active', 
+  CLEANUP_PENDING: 'cleanup_pending',
+  CLEANED: 'cleaned',
+  ERROR: 'error'
+};
+
+/**
+ * Enhanced interface check for cleanable objects with lifecycle support
  * @param {object} obj - Object to check
  * @returns {boolean} True if object has cleanup method
  */
@@ -13,15 +24,164 @@ export function isCleanable(obj) {
 }
 
 /**
- * Base class for cleanable modules (optional - can use duck typing instead)
+ * Check if object supports enhanced lifecycle hooks
+ * @param {object} obj - Object to check
+ * @returns {boolean} True if object supports lifecycle hooks
+ */
+export function isLifecycleAware(obj) {
+  return isCleanable(obj) && 
+    typeof obj.onPhaseChange === 'function' &&
+    typeof obj.getLifecyclePhase === 'function';
+}
+
+/**
+ * Automatic cleanup detection utility
+ * @param {object} obj - Object to analyze
+ * @returns {object} Analysis of potential memory leaks
+ */
+export function analyzeCleanupNeeds(obj) {
+  const analysis = {
+    hasEventListeners: false,
+    hasTimers: false,
+    hasObservers: false,
+    hasAsyncOperations: false,
+    riskLevel: 'low',
+    recommendations: []
+  };
+  
+  if (!obj) return analysis;
+  
+  // Check for event listeners
+  if (obj.eventListeners || obj.listeners || obj._listeners) {
+    analysis.hasEventListeners = true;
+    analysis.recommendations.push('Remove event listeners in cleanup()');
+  }
+  
+  // Check for timers/intervals
+  if (obj.timerId || obj.intervalId || obj._timers) {
+    analysis.hasTimers = true;
+    analysis.recommendations.push('Clear timers/intervals in cleanup()');
+  }
+  
+  // Check for observers (MutationObserver, IntersectionObserver, etc.)
+  if (obj.observer || obj.observers || obj.mutationObserver) {
+    analysis.hasObservers = true;
+    analysis.recommendations.push('Disconnect observers in cleanup()');
+  }
+  
+  // Check for async operations
+  if (obj.pendingPromises || obj.abortController) {
+    analysis.hasAsyncOperations = true;
+    analysis.recommendations.push('Cancel pending async operations in cleanup()');
+  }
+  
+  // Calculate risk level
+  const riskFactors = [
+    analysis.hasEventListeners,
+    analysis.hasTimers,
+    analysis.hasObservers,
+    analysis.hasAsyncOperations
+  ].filter(Boolean).length;
+  
+  if (riskFactors >= 3) analysis.riskLevel = 'high';
+  else if (riskFactors >= 2) analysis.riskLevel = 'medium';
+  
+  return analysis;
+}
+
+/**
+ * Enhanced base class for cleanable modules with lifecycle management
  */
 export class CleanableModule {
+  constructor() {
+    this._lifecyclePhase = LIFECYCLE_PHASES.INITIALIZING;
+    this._lifecycleListeners = new Set();
+    this._cleanupAnalysis = null;
+    this._lastPhaseChange = Date.now();
+  }
+  
+  /**
+   * Get current lifecycle phase
+   * @returns {string} Current phase
+   */
+  getLifecyclePhase() {
+    return this._lifecyclePhase;
+  }
+  
+  /**
+   * Set lifecycle phase and notify listeners
+   * @param {string} newPhase - New lifecycle phase
+   */
+  setLifecyclePhase(newPhase) {
+    const oldPhase = this._lifecyclePhase;
+    this._lifecyclePhase = newPhase;
+    this._lastPhaseChange = Date.now();
+    
+    // Notify listeners
+    this._lifecycleListeners.forEach(listener => {
+      try {
+        listener(newPhase, oldPhase, this);
+      } catch (error) {
+        console.warn('JustUI: Error in lifecycle listener:', error);
+      }
+    });
+    
+    console.debug(`JustUI: ${this.constructor.name} lifecycle: ${oldPhase} -> ${newPhase}`);
+  }
+  
+  /**
+   * Add lifecycle phase change listener
+   * @param {function} listener - Callback for phase changes
+   */
+  onPhaseChange(listener) {
+    if (typeof listener === 'function') {
+      this._lifecycleListeners.add(listener);
+    }
+  }
+  
+  /**
+   * Remove lifecycle phase change listener
+   * @param {function} listener - Listener to remove
+   */
+  offPhaseChange(listener) {
+    this._lifecycleListeners.delete(listener);
+  }
+  
+  /**
+   * Analyze this module's cleanup needs
+   * @returns {object} Cleanup analysis
+   */
+  analyzeCleanupNeeds() {
+    if (!this._cleanupAnalysis) {
+      this._cleanupAnalysis = analyzeCleanupNeeds(this);
+    }
+    return this._cleanupAnalysis;
+  }
+  
+  /**
+   * Initialize the module (sets phase to ACTIVE)
+   */
+  initialize() {
+    this.setLifecyclePhase(LIFECYCLE_PHASES.ACTIVE);
+  }
+  
   /**
    * Clean up all resources, event listeners, observers, etc.
    * Must be implemented by subclasses
    */
   cleanup() {
-    throw new Error('cleanup() method must be implemented by subclass');
+    this.setLifecyclePhase(LIFECYCLE_PHASES.CLEANUP_PENDING);
+    
+    try {
+      // Clean up lifecycle listeners
+      this._lifecycleListeners.clear();
+      this._cleanupAnalysis = null;
+      
+      this.setLifecyclePhase(LIFECYCLE_PHASES.CLEANED);
+    } catch (error) {
+      this.setLifecyclePhase(LIFECYCLE_PHASES.ERROR);
+      throw error;
+    }
   }
   
   /**
@@ -30,6 +190,20 @@ export class CleanableModule {
    */
   isCleanable() {
     return true;
+  }
+  
+  /**
+   * Get lifecycle statistics
+   * @returns {object} Lifecycle stats
+   */
+  getLifecycleStats() {
+    return {
+      currentPhase: this._lifecyclePhase,
+      lastPhaseChange: this._lastPhaseChange,
+      timeSinceLastChange: Date.now() - this._lastPhaseChange,
+      listenersCount: this._lifecycleListeners.size,
+      cleanupAnalysis: this._cleanupAnalysis
+    };
   }
 }
 
@@ -63,15 +237,22 @@ export class CleanupRegistry {
   }
   
   /**
-   * Register a module for cleanup with compartmentalization
+   * Register a module for cleanup with compartmentalization and automatic detection
    * @param {object} module - Module to register (must have cleanup method)
    * @param {string} name - Optional name for debugging
    * @param {string} compartment - Compartment category (e.g., 'protection', 'analysis', 'tracking')
+   * @param {object} options - Registration options
    */
-  register(module, name = 'unnamed', compartment = 'default') {
+  register(module, name = 'unnamed', compartment = 'default', options = {}) {
     if (!isCleanable(module)) {
       console.warn(`JustUI: Module ${name} does not implement cleanup interface`);
       return false;
+    }
+    
+    // Analyze cleanup needs
+    const cleanupAnalysis = analyzeCleanupNeeds(module);
+    if (cleanupAnalysis.riskLevel === 'high') {
+      console.warn(`JustUI: High memory leak risk detected for ${name}:`, cleanupAnalysis.recommendations);
     }
     
     // Create compartment if it doesn't exist
@@ -79,25 +260,54 @@ export class CleanupRegistry {
       this.compartments.set(compartment, {
         modules: new Set(),
         createdAt: Date.now(),
-        lastAccessed: Date.now()
+        lastAccessed: Date.now(),
+        totalMemoryRisk: 0
       });
     }
     
     const compartmentData = this.compartments.get(compartment);
-    const moduleEntry = { module, name, compartment, registeredAt: Date.now() };
+    const moduleEntry = { 
+      module, 
+      name, 
+      compartment, 
+      registeredAt: Date.now(),
+      cleanupAnalysis,
+      options: {
+        autoCleanup: options.autoCleanup !== false,
+        cleanupTimeout: options.cleanupTimeout || 30000, // 30s default
+        priority: options.priority || 'normal'
+      }
+    };
     
     // Add to main registry and compartment
     this.modules.add(moduleEntry);
     compartmentData.modules.add(moduleEntry);
     compartmentData.lastAccessed = Date.now();
     
+    // Update compartment memory risk score
+    const riskScore = cleanupAnalysis.riskLevel === 'high' ? 3 : cleanupAnalysis.riskLevel === 'medium' ? 2 : 1;
+    compartmentData.totalMemoryRisk += riskScore;
+    
     // Track registration time for TTL management
     this.registrationTimes.set(module, Date.now());
+    
+    // Setup lifecycle monitoring if supported
+    if (isLifecycleAware(module)) {
+      module.onPhaseChange((newPhase, oldPhase) => {
+        console.debug(`JustUI: Module ${name} lifecycle: ${oldPhase} -> ${newPhase}`);
+        if (newPhase === LIFECYCLE_PHASES.ERROR) {
+          console.warn(`JustUI: Module ${name} entered error state, scheduling cleanup`);
+          if (moduleEntry.options.autoCleanup) {
+            setTimeout(() => this.cleanupModule(moduleEntry), 1000);
+          }
+        }
+      });
+    }
     
     // Check compartment size limits
     this.enforceCompartmentLimits(compartment);
     
-    console.log(`JustUI: Registered module ${name} in compartment ${compartment}`);
+    console.log(`JustUI: Registered module ${name} in compartment ${compartment} (risk: ${cleanupAnalysis.riskLevel})`);
     return true;
   }
   
@@ -126,20 +336,33 @@ export class CleanupRegistry {
   }
   
   /**
-   * Clean up all registered modules
+   * Clean up all registered modules with priority ordering and timeout protection
    */
   cleanupAll() {
     const results = [];
+    const moduleArray = Array.from(this.modules);
     
-    for (const { module, name, compartment } of this.modules) {
-      try {
-        module.cleanup();
-        results.push({ name, compartment, success: true });
-        console.log(`JustUI: Successfully cleaned up ${name} from ${compartment}`);
-      } catch (error) {
-        results.push({ name, compartment, success: false, error });
-        console.warn(`JustUI: Error cleaning up ${name}:`, error);
+    // Sort by priority and compartment risk level
+    moduleArray.sort((a, b) => {
+      const priorityOrder = { 'high': 3, 'normal': 2, 'low': 1 };
+      const aPriority = priorityOrder[a.options?.priority] || 2;
+      const bPriority = priorityOrder[b.options?.priority] || 2;
+      
+      if (aPriority !== bPriority) {
+        return bPriority - aPriority; // High priority first
       }
+      
+      // Then by cleanup analysis risk
+      const aRisk = a.cleanupAnalysis?.riskLevel === 'high' ? 3 : a.cleanupAnalysis?.riskLevel === 'medium' ? 2 : 1;
+      const bRisk = b.cleanupAnalysis?.riskLevel === 'high' ? 3 : b.cleanupAnalysis?.riskLevel === 'medium' ? 2 : 1;
+      
+      return bRisk - aRisk; // High risk first
+    });
+    
+    // Process cleanup with timeout protection
+    for (const moduleEntry of moduleArray) {
+      const result = this.cleanupModule(moduleEntry);
+      results.push(result);
     }
     
     // Clear all storage
@@ -148,13 +371,58 @@ export class CleanupRegistry {
     this.cleanupHistory.push({
       timestamp: Date.now(),
       action: 'cleanupAll',
-      results
+      results,
+      totalProcessed: results.length
     });
     
     // Stop periodic cleanup
     this.stopPeriodicCleanup();
     
+    console.log(`JustUI: Cleanup completed - ${results.filter(r => r.success).length}/${results.length} successful`);
     return results;
+  }
+  
+  /**
+   * Clean up a single module with timeout protection
+   * @param {object} moduleEntry - Module entry to clean up
+   * @returns {object} Cleanup result
+   */
+  cleanupModule(moduleEntry) {
+    const { module, name, compartment, options } = moduleEntry;
+    const startTime = Date.now();
+    
+    let cleanupPromise;
+    
+    try {
+      // Set lifecycle phase if supported
+      if (isLifecycleAware(module)) {
+        module.setLifecyclePhase(LIFECYCLE_PHASES.CLEANUP_PENDING);
+      }
+      
+      // Wrap cleanup in promise for timeout handling
+      cleanupPromise = Promise.resolve(module.cleanup());
+      
+      // Add timeout protection
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Cleanup timeout')), options.cleanupTimeout);
+      });
+      
+      return Promise.race([cleanupPromise, timeoutPromise])
+        .then(() => {
+          const duration = Date.now() - startTime;
+          console.log(`JustUI: Successfully cleaned up ${name} from ${compartment} (${duration}ms)`);
+          return { name, compartment, success: true, duration, analysis: moduleEntry.cleanupAnalysis };
+        })
+        .catch((error) => {
+          const duration = Date.now() - startTime;
+          console.warn(`JustUI: Error cleaning up ${name}:`, error);
+          return { name, compartment, success: false, error: error.message, duration };
+        });
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.warn(`JustUI: Synchronous error cleaning up ${name}:`, error);
+      return { name, compartment, success: false, error: error.message, duration };
+    }
   }
   
   /**
@@ -285,40 +553,130 @@ export class CleanupRegistry {
   }
 
   /**
-   * Get memory usage statistics
+   * Get comprehensive memory usage and lifecycle statistics
    * @returns {object} Memory and compartment statistics
    */
   getMemoryStats() {
     const compartmentStats = {};
+    let totalMemoryRisk = 0;
+    let totalLifecycleAware = 0;
+    const phaseDistribution = {};
     
     for (const [name, data] of this.compartments) {
+      const moduleArray = Array.from(data.modules);
+      const riskDistribution = { high: 0, medium: 0, low: 0 };
+      const lifecycleStats = { aware: 0, phases: {} };
+      
+      moduleArray.forEach(entry => {
+        // Risk analysis
+        const risk = entry.cleanupAnalysis?.riskLevel || 'low';
+        riskDistribution[risk]++;
+        
+        // Lifecycle analysis
+        if (isLifecycleAware(entry.module)) {
+          lifecycleStats.aware++;
+          totalLifecycleAware++;
+          
+          const phase = entry.module.getLifecyclePhase();
+          lifecycleStats.phases[phase] = (lifecycleStats.phases[phase] || 0) + 1;
+          phaseDistribution[phase] = (phaseDistribution[phase] || 0) + 1;
+        }
+      });
+      
+      totalMemoryRisk += data.totalMemoryRisk || 0;
+      
       compartmentStats[name] = {
         moduleCount: data.modules.size,
         age: Date.now() - data.createdAt,
         lastAccessed: Date.now() - data.lastAccessed,
-        isExpired: (Date.now() - data.lastAccessed) > this.options.compartmentTTL
+        isExpired: (Date.now() - data.lastAccessed) > this.options.compartmentTTL,
+        memoryRisk: data.totalMemoryRisk || 0,
+        riskDistribution,
+        lifecycleStats
       };
     }
 
     return {
       totalModules: this.modules.size,
       totalCompartments: this.compartments.size,
+      totalMemoryRisk,
+      totalLifecycleAware,
+      phaseDistribution,
       compartments: compartmentStats,
-      cleanupHistory: this.cleanupHistory.slice(-10), // Last 10 cleanup events
-      options: this.options
+      cleanupHistory: this.cleanupHistory.slice(-10),
+      options: this.options,
+      healthScore: this.calculateHealthScore()
     };
+  }
+  
+  /**
+   * Calculate overall health score of the cleanup registry
+   * @returns {number} Health score from 0-100
+   */
+  calculateHealthScore() {
+    if (this.modules.size === 0) return 100;
+    
+    let score = 100;
+    const moduleArray = Array.from(this.modules);
+    
+    // Penalize high memory risk modules
+    const highRiskCount = moduleArray.filter(entry => 
+      entry.cleanupAnalysis?.riskLevel === 'high'
+    ).length;
+    score -= (highRiskCount / this.modules.size) * 30;
+    
+    // Penalize modules in error state
+    const errorCount = moduleArray.filter(entry => 
+      isLifecycleAware(entry.module) && 
+      entry.module.getLifecyclePhase() === LIFECYCLE_PHASES.ERROR
+    ).length;
+    score -= (errorCount / this.modules.size) * 40;
+    
+    // Penalize expired compartments
+    const expiredCompartments = Array.from(this.compartments.values())
+      .filter(data => (Date.now() - data.lastAccessed) > this.options.compartmentTTL);
+    score -= (expiredCompartments.length / this.compartments.size) * 20;
+    
+    return Math.max(0, Math.min(100, Math.round(score)));
   }
 
   /**
-   * Cleanup method for the registry itself
+   * Enhanced cleanup method for the registry itself with verification
    */
   cleanup() {
+    console.log('JustUI: Starting CleanupRegistry cleanup...');
+    
+    // Take pre-cleanup snapshot
+    const preCleanupStats = this.getMemoryStats();
+    
     // Cleanup all modules first
-    this.cleanupAll();
+    const results = this.cleanupAll();
     
     // Clear cleanup history
     this.cleanupHistory = [];
     
-    console.log('JustUI: CleanupRegistry cleaned up');
+    // Final verification
+    const postCleanupStats = {
+      totalModules: this.modules.size,
+      totalCompartments: this.compartments.size,
+      cleanupResults: {
+        total: results.length,
+        successful: results.filter(r => r.success).length,
+        failed: results.filter(r => !r.success).length
+      }
+    };
+    
+    console.log('JustUI: CleanupRegistry cleanup completed:', {
+      before: {
+        modules: preCleanupStats.totalModules,
+        compartments: preCleanupStats.totalCompartments,
+        healthScore: preCleanupStats.healthScore
+      },
+      after: postCleanupStats,
+      effectiveness: postCleanupStats.totalModules === 0 ? '100%' : 
+        `${Math.round((1 - postCleanupStats.totalModules / preCleanupStats.totalModules) * 100)}%`
+    });
+    
+    return postCleanupStats;
   }
 }

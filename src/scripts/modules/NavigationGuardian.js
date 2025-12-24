@@ -1,32 +1,143 @@
 /**
- * NavigationGuardian Module
- * Comprehensive protection against malicious cross-origin navigation attempts
+ * NavigationGuardian Module - Comprehensive cross-origin navigation protection
+ * 
+ * @fileoverview Provides multi-layered protection against malicious navigation attempts including
+ * pop-unders, redirects, and cross-origin attacks. Features intelligent modal confirmation system,
+ * whitelist management, and comprehensive statistics tracking with memory leak prevention.
+ * 
+ * @example
+ * // Basic initialization
+ * const guardian = new NavigationGuardian();
+ * guardian.initialize(['trusted-site.com'], { blockedCount: 0, allowedCount: 0 });
+ * 
+ * @example
+ * // Enable/disable protection
+ * guardian.setEnabled(false); // Temporarily disable
+ * guardian.setEnabled(true);  // Re-enable protection
+ * 
+ * @example
+ * // Access statistics and cleanup
+ * const stats = guardian.getNavigationStats();
+ * console.log(`Blocked: ${stats.blockedCount}, Allowed: ${stats.allowedCount}`);
+ * guardian.cleanup(); // Clean up resources
+ * 
+ * @module NavigationGuardian
+ * @extends CleanableModule
+ * @since 1.0.0
+ * @author JustUI Team
  */
 
 import { MAX_Z_INDEX } from '../constants.js';
-export class NavigationGuardian {
+import { LIFECYCLE_PHASES, CleanableModule } from './ICleanable.js';
+
+/**
+ * NavigationGuardian class providing comprehensive cross-origin navigation protection
+ * @extends CleanableModule
+ * @class
+ */
+export class NavigationGuardian extends CleanableModule {
+  /**
+   * Create a NavigationGuardian instance
+   * @constructor
+   */
   constructor() {
+    super();
+    
+    /**
+     * Enable/disable state for navigation protection
+     * @type {boolean}
+     * @private
+     */
     this.isEnabled = true;
+    
+    /**
+     * Navigation attempt statistics
+     * @type {Object}
+     * @property {number} blockedCount - Total blocked navigation attempts
+     * @property {number} allowedCount - Total allowed navigation attempts
+     * @private
+     */
     this.navigationStats = { blockedCount: 0, allowedCount: 0 };
+    
+    /**
+     * WeakMap for automatic garbage collection of pending modals
+     * @type {WeakMap<Object, Object>}
+     * @private
+     */
     this.pendingNavigationModals = new WeakMap(); // Use WeakMap for auto GC
+    
+    /**
+     * Map for string-keyed modal tracking with size limits
+     * @type {Map<string, Object>}
+     * @private
+     */
     this.pendingModalKeys = new Map(); // Separate storage for string keys with limits
+    
+    /**
+     * Array of whitelisted domains that bypass navigation protection
+     * @type {string[]}
+     * @private
+     */
     this.whitelist = [];
+    
+    /**
+     * Cached whitelist lookup for performance optimization
+     * @type {Set<string>|null}
+     * @private
+     */
     this.whitelistCache = null;
+    
+    /**
+     * Registered event listeners for cleanup tracking
+     * @type {Array<Object>}
+     * @private
+     */
     this.eventListeners = [];
+    
+    /**
+     * Enhanced modal cache management configuration
+     * @type {Object}
+     * @property {number} maxModalCache - Maximum pending modals (50)
+     * @property {number} modalCacheTimeout - Modal timeout in ms (30s)
+     * @property {number|null} modalCleanupTimer - Cleanup timer ID
+     * @property {Object} modalCacheStats - Cache statistics
+     * @private
+     */
     this.maxModalCache = 50; // Limit pending modals to prevent memory bloat
-    console.log('JustUI: NavigationGuardian initialized');
+    this.modalCacheTimeout = 30000; // 30 second timeout for pending modals
+    this.modalCleanupTimer = null;
+    this.modalCacheStats = {
+      totalCreated: 0,
+      totalCleaned: 0,
+      currentPending: 0,
+      maxPendingReached: 0
+    };
+    
+    console.log('JustUI: NavigationGuardian initialized with enhanced cleanup');
   }
 
   /**
    * Initialize NavigationGuardian with whitelist and settings
-   * @param {Array} whitelist - Array of trusted domains
-   * @param {Object} stats - Existing navigation statistics
+   * @param {string[]} [whitelist=[]] - Array of trusted domains that bypass protection
+   * @param {Object} [stats={blockedCount: 0, allowedCount: 0}] - Existing navigation statistics
+   * @param {number} stats.blockedCount - Number of previously blocked navigation attempts
+   * @param {number} stats.allowedCount - Number of previously allowed navigation attempts
+   * @throws {Error} If whitelist is not an array or stats is not an object
+   * 
+   * @example
+   * // Initialize with trusted domains and existing stats
+   * guardian.initialize(['google.com', 'github.com'], { blockedCount: 5, allowedCount: 10 });
    */
   initialize(whitelist = [], stats = { blockedCount: 0, allowedCount: 0 }) {
+    this.setLifecyclePhase(LIFECYCLE_PHASES.INITIALIZING);
+    
     this.whitelist = whitelist;
     this.navigationStats = stats;
     this.setupEventListeners();
     this.injectNavigationScript();
+    this.startModalCacheCleanup();
+    
+    this.setLifecyclePhase(LIFECYCLE_PHASES.ACTIVE);
     console.log('JustUI: NavigationGuardian initialized with whitelist:', whitelist.length);
   }
 
@@ -164,6 +275,7 @@ export class NavigationGuardian {
       
       // If this messageId is already being processed, ignore duplicate
       if (this.pendingModalKeys.has(messageId)) {
+        console.debug('JustUI: Ignoring duplicate navigation request:', messageId);
         return;
       }
       
@@ -194,11 +306,23 @@ export class NavigationGuardian {
         // Track this modal to prevent duplicates
         // Enforce cache limits before adding new entry
         this.enforcePendingModalLimits();
-        this.pendingModalKeys.set(messageId, true);
+        this.pendingModalKeys.set(messageId, {
+          timestamp: Date.now(),
+          url: url,
+          analysis: combinedAnalysis
+        });
+        this.modalCacheStats.totalCreated++;
+        this.modalCacheStats.currentPending++;
+        
+        if (this.modalCacheStats.currentPending > this.modalCacheStats.maxPendingReached) {
+          this.modalCacheStats.maxPendingReached = this.modalCacheStats.currentPending;
+        }
         
         this.showNavigationModal(url, (userAllowed) => {
-          // Remove from pending map
-          this.pendingModalKeys.delete(messageId);
+          // Remove from pending map and update stats
+          if (this.pendingModalKeys.delete(messageId)) {
+            this.modalCacheStats.currentPending--;
+          }
           
           // Send response with the user's decision
           window.postMessage({
@@ -699,52 +823,234 @@ export class NavigationGuardian {
   }
 
   /**
-   * Clean up all event listeners and resources
+   * Enhanced cleanup with comprehensive resource management
    */
   cleanup() {
-    this.isEnabled = false;
+    console.log('JustUI: Starting NavigationGuardian cleanup...');
     
-    // Remove all tracked event listeners
-    this.eventListeners.forEach(({ element, type, handler, options }) => {
-      try {
-        element.removeEventListener(type, handler, options);
-      } catch (error) {
-        console.warn(`JustUI: Error removing NavigationGuardian ${type} listener:`, error);
+    // Set cleanup phase
+    this.setLifecyclePhase(LIFECYCLE_PHASES.CLEANUP_PENDING);
+    
+    try {
+      this.isEnabled = false;
+      
+      // Stop modal cache cleanup timer
+      this.stopModalCacheCleanup();
+      
+      // Remove all tracked event listeners
+      let removedListeners = 0;
+      this.eventListeners.forEach(({ element, type, handler, options }) => {
+        try {
+          element.removeEventListener(type, handler, options);
+          removedListeners++;
+        } catch (error) {
+          console.warn(`JustUI: Error removing NavigationGuardian ${type} listener:`, error);
+        }
+      });
+      
+      // Clear the listeners array
+      this.eventListeners = [];
+      
+      // Get final cache stats before cleanup
+      const finalCacheStats = this.getModalCacheStats();
+      
+      // Clear pending modals
+      const pendingModalCount = this.pendingModalKeys.size;
+      this.pendingModalKeys.clear();
+      this.modalCacheStats.currentPending = 0;
+      
+      // Remove any existing modal
+      const existingModal = document.getElementById('justui-navigation-modal');
+      if (existingModal) {
+        existingModal.remove();
       }
-    });
-    
-    // Clear the listeners array
-    this.eventListeners = [];
-    
-    // Clear pending modals
-    this.pendingModalKeys.clear();
-    
-    // Remove any existing modal
-    const existingModal = document.getElementById('justui-navigation-modal');
-    if (existingModal) {
-      existingModal.remove();
+      
+      // Clear cache
+      this.whitelistCache = null;
+      
+      // Reset stats
+      this.navigationStats = { blockedCount: 0, allowedCount: 0 };
+      
+      // Call parent cleanup
+      super.cleanup();
+      
+      console.log('JustUI: NavigationGuardian cleanup completed:', {
+        removedListeners,
+        clearedPendingModals: pendingModalCount,
+        finalCacheStats,
+        lifecyclePhase: this.getLifecyclePhase()
+      });
+      
+    } catch (error) {
+      console.error('JustUI: Error during NavigationGuardian cleanup:', error);
+      this.setLifecyclePhase(LIFECYCLE_PHASES.ERROR);
+      throw error;
     }
+  }
+  
+  /**
+   * Get comprehensive statistics including cache performance
+   * @returns {object} Enhanced statistics
+   */
+  getEnhancedStats() {
+    return {
+      navigationStats: this.getStats(),
+      modalCache: this.getModalCacheStats(),
+      lifecycle: this.getLifecycleStats(),
+      eventListeners: {
+        registered: this.eventListeners.length,
+        types: [...new Set(this.eventListeners.map(l => l.type))]
+      },
+      whitelist: {
+        size: this.whitelist.length,
+        cacheHit: this.whitelistCache !== null
+      },
+      performance: {
+        memoryUsage: this.estimateMemoryUsage()
+      }
+    };
+  }
+  
+  /**
+   * Estimate memory usage of NavigationGuardian
+   * @returns {object} Memory usage estimate
+   */
+  estimateMemoryUsage() {
+    const estimatedBytes = {
+      eventListeners: this.eventListeners.length * 100, // rough estimate
+      pendingModals: this.pendingModalKeys.size * 200,
+      whitelist: this.whitelist.length * 50,
+      stats: 500 // static overhead
+    };
     
-    // Clear cache
-    this.whitelistCache = null;
+    const total = Object.values(estimatedBytes).reduce((sum, bytes) => sum + bytes, 0);
     
-    console.log('JustUI: NavigationGuardian cleaned up');
+    return {
+      breakdown: estimatedBytes,
+      totalBytes: total,
+      totalKB: (total / 1024).toFixed(2)
+    };
   }
 
   /**
-   * Enforce limits on pending modal cache using LRU eviction
+   * Start modal cache cleanup timer
+   */
+  startModalCacheCleanup() {
+    if (this.modalCleanupTimer) {
+      return;
+    }
+    
+    this.modalCleanupTimer = setInterval(() => {
+      this.cleanupExpiredModals();
+    }, 10000); // Check every 10 seconds
+    
+    console.log('JustUI: Started modal cache cleanup timer');
+  }
+  
+  /**
+   * Stop modal cache cleanup timer
+   */
+  stopModalCacheCleanup() {
+    if (this.modalCleanupTimer) {
+      clearInterval(this.modalCleanupTimer);
+      this.modalCleanupTimer = null;
+      console.log('JustUI: Stopped modal cache cleanup timer');
+    }
+  }
+  
+  /**
+   * Clean up expired modals from cache
+   */
+  cleanupExpiredModals() {
+    const now = Date.now();
+    let removedCount = 0;
+    
+    for (const [messageId, modalInfo] of this.pendingModalKeys) {
+      if (now - modalInfo.timestamp > this.modalCacheTimeout) {
+        this.pendingModalKeys.delete(messageId);
+        removedCount++;
+        this.modalCacheStats.currentPending--;
+        this.modalCacheStats.totalCleaned++;
+      }
+    }
+    
+    if (removedCount > 0) {
+      console.log(`JustUI: Cleaned up ${removedCount} expired pending modals`);
+    }
+  }
+  
+  /**
+   * Enforce limits on pending modal cache using LRU eviction with timestamp-based cleanup
    */
   enforcePendingModalLimits() {
+    // First, clean up expired modals
+    this.cleanupExpiredModals();
+    
     if (this.pendingModalKeys.size > this.maxModalCache) {
-      // Convert to array and remove oldest entries
-      const entries = Array.from(this.pendingModalKeys.keys());
-      const toRemove = entries.slice(0, Math.floor(this.maxModalCache * 0.2));
+      // Convert to array with timestamps and sort by age
+      const entries = Array.from(this.pendingModalKeys.entries())
+        .map(([key, value]) => ({ key, timestamp: value.timestamp }))
+        .sort((a, b) => a.timestamp - b.timestamp);
       
-      for (const key of toRemove) {
+      const excessCount = this.pendingModalKeys.size - this.maxModalCache;
+      const toRemove = entries.slice(0, excessCount);
+      
+      for (const { key } of toRemove) {
         this.pendingModalKeys.delete(key);
+        this.modalCacheStats.currentPending--;
+        this.modalCacheStats.totalCleaned++;
       }
       
-      console.log(`JustUI: NavigationGuardian pending modal cache cleaned up, removed ${toRemove.length} entries`);
+      console.log(`JustUI: NavigationGuardian cache limit enforcement - removed ${toRemove.length} oldest entries`);
     }
+  }
+  
+  /**
+   * Get modal cache statistics
+   * @returns {object} Cache statistics
+   */
+  getModalCacheStats() {
+    return {
+      ...this.modalCacheStats,
+      cacheSize: this.pendingModalKeys.size,
+      cacheLimit: this.maxModalCache,
+      cacheUtilization: (this.pendingModalKeys.size / this.maxModalCache * 100).toFixed(1) + '%',
+      averageModalLifetime: this.calculateAverageModalLifetime(),
+      expiredModalsLastCleanup: this.getExpiredModalCount()
+    };
+  }
+  
+  /**
+   * Calculate average lifetime of modals in cache
+   * @returns {number} Average lifetime in milliseconds
+   */
+  calculateAverageModalLifetime() {
+    if (this.pendingModalKeys.size === 0) return 0;
+    
+    const now = Date.now();
+    let totalLifetime = 0;
+    
+    for (const modalInfo of this.pendingModalKeys.values()) {
+      totalLifetime += (now - modalInfo.timestamp);
+    }
+    
+    return Math.round(totalLifetime / this.pendingModalKeys.size);
+  }
+  
+  /**
+   * Get count of expired modals in cache
+   * @returns {number} Number of expired modals
+   */
+  getExpiredModalCount() {
+    const now = Date.now();
+    let expiredCount = 0;
+    
+    for (const modalInfo of this.pendingModalKeys.values()) {
+      if (now - modalInfo.timestamp > this.modalCacheTimeout) {
+        expiredCount++;
+      }
+    }
+    
+    return expiredCount;
   }
 }
