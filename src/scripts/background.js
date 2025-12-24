@@ -350,16 +350,27 @@ chrome.runtime.onInstalled.addListener(async () => {
     ];
 
     if (Object.keys(updates).length > 0) {
-      const installationResult = await safeStorageSetWithValidation(updates, ['blockRequestList', 'defaultRules'], { requireValidation: false, validateWrite: false });
-      if (!installationResult.success) {
-        console.error('JustUI Installation Warning: Some settings may not have been saved properly:', {
-          inconsistencies: installationResult.validationResult?.inconsistencies,
-          context: 'extension-installation'
-        });
-        // Continue anyway - this is installation, partial success is acceptable
+      try {
+        // Use simple storage set for installation to avoid validation issues
+        await chrome.storage.local.set(updates);
+        console.log('JustUI Installation: Successfully saved all settings:', Object.keys(updates));
+        // Initialize request blocking rules after storage is set
+        updateBlockingRules();
+      } catch (error) {
+        console.error('JustUI Installation Failed: Could not save settings:', error);
+        // Fallback: try to save critical settings individually
+        try {
+          await chrome.storage.local.set({ 
+            defaultRules: updates.defaultRules,
+            blockRequestList: updates.blockRequestList,
+            isActive: updates.isActive
+          });
+          console.log('JustUI Installation: Saved critical settings as fallback');
+          updateBlockingRules();
+        } catch (fallbackError) {
+          console.error('JustUI Installation: Even fallback failed:', fallbackError);
+        }
       }
-      // Initialize request blocking rules after storage is set
-      updateBlockingRules();
     } else {
       // Still need to initialize blocking rules if no updates
       updateBlockingRules();
