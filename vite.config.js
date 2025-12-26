@@ -13,6 +13,15 @@ const bundleContentScripts = (mode) => ({
     // Bundle content.js with all its module dependencies
     await build({
       configFile: false,
+      define: {
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
+        'process.env': JSON.stringify({ NODE_ENV: process.env.NODE_ENV || 'production' }),
+        'global': 'globalThis'
+      },
+      esbuild: {
+        jsxFactory: 'React.createElement',
+        jsxFragment: 'React.Fragment',
+      },
       build: {
         emptyOutDir: false,
         outDir: "dist/scripts",
@@ -44,6 +53,11 @@ const bundleContentScripts = (mode) => ({
     // Bundle background.js
     await build({
       configFile: false,
+      define: {
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
+        'process.env': JSON.stringify({ NODE_ENV: process.env.NODE_ENV || 'production' }),
+        'global': 'globalThis'
+      },
       build: {
         emptyOutDir: false,
         outDir: "dist/scripts",
@@ -94,6 +108,15 @@ export default defineConfig(({ mode }) => ({
     bundleContentScripts(mode),
   ],
   base: "./",
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
+    'process.env': JSON.stringify({ NODE_ENV: process.env.NODE_ENV || 'production' }),
+    'global': 'globalThis'
+  },
+  esbuild: {
+    jsxFactory: 'React.createElement',
+    jsxFragment: 'React.Fragment',
+  },
   build: {
     outDir: "dist",
     minify: mode === "production" ? "terser" : false,

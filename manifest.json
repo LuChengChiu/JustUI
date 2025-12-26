@@ -28,7 +28,8 @@
         "data/defaultRules.json",
         "data/defaultWhitelist.json",
         "data/defaultBlockRequests.json",
-        "scripts/injected-script.js"
+        "scripts/injected-script.js",
+        "index.css"
       ],
       "matches": ["<all_urls>"]
     }
