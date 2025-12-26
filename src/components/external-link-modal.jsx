@@ -1,8 +1,10 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import AlertOctagon from "./icons/alert-octagon.jsx";
 import ShieldLink from "./icons/shield-link.jsx";
 import Button from "./ui/button/index.jsx";
 import Dialog from "./ui/dialog.jsx";
+import { H3, Text } from "./ui/typography.jsx";
 
 // Ensure React is available globally for JSX components in content script
 if (typeof window !== "undefined" && !window.React) {
@@ -13,31 +15,33 @@ if (typeof window !== "undefined" && !window.React) {
  * ThreatDisplay Component - Shows security threat information
  */
 const ThreatDisplay = ({ threatDetails, threatLevel, isPopUnder }) => {
-  if (!threatDetails || !threatDetails.threats?.length) {
-    return null;
-  }
+  if (!threatDetails || !threatDetails.threats?.length) return null;
 
-  const { threats, riskScore } = threatDetails;
-  const topThreats = threats.slice(0, 3);
+  const topThreats = threatDetails?.threats.slice(0, 3);
 
   return (
     <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
       <div className="flex items-center mb-2">
-        <span
-          className="font-semibold text-sm"
-          style={{ color: threatLevel.color }}
-        >
-          � Threat Level: {threatLevel.level}
-        </span>
+        <div className="flex gap-x-1 items-center">
+          <AlertOctagon />
+
+          <Text
+            className="font-semibold text-sm"
+            style={{ color: threatLevel.color }}
+          >
+            Threat Level: {threatLevel.level}
+          </Text>
+        </div>
+
         {isPopUnder && (
-          <span className="ml-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium">
+          <Text className="ml-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium">
             POP-UNDER
-          </span>
+          </Text>
         )}
       </div>
 
       <div className="text-sm text-red-800">
-        <strong>Detected threats:</strong>
+        <H3>Detected threats:</H3>
         <ul className="mt-1 ml-4 space-y-1">
           {topThreats.map((threat, index) => (
             <li key={index}>
@@ -117,12 +121,12 @@ export default function ExternalLinkModal({
         onKeyDown={handleKeyDown}
         className="shadow-[1px_2px_3px_1px_#9647eb]"
       >
-        <Dialog.Header>
+        <Dialog.Header className="flex flex-col gap-y-1">
           <Dialog.Title className="flex gap-x-1 items-center">
-            <ShieldLink /> Navigation Guardian New
+            <ShieldLink className="!w-5.5 !h-5.5" /> Navigation Guardian
           </Dialog.Title>
 
-          <Dialog.Description className="font-barlow ">
+          <Dialog.Description className="!text-[16px]">
             {isPopUnder
               ? "Blocked a pop-under advertisement attempting to open:"
               : "This page is trying to navigate to an external site:"}
@@ -140,14 +144,18 @@ export default function ExternalLinkModal({
         </Dialog.Main>
 
         <Dialog.Footer>
-          <Button variant="danger" onClick={handleDeny} autoFocus>
+          <Button
+            variant="danger"
+            onClick={handleDeny}
+            autoFocus
+            className="!font-days-one"
+          >
             {isPopUnder ? "Block Ad" : "Block"}
           </Button>
           <Button
-            // variant="success"
-            variant="secondary"
+            variant="success"
             onClick={handleAllow}
-            className=" font-days-one"
+            className="!font-days-one"
           >
             Allow
           </Button>
@@ -224,7 +232,8 @@ const injectGoogleFonts = () => {
     const fontsLink = document.createElement("link");
     fontsLink.id = "justui-google-fonts";
     fontsLink.rel = "stylesheet";
-    fontsLink.href = "https://fonts.googleapis.com/css2?family=Days+One&family=Barlow:wght@100;200;300;400;500;600;700;800;900&display=swap";
+    fontsLink.href =
+      "https://fonts.googleapis.com/css2?family=Days+One&family=Barlow:wght@100;200;300;400;500;600;700;800;900&display=swap";
 
     // Wait for fonts to load before resolving
     fontsLink.onload = () => {
@@ -300,10 +309,7 @@ export const showExternalLinkModal = async (config) => {
   return new Promise(async (resolve) => {
     try {
       // Load Google Fonts and Tailwind CSS in parallel before rendering
-      await Promise.all([
-        injectGoogleFonts(),
-        injectTailwindCSS()
-      ]);
+      await Promise.all([injectGoogleFonts(), injectTailwindCSS()]);
 
       // Create a container for the modal
       const container = document.createElement("div");

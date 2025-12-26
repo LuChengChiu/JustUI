@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { H2, H3 } from "./typography";
+import { H2, Text } from "./typography";
 
 const DialogContext = createContext(null);
 
@@ -149,21 +149,21 @@ const DialogHeader = ({ className = "", children, ...props }) => (
  * DialogTitle - Accessible title component
  */
 const DialogTitle = ({ className = "", children, ...props }) => (
-  <H3 className={className} {...props}>
+  <H2 className={className} {...props}>
     {children}
-  </H3>
+  </H2>
 );
 
 /**
  * DialogDescription - Subtitle/description text
  */
 const DialogDescription = ({ className = "", children, ...props }) => (
-  <p
+  <Text
     className={`text-sm text-gray-600 mt-1 leading-relaxed ${className}`}
     {...props}
   >
     {children}
-  </p>
+  </Text>
 );
 
 /**
