@@ -45,7 +45,7 @@ The extension operates on all domains EXCEPT those in the whitelist, providing c
 - `src/components/settings/` - Modular settings components (whitelist, rules, navigation guardian, etc.)
 - `src/data/` - Default configuration files (rules, whitelist, blocked domains)
 - `src/scripts/content.js` - Modular content script orchestrator
-- `src/scripts/modules/` - Protection modules (SecurityProtector, ScriptAnalyzer, NavigationGuardian, etc.)
+- `src/scripts/modules/` - Protection modules (ScriptAnalyzer, NavigationGuardian, ClickHijackingProtector, etc.)
 - `src/scripts/background.js` - Service worker for extension coordination
 
 **Data Storage Schema:**
@@ -139,7 +139,6 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 
 *Content Script (src/scripts/content.js):*
 - **JustUIController**: Main orchestrator coordinating all protection modules with comprehensive cleanup management
-- **SecurityProtector**: Event listener protection, localStorage monitoring (blocks pop-under tracking)
 - **ScriptAnalyzer**: Advanced script threat detection and real-time monitoring
 - **NavigationGuardian**: Cross-origin navigation interception with user confirmation modals
 - **ClickHijackingProtector**: Advanced click analysis and suspicious overlay detection
@@ -179,7 +178,7 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 **Data Flow:**
 1. User loads page → JustUIController loads settings FIRST (whitelist check before any protections)
 2. If domain IS whitelisted OR extension inactive → Skip all protections, only setup message listeners
-3. If active and NOT whitelisted → Activate SecurityProtector, ScriptAnalyzer, and all protection modules
+3. If active and NOT whitelisted → Activate ScriptAnalyzer and all protection modules
 4. NavigationGuardian monitors cross-origin navigation attempts
 5. ClickHijackingProtector analyzes and blocks suspicious clicks
 6. Execute enabled rule modules (default + custom + pattern detection)
@@ -189,7 +188,6 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 - Extension must be active (`isActive = true`)
 - Domain must NOT be in whitelist (whitelist = clean domains that don't need any protection)
 - Individual protection modules can be enabled/disabled independently
-- **SecurityProtector**: Event listener protection and localStorage monitoring
 - **ScriptAnalyzer**: Monitors and blocks malicious scripts in real-time
 - **NavigationGuardian**: Protects against cross-origin navigation attacks
 - **Element Removal**: Executes when `isActive && !isDomainWhitelisted(currentDomain)`
@@ -245,7 +243,6 @@ src/scripts/
 ├── constants.js                       // Shared constants and performance tuning parameters
 ├── adDetectionEngine.js               // Advanced pattern detection engine
 ├── modules/
-│   ├── SecurityProtector.js           // Event listener protection, localStorage monitoring
 │   ├── ScriptAnalyzer.js              // Real-time script threat analysis
 │   ├── NavigationGuardian.js          // Cross-origin navigation protection (modular orchestrator)
 │   ├── navigation-guardian/           // NavigationGuardian modular components

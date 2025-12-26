@@ -220,7 +220,6 @@ src/
 
 Each protection module operates independently with well-defined interfaces:
 
-- **SecurityProtector** - Event listener protection and localStorage monitoring
 - **ScriptAnalyzer** - Real-time script threat analysis
 - **NavigationGuardian** - Cross-origin navigation interception with user confirmation
 - **ClickHijackingProtector** - Click analysis and overlay detection

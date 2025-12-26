@@ -7,7 +7,6 @@
 import { ElementRemover } from "./modules/ElementRemover.js";
 import { ClickHijackingProtector } from "./modules/ClickHijackingProtector.js";
 import { MutationProtector } from "./modules/MutationProtector.js";
-import { SecurityProtector } from "./modules/SecurityProtector.js";
 import { ScriptAnalyzer } from "./modules/ScriptAnalyzer.js";
 import { NavigationGuardian } from "./modules/NavigationGuardian.js";
 import { PerformanceTracker } from "./modules/PerformanceTracker.js";
@@ -62,12 +61,6 @@ class JustUIController {
     );
 
     // Protection modules with compartmentalization
-    this.securityProtector = new SecurityProtector();
-    this.cleanupRegistry.register(
-      this.securityProtector,
-      "SecurityProtector",
-      "protection"
-    );
 
     this.scriptAnalyzer = new ScriptAnalyzer();
     this.cleanupRegistry.register(
@@ -191,7 +184,6 @@ class JustUIController {
     }
 
     // 6. NOW activate security protections (domain is not whitelisted & extension is active)
-    this.securityProtector.activate();
     this.scriptAnalyzer.activate();
 
     // 7. Initialize NavigationGuardian with loaded settings
@@ -248,7 +240,6 @@ class JustUIController {
   stopProtection() {
     console.log("JustUI: Stopping protection systems");
 
-    this.securityProtector.deactivate();
     this.scriptAnalyzer.deactivate();
     this.clickProtector.deactivate();
     this.navigationGuardian.disable();
