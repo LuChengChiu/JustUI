@@ -79,7 +79,6 @@ describe('ModalManager', () => {
   describe('Initialization', () => {
     test('should initialize with default values', () => {
       expect(modalManager.activeModal).toBeNull();
-      expect(modalManager.modalStyleElement).toBeNull();
       expect(modalManager.statisticsCallback).toBeNull();
       expect(modalManager.urlValidator).toBeNull();
     });
@@ -329,15 +328,13 @@ describe('ModalManager', () => {
       expect(modalManager.activeModal).toBeNull();
     });
 
-    test('should cleanup modal styles', async () => {
-      const mockStyleElement = mockDOM.createElement('style');
-      mockStyleElement.parentNode = mockDOM.head;
-      modalManager.modalStyleElement = mockStyleElement;
+    test('should cleanup active modal flag', async () => {
+      modalManager.activeModal = true;
       
       modalManager.cleanup();
       
-      expect(mockDOM.head.removeChild).toHaveBeenCalledWith(mockStyleElement);
-      expect(modalManager.modalStyleElement).toBeNull();
+      // Should clear activeModal flag (React modal handles its own cleanup)
+      expect(modalManager.activeModal).toBeNull();
     });
 
     test('should clear callbacks during cleanup', async () => {
@@ -493,20 +490,14 @@ describe('ModalManager', () => {
       expect(mockStatisticsCallback).toHaveBeenCalledWith(true);
     });
 
-    test('should fallback to legacy modal when React import fails', async () => {
+    test('should handle React import failures gracefully', async () => {
       global.import.mockRejectedValue(new Error('React import failed'));
       
-      // Mock legacy modal behavior
-      modalManager.showLegacyModal = jest.fn().mockResolvedValue(false);
-
+      // React modal should fail and resolve with false for safety
       const result = await modalManager.showConfirmationModal({
         url: 'https://example.com'
       });
 
-      expect(modalManager.showLegacyModal).toHaveBeenCalledWith({
-        url: 'https://example.com',
-        threatDetails: null
-      });
       expect(result).toBe(false);
     });
 
@@ -516,13 +507,12 @@ describe('ModalManager', () => {
         showExternalLinkModal: mockShowExternalLinkModal
       });
 
-      modalManager.showLegacyModal = jest.fn().mockResolvedValue(false);
+      // Should handle React modal failure gracefully
 
       const result = await modalManager.showConfirmationModal({
         url: 'https://example.com'
       });
 
-      expect(modalManager.showLegacyModal).toHaveBeenCalled();
       expect(result).toBe(false);
     });
 
@@ -593,8 +583,7 @@ describe('ModalManager', () => {
 
     test('should clear activeModal flag on React import error', async () => {
       global.import.mockRejectedValue(new Error('Import failed'));
-      modalManager.showLegacyModal = jest.fn().mockResolvedValue(false);
-
+      
       expect(modalManager.activeModal).toBeNull();
 
       await modalManager.showConfirmationModal({

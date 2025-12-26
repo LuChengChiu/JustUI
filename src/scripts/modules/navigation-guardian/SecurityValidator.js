@@ -1,20 +1,20 @@
 /**
  * SecurityValidator Module - URL and threat validation for NavigationGuardian
- * 
+ *
  * @fileoverview Provides comprehensive security validation for URLs including protocol checking,
  * homograph attack detection, and malicious pattern analysis. This module is stateless and focuses
  * solely on security validation logic extracted from NavigationGuardian.
- * 
+ *
  * @example
  * // Basic URL validation
  * const validator = new SecurityValidator();
  * const result = validator.validateURL('https://example.com');
- * 
+ *
  * @example
  * // Threat analysis
  * const analysis = validator.analyzeThreats('https://malicious-site.com/redirect?param_4=123');
  * console.log(`Risk Score: ${analysis.riskScore}, Threats: ${analysis.threats.length}`);
- * 
+ *
  * @module SecurityValidator
  * @since 1.0.0
  * @author JustUI Team
@@ -35,44 +35,70 @@ export class SecurityValidator {
      * @type {string[]}
      * @private
      */
-    this.allowedProtocols = ['http:', 'https:', 'ftp:', 'ftps:'];
-    
+    this.allowedProtocols = ["http:", "https:", "ftp:", "ftps:"];
+
     /**
      * Suspicious unicode patterns for homograph attack detection
      * @type {RegExp[]}
      * @private
      */
     this.suspiciousUnicodePatterns = [
-      new RegExp('[\\u0400-\\u04FF]'), // Cyrillic
-      new RegExp('[\\u0370-\\u03FF]'), // Greek  
-      new RegExp('[\\u0590-\\u05FF]'), // Hebrew
-      new RegExp('[\\u0600-\\u06FF]'), // Arabic
-      new RegExp('[\\u4E00-\\u9FFF]'), // CJK Unified Ideographs
-      new RegExp('[\\u3040-\\u309F]'), // Hiragana
-      new RegExp('[\\u30A0-\\u30FF]')  // Katakana
+      /[\u0400-\u04FF]/, // Cyrillic
+      /[\u0370-\u03FF]/, // Greek
+      /[\u0590-\u05FF]/, // Hebrew
+      /[\u0600-\u06FF]/, // Arabic
+      /[\u4E00-\u9FFF]/, // CJK Unified Ideographs
+      /[\u3040-\u309F]/, // Hiragana
+      /[\u30A0-\u30FF]/, // Katakana
     ];
-    
+
     /**
      * URL threat patterns with associated risk scores
      * @type {Array<{pattern: RegExp, score: number, threat: string}>}
      * @private
      */
     this.urlThreatPatterns = [
-      { pattern: /adexchangeclear\.com/i, score: 8, threat: 'Known malicious ad network' },
-      { pattern: /\.php\?.*param_[45]/i, score: 6, threat: 'Ad tracking parameters' },
-      { pattern: /about:blank/i, score: 5, threat: 'Blank page (common pop-under technique)' },
-      { pattern: /doubleclick\.net/i, score: 4, threat: 'Ad network domain' },
-      { pattern: /googlesyndication\.com/i, score: 3, threat: 'Google ad network' },
-      { pattern: /\.tk$|\.ml$|\.ga$/i, score: 4, threat: 'Suspicious TLD' },
-      { pattern: /redirect|popup|popunder/i, score: 5, threat: 'Redirect/popup indicators' }
+      {
+        pattern: /adexchangeclear\.com/i,
+        score: 8,
+        threat: "Known malicious ad network",
+      },
+      {
+        pattern: /\.php\?.*param_[45]/i,
+        score: 6,
+        threat: "Ad tracking parameters",
+      },
+      {
+        pattern: /about:blank/i,
+        score: 5,
+        threat: "Blank page (common pop-under technique)",
+      },
+      { pattern: /doubleclick\.net/i, score: 4, threat: "Ad network domain" },
+      {
+        pattern: /googlesyndication\.com/i,
+        score: 3,
+        threat: "Google ad network",
+      },
+      { pattern: /\.tk$|\.ml$|\.ga$/i, score: 4, threat: "Suspicious TLD" },
+      {
+        pattern: /redirect|popup|popunder/i,
+        score: 5,
+        threat: "Redirect/popup indicators",
+      },
     ];
-    
+
     /**
      * Suspicious URL query parameters
      * @type {string[]}
      * @private
      */
-    this.suspiciousParams = ['param_4', 'param_5', 'clickid', 'adclick', 'redirect'];
+    this.suspiciousParams = [
+      "param_4",
+      "param_5",
+      "clickid",
+      "adclick",
+      "redirect",
+    ];
   }
 
   /**
@@ -86,20 +112,20 @@ export class SecurityValidator {
   validateURL(url) {
     const result = {
       isValid: false,
-      displayURL: '',
-      warnings: []
+      displayURL: "",
+      warnings: [],
     };
 
     // Handle null, undefined, or empty strings
-    if (!url || typeof url !== 'string') {
-      result.displayURL = 'Invalid URL';
-      result.warnings.push('URL is null, undefined, or not a string');
+    if (!url || typeof url !== "string") {
+      result.displayURL = "Invalid URL";
+      result.warnings.push("URL is null, undefined, or not a string");
       return result;
     }
 
     try {
       const urlObj = new URL(url);
-      
+
       // Check for dangerous protocols
       if (!this.allowedProtocols.includes(urlObj.protocol)) {
         result.displayURL = `Blocked: Unsafe protocol (${urlObj.protocol})`;
@@ -109,8 +135,8 @@ export class SecurityValidator {
 
       // Check for suspicious unicode characters (homograph attacks)
       if (this.containsSuspiciousUnicode(urlObj.hostname)) {
-        result.displayURL = 'Blocked: Suspicious characters in domain';
-        result.warnings.push('Potential homograph attack detected');
+        result.displayURL = "Blocked: Suspicious characters in domain";
+        result.warnings.push("Potential homograph attack detected");
         return result;
       }
 
@@ -120,7 +146,7 @@ export class SecurityValidator {
       return result;
     } catch (error) {
       // Invalid URL structure
-      result.displayURL = 'Blocked: Malformed URL';
+      result.displayURL = "Blocked: Malformed URL";
       result.warnings.push(`Malformed URL: ${error.message}`);
       return result;
     }
@@ -143,11 +169,13 @@ export class SecurityValidator {
    * @returns {boolean} True if suspicious characters detected
    */
   containsSuspiciousUnicode(hostname) {
-    if (!hostname || typeof hostname !== 'string') {
+    if (!hostname || typeof hostname !== "string") {
       return false;
     }
 
-    return this.suspiciousUnicodePatterns.some(pattern => pattern.test(hostname));
+    return this.suspiciousUnicodePatterns.some((pattern) =>
+      pattern.test(hostname)
+    );
   }
 
   /**
@@ -162,15 +190,15 @@ export class SecurityValidator {
     const analysis = {
       riskScore: 0,
       threats: [],
-      isPopUnder: false
+      isPopUnder: false,
     };
-    
-    if (!url || typeof url !== 'string') {
-      analysis.threats.push({ type: 'Invalid URL input', score: 2 });
+
+    if (!url || typeof url !== "string") {
+      analysis.threats.push({ type: "Invalid URL input", score: 2 });
       analysis.riskScore = 2;
       return analysis;
     }
-    
+
     try {
       // Check URL against threat patterns
       this.urlThreatPatterns.forEach(({ pattern, score, threat }) => {
@@ -179,45 +207,52 @@ export class SecurityValidator {
           analysis.threats.push({ type: threat, score });
         }
       });
-      
+
       // Check for suspicious URL structure
       try {
         const urlObj = new URL(url);
-        
+
         // Check for suspicious query parameters
-        this.suspiciousParams.forEach(param => {
+        this.suspiciousParams.forEach((param) => {
           if (urlObj.searchParams.has(param)) {
             analysis.riskScore += 3;
-            analysis.threats.push({ type: `Suspicious parameter: ${param}`, score: 3 });
+            analysis.threats.push({
+              type: `Suspicious parameter: ${param}`,
+              score: 3,
+            });
           }
         });
-        
+
         // Check for random-looking domains
         if (/[a-z0-9]{10,20}\./i.test(urlObj.hostname)) {
           analysis.riskScore += 2;
-          analysis.threats.push({ type: 'Random domain name pattern', score: 2 });
+          analysis.threats.push({
+            type: "Random domain name pattern",
+            score: 2,
+          });
         }
-        
+
         // Check for suspicious unicode in hostname
         if (this.containsSuspiciousUnicode(urlObj.hostname)) {
           analysis.riskScore += 4;
-          analysis.threats.push({ type: 'Suspicious unicode characters (homograph attack)', score: 4 });
+          analysis.threats.push({
+            type: "Suspicious unicode characters (homograph attack)",
+            score: 4,
+          });
         }
-        
       } catch (urlError) {
         analysis.riskScore += 3;
-        analysis.threats.push({ type: 'Malformed URL', score: 3 });
+        analysis.threats.push({ type: "Malformed URL", score: 3 });
       }
-      
+
       // Determine if this is likely a pop-under attempt
       analysis.isPopUnder = analysis.riskScore >= 6;
-      
     } catch (error) {
-      console.warn('JustUI: Error analyzing URL threats:', error);
-      analysis.threats.push({ type: 'Analysis error', score: 1 });
+      console.warn("JustUI: Error analyzing URL threats:", error);
+      analysis.threats.push({ type: "Analysis error", score: 1 });
       analysis.riskScore += 1;
     }
-    
+
     return analysis;
   }
 
@@ -242,21 +277,21 @@ export class SecurityValidator {
   getThreatLevel(riskScore) {
     if (riskScore >= 8) {
       return {
-        level: 'HIGH',
-        color: '#dc2626',
-        description: 'High risk - likely malicious content'
+        level: "HIGH",
+        color: "#dc2626",
+        description: "High risk - likely malicious content",
       };
     } else if (riskScore >= 4) {
       return {
-        level: 'MEDIUM',
-        color: '#d97706',
-        description: 'Medium risk - suspicious patterns detected'
+        level: "MEDIUM",
+        color: "#d97706",
+        description: "Medium risk - suspicious patterns detected",
       };
     } else {
       return {
-        level: 'LOW',
-        color: '#059669',
-        description: 'Low risk - appears safe'
+        level: "LOW",
+        color: "#059669",
+        description: "Low risk - appears safe",
       };
     }
   }
@@ -270,12 +305,13 @@ export class SecurityValidator {
     const validation = this.validateURL(url);
     const threatAnalysis = this.analyzeThreats(url);
     const threatLevel = this.getThreatLevel(threatAnalysis.riskScore);
-    
+
     return {
       validation,
       threatAnalysis,
       threatLevel,
-      recommendation: validation.isValid && threatAnalysis.riskScore < 4 ? 'ALLOW' : 'BLOCK'
+      recommendation:
+        validation.isValid && threatAnalysis.riskScore < 4 ? "ALLOW" : "BLOCK",
     };
   }
 }
