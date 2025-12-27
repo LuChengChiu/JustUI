@@ -70,7 +70,7 @@ export class EventListenerRegistry extends CleanableModule {
       this.startPeriodicCleanup();
     }
     
-    console.log('JustUI: EventListenerRegistry initialized');
+    console.log('OriginalUI: EventListenerRegistry initialized');
   }
   
   /**
@@ -84,7 +84,7 @@ export class EventListenerRegistry extends CleanableModule {
    */
   register(element, eventType, handler, options = {}, metadata = {}) {
     if (!element || typeof handler !== 'function') {
-      console.warn('JustUI: Invalid parameters for event listener registration');
+      console.warn('OriginalUI: Invalid parameters for event listener registration');
       return null;
     }
     
@@ -131,12 +131,12 @@ export class EventListenerRegistry extends CleanableModule {
       this.listenerStats.totalRegistered++;
       this.listenerStats.activeCount++;
       
-      console.debug(`JustUI: Registered event listener ${listenerId} for ${eventType} on ${element.tagName || element.constructor.name}`);
+      console.debug(`OriginalUI: Registered event listener ${listenerId} for ${eventType} on ${element.tagName || element.constructor.name}`);
       
       return listenerId;
       
     } catch (error) {
-      console.error('JustUI: Error registering event listener:', error);
+      console.error('OriginalUI: Error registering event listener:', error);
       return null;
     }
   }
@@ -149,7 +149,7 @@ export class EventListenerRegistry extends CleanableModule {
   remove(listenerId) {
     const listenerInfo = this.listeners.get(listenerId);
     if (!listenerInfo) {
-      console.warn(`JustUI: Listener ${listenerId} not found for removal`);
+      console.warn(`OriginalUI: Listener ${listenerId} not found for removal`);
       return false;
     }
     
@@ -175,7 +175,7 @@ export class EventListenerRegistry extends CleanableModule {
       }
     }
     
-    console.log(`JustUI: Removed ${removedCount} listeners for module ${moduleId}`);
+    console.log(`OriginalUI: Removed ${removedCount} listeners for module ${moduleId}`);
     return removedCount;
   }
   
@@ -200,7 +200,7 @@ export class EventListenerRegistry extends CleanableModule {
       }
     }
     
-    console.debug(`JustUI: Removed ${removedCount} listeners from element`);
+    console.debug(`OriginalUI: Removed ${removedCount} listeners from element`);
     return removedCount;
   }
   
@@ -223,7 +223,7 @@ export class EventListenerRegistry extends CleanableModule {
       }
     }
     
-    console.log(`JustUI: Removed ${removedCount} listeners in category ${category}`);
+    console.log(`OriginalUI: Removed ${removedCount} listeners in category ${category}`);
     return removedCount;
   }
   
@@ -256,7 +256,7 @@ export class EventListenerRegistry extends CleanableModule {
       return true;
       
     } catch (error) {
-      console.warn(`JustUI: Error removing listener ${id}:`, error);
+      console.warn(`OriginalUI: Error removing listener ${id}:`, error);
       // Mark as orphaned if removal failed
       this.orphanedListeners.add(id);
       return false;
@@ -353,20 +353,20 @@ export class EventListenerRegistry extends CleanableModule {
     // Check listeners per element
     const elementListeners = this.elementListeners.get(element);
     if (elementListeners && elementListeners.size >= this.options.maxListenersPerElement) {
-      console.warn(`JustUI: Element has ${elementListeners.size} listeners, potential memory leak detected`);
+      console.warn(`OriginalUI: Element has ${elementListeners.size} listeners, potential memory leak detected`);
       this.listenerStats.leaksDetected++;
     }
     
     // Check listeners per module
     const moduleListeners = this.moduleListeners.get(moduleId);
     if (moduleListeners && moduleListeners.size >= this.options.maxListenersPerModule) {
-      console.warn(`JustUI: Module ${moduleId} has ${moduleListeners.size} listeners, potential memory leak detected`);
+      console.warn(`OriginalUI: Module ${moduleId} has ${moduleListeners.size} listeners, potential memory leak detected`);
       this.listenerStats.leaksDetected++;
     }
     
     // Warn about approaching thresholds
     if (this.listenerStats.activeCount >= this.options.warnThreshold) {
-      console.warn(`JustUI: Total active listeners (${this.listenerStats.activeCount}) approaching threshold`);
+      console.warn(`OriginalUI: Total active listeners (${this.listenerStats.activeCount}) approaching threshold`);
     }
   }
   
@@ -402,7 +402,7 @@ export class EventListenerRegistry extends CleanableModule {
       this.performPeriodicCleanup();
     }, this.options.cleanupInterval);
     
-    console.log('JustUI: Started EventListenerRegistry periodic cleanup');
+    console.log('OriginalUI: Started EventListenerRegistry periodic cleanup');
   }
   
   /**
@@ -412,7 +412,7 @@ export class EventListenerRegistry extends CleanableModule {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
-      console.log('JustUI: Stopped EventListenerRegistry periodic cleanup');
+      console.log('OriginalUI: Stopped EventListenerRegistry periodic cleanup');
     }
   }
   
@@ -454,7 +454,7 @@ export class EventListenerRegistry extends CleanableModule {
       this.listenerStats.lastLeakCheck = Date.now();
       
       const duration = Date.now() - startTime;
-      console.log(`JustUI: Periodic cleanup removed ${cleanedCount} listeners in ${duration}ms`);
+      console.log(`OriginalUI: Periodic cleanup removed ${cleanedCount} listeners in ${duration}ms`);
     }
   }
   
@@ -555,7 +555,7 @@ export class EventListenerRegistry extends CleanableModule {
    * Enhanced cleanup with statistics
    */
   cleanup() {
-    console.log('JustUI: Starting EventListenerRegistry cleanup...');
+    console.log('OriginalUI: Starting EventListenerRegistry cleanup...');
     
     this.setLifecyclePhase(LIFECYCLE_PHASES.CLEANUP_PENDING);
     
@@ -613,7 +613,7 @@ export class EventListenerRegistry extends CleanableModule {
       // Call parent cleanup
       super.cleanup();
       
-      console.log('JustUI: EventListenerRegistry cleanup completed:', {
+      console.log('OriginalUI: EventListenerRegistry cleanup completed:', {
         totalRemoved,
         finalStats: {
           activeListeners: finalStats.currentActive,
@@ -623,7 +623,7 @@ export class EventListenerRegistry extends CleanableModule {
       });
       
     } catch (error) {
-      console.error('JustUI: Error during EventListenerRegistry cleanup:', error);
+      console.error('OriginalUI: Error during EventListenerRegistry cleanup:', error);
       this.setLifecyclePhase(LIFECYCLE_PHASES.ERROR);
       throw error;
     }

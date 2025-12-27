@@ -78,7 +78,7 @@ export class FallbackStrategyManager extends CleanableModule {
       this.startHealthMonitoring();
     }
     
-    console.log('JustUI: FallbackStrategyManager initialized');
+    console.log('OriginalUI: FallbackStrategyManager initialized');
   }
   
   /**
@@ -123,7 +123,7 @@ export class FallbackStrategyManager extends CleanableModule {
       };
     }
     
-    console.log(`JustUI: Registered fallback strategy for operation: ${operationId}`);
+    console.log(`OriginalUI: Registered fallback strategy for operation: ${operationId}`);
   }
   
   /**
@@ -150,7 +150,7 @@ export class FallbackStrategyManager extends CleanableModule {
         const cachedResult = this.getCachedResult(config.cacheKey, context);
         if (cachedResult !== null) {
           this.cacheStats.hits++;
-          console.debug(`JustUI: Cache hit for operation ${operationId}`);
+          console.debug(`OriginalUI: Cache hit for operation ${operationId}`);
           return cachedResult;
         }
         this.cacheStats.misses++;
@@ -173,14 +173,14 @@ export class FallbackStrategyManager extends CleanableModule {
       }
       
       const duration = Date.now() - startTime;
-      console.debug(`JustUI: Primary function succeeded for ${operationId} (${duration}ms)`);
+      console.debug(`OriginalUI: Primary function succeeded for ${operationId} (${duration}ms)`);
       
       return primaryResult;
       
     } catch (primaryError) {
       operationStats.primaryFailure++;
       
-      console.warn(`JustUI: Primary function failed for ${operationId}:`, primaryError.message);
+      console.warn(`OriginalUI: Primary function failed for ${operationId}:`, primaryError.message);
       
       // Execute fallback strategies
       return this.executeFallbacks(config, context, primaryError, startTime);
@@ -201,7 +201,7 @@ export class FallbackStrategyManager extends CleanableModule {
     
     if (fallbackStrategies.length === 0) {
       const duration = Date.now() - startTime;
-      console.error(`JustUI: No fallback strategies available for ${operationId} (${duration}ms)`);
+      console.error(`OriginalUI: No fallback strategies available for ${operationId} (${duration}ms)`);
       throw primaryError;
     }
     
@@ -217,7 +217,7 @@ export class FallbackStrategyManager extends CleanableModule {
       });
     
     if (sortedStrategies.length === 0) {
-      console.error(`JustUI: No applicable fallback strategies for ${operationId}`);
+      console.error(`OriginalUI: No applicable fallback strategies for ${operationId}`);
       throw primaryError;
     }
     
@@ -226,7 +226,7 @@ export class FallbackStrategyManager extends CleanableModule {
       const strategy = sortedStrategies[i];
       
       try {
-        console.log(`JustUI: Trying fallback strategy ${strategy.type} for ${operationId} (${i + 1}/${sortedStrategies.length})`);
+        console.log(`OriginalUI: Trying fallback strategy ${strategy.type} for ${operationId} (${i + 1}/${sortedStrategies.length})`);
         
         const fallbackResult = await this.executeWithTimeout(
           () => strategy.implementation(context, primaryError),
@@ -248,17 +248,17 @@ export class FallbackStrategyManager extends CleanableModule {
         }
         
         const duration = Date.now() - startTime;
-        console.log(`JustUI: Fallback strategy ${strategy.type} succeeded for ${operationId} (${duration}ms)`);
+        console.log(`OriginalUI: Fallback strategy ${strategy.type} succeeded for ${operationId} (${duration}ms)`);
         
         return fallbackResult;
         
       } catch (fallbackError) {
-        console.warn(`JustUI: Fallback strategy ${strategy.type} failed for ${operationId}:`, fallbackError.message);
+        console.warn(`OriginalUI: Fallback strategy ${strategy.type} failed for ${operationId}:`, fallbackError.message);
         
         // Continue to next strategy unless this is the last one
         if (i === sortedStrategies.length - 1) {
           const duration = Date.now() - startTime;
-          console.error(`JustUI: All fallback strategies exhausted for ${operationId} (${duration}ms)`);
+          console.error(`OriginalUI: All fallback strategies exhausted for ${operationId} (${duration}ms)`);
           throw primaryError; // Throw original error
         }
       }
@@ -326,7 +326,7 @@ export class FallbackStrategyManager extends CleanableModule {
         type: FALLBACK_TYPES.GRACEFUL_DEGRADATION,
         implementation: async () => {
           // Return false but allow system to continue in degraded mode
-          console.warn('JustUI: Extension context validation failed, entering degraded mode');
+          console.warn('OriginalUI: Extension context validation failed, entering degraded mode');
           return false;
         },
         weight: 1,
@@ -450,7 +450,7 @@ export class FallbackStrategyManager extends CleanableModule {
       this.performHealthCheck();
     }, this.options.healthCheckInterval);
     
-    console.log('JustUI: Started fallback system health monitoring');
+    console.log('OriginalUI: Started fallback system health monitoring');
   }
   
   /**
@@ -460,7 +460,7 @@ export class FallbackStrategyManager extends CleanableModule {
     if (this.healthMonitor) {
       clearInterval(this.healthMonitor);
       this.healthMonitor = null;
-      console.log('JustUI: Stopped fallback system health monitoring');
+      console.log('OriginalUI: Stopped fallback system health monitoring');
     }
   }
   
@@ -488,7 +488,7 @@ export class FallbackStrategyManager extends CleanableModule {
       this.metrics.systemHealth = 'unhealthy';
     }
     
-    console.debug(`JustUI: System health check: ${this.metrics.systemHealth} (success: ${(successRate * 100).toFixed(1)}%, fallbacks: ${(fallbackRate * 100).toFixed(1)}%)`);
+    console.debug(`OriginalUI: System health check: ${this.metrics.systemHealth} (success: ${(successRate * 100).toFixed(1)}%, fallbacks: ${(fallbackRate * 100).toFixed(1)}%)`);
   }
   
   /**
@@ -546,14 +546,14 @@ export class FallbackStrategyManager extends CleanableModule {
       systemHealth: 'unknown'
     };
     
-    console.log('JustUI: FallbackStrategyManager reset completed');
+    console.log('OriginalUI: FallbackStrategyManager reset completed');
   }
   
   /**
    * Enhanced cleanup
    */
   cleanup() {
-    console.log('JustUI: Starting FallbackStrategyManager cleanup...');
+    console.log('OriginalUI: Starting FallbackStrategyManager cleanup...');
     
     this.setLifecyclePhase(LIFECYCLE_PHASES.CLEANUP_PENDING);
     
@@ -575,7 +575,7 @@ export class FallbackStrategyManager extends CleanableModule {
       // Call parent cleanup
       super.cleanup();
       
-      console.log('JustUI: FallbackStrategyManager cleanup completed:', {
+      console.log('OriginalUI: FallbackStrategyManager cleanup completed:', {
         finalStats: {
           operations: finalStats.operations,
           health: finalStats.health,
@@ -584,7 +584,7 @@ export class FallbackStrategyManager extends CleanableModule {
       });
       
     } catch (error) {
-      console.error('JustUI: Error during FallbackStrategyManager cleanup:', error);
+      console.error('OriginalUI: Error during FallbackStrategyManager cleanup:', error);
       this.setLifecyclePhase(LIFECYCLE_PHASES.ERROR);
       throw error;
     }

@@ -232,19 +232,19 @@ const injectGoogleFonts = () => {
 
     // Wait for fonts to load before resolving
     fontsLink.onload = () => {
-      console.log("JustUI: Successfully loaded Google Fonts for modal");
+      console.log("OriginalUI: Successfully loaded Google Fonts for modal");
       resolve();
     };
 
     // Handle loading errors
     fontsLink.onerror = () => {
-      console.error("JustUI: Failed to load Google Fonts for modal");
+      console.error("OriginalUI: Failed to load Google Fonts for modal");
       resolve(); // Resolve anyway to avoid hanging
     };
 
     // Inject into document head
     document.head.appendChild(fontsLink);
-    console.log("JustUI: Injected Google Fonts link for modal");
+    console.log("OriginalUI: Injected Google Fonts link for modal");
   });
 };
 
@@ -273,18 +273,18 @@ const injectTailwindCSS = () => {
 
       // Wait for CSS to load before resolving
       cssLink.onload = () => {
-        console.log("JustUI: Successfully loaded index.css for modal");
+        console.log("OriginalUI: Successfully loaded index.css for modal");
         resolve();
       };
 
       // Handle loading errors
       cssLink.onerror = () => {
-        console.error("JustUI: Failed to load index.css for modal");
+        console.error("OriginalUI: Failed to load index.css for modal");
         resolve(); // Resolve anyway to avoid hanging
       };
     } else {
       console.warn(
-        "JustUI: Chrome runtime not available, CSS may not load properly"
+        "OriginalUI: Chrome runtime not available, CSS may not load properly"
       );
       resolve(); // Resolve anyway to avoid hanging
       return;
@@ -292,7 +292,7 @@ const injectTailwindCSS = () => {
 
     // Inject into document head
     document.head.appendChild(cssLink);
-    console.log("JustUI: Injected CSS link for modal");
+    console.log("OriginalUI: Injected CSS link for modal");
   });
 };
 
@@ -336,7 +336,7 @@ export const showExternalLinkModal = async (config) => {
         })
       );
     } catch (error) {
-      console.error("JustUI: Failed to render React modal:", error);
+      console.error("OriginalUI: Failed to render React modal:", error);
       resolve(false); // Default to deny on error
     }
   });

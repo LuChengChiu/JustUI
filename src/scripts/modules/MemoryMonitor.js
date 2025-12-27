@@ -23,12 +23,12 @@ export class MemoryMonitor {
     this.moduleReferences = new WeakMap(); // Track module memory usage
     this.cleanupResults = [];
     
-    console.log('JustUI: MemoryMonitor initialized');
+    console.log('OriginalUI: MemoryMonitor initialized');
   }
 
   /**
    * Start memory monitoring
-   * @param {Object} controller - Reference to JustUIController for monitoring
+   * @param {Object} controller - Reference to OriginalUIController for monitoring
    */
   startMonitoring(controller) {
     if (this.monitoringActive) return;
@@ -43,7 +43,7 @@ export class MemoryMonitor {
       this.performMemoryCheck();
     }, this.options.monitoringInterval);
     
-    console.log(`JustUI: Memory monitoring started (interval: ${this.options.monitoringInterval}ms)`);
+    console.log(`OriginalUI: Memory monitoring started (interval: ${this.options.monitoringInterval}ms)`);
   }
 
   /**
@@ -62,7 +62,7 @@ export class MemoryMonitor {
     // Final memory snapshot
     this.takeMemorySnapshot('final');
     
-    console.log('JustUI: Memory monitoring stopped');
+    console.log('OriginalUI: Memory monitoring stopped');
   }
 
   /**
@@ -152,7 +152,7 @@ export class MemoryMonitor {
     }
     
     if (consistentGrowth && totalGrowth > this.options.memoryThreshold * 0.1) {
-      console.warn('JustUI: Potential memory leak detected', {
+      console.warn('OriginalUI: Potential memory leak detected', {
         totalGrowth: `${(totalGrowth / 1024 / 1024).toFixed(2)}MB`,
         snapshots: this.leakDetectionThreshold,
         averageGrowth: `${(totalGrowth / this.leakDetectionThreshold / 1024 / 1024).toFixed(2)}MB`
@@ -175,7 +175,7 @@ export class MemoryMonitor {
       .filter(([name, stats]) => stats.isExpired);
     
     if (expiredCompartments.length > 0) {
-      console.log(`JustUI: Found ${expiredCompartments.length} expired compartments, suggesting cleanup`);
+      console.log(`OriginalUI: Found ${expiredCompartments.length} expired compartments, suggesting cleanup`);
       
       // Trigger automatic cleanup of expired compartments
       expiredCompartments.forEach(([name]) => {
@@ -188,7 +188,7 @@ export class MemoryMonitor {
       .filter(([name, stats]) => stats.moduleCount > 50);
     
     if (oversizedCompartments.length > 0) {
-      console.warn('JustUI: Found oversized compartments', oversizedCompartments.map(([name, stats]) => ({
+      console.warn('OriginalUI: Found oversized compartments', oversizedCompartments.map(([name, stats]) => ({
         name,
         moduleCount: stats.moduleCount
       })));
@@ -220,10 +220,10 @@ export class MemoryMonitor {
       try {
         const stats = check();
         if (stats.cacheEfficiency) {
-          console.log(`JustUI: ${name} cache efficiency: ${stats.cacheEfficiency}`);
+          console.log(`OriginalUI: ${name} cache efficiency: ${stats.cacheEfficiency}`);
         }
       } catch (error) {
-        console.warn(`JustUI: Error checking ${name} stats:`, error);
+        console.warn(`OriginalUI: Error checking ${name} stats:`, error);
       }
     });
   }
@@ -270,11 +270,11 @@ export class MemoryMonitor {
     }
     
     if (suggestions.length > 0) {
-      console.log('JustUI: Memory optimization suggestions:', suggestions);
+      console.log('OriginalUI: Memory optimization suggestions:', suggestions);
       
       // Trigger automatic cleanup if available
       if (this.controller?.cleanupRegistry) {
-        console.log('JustUI: Triggering automatic memory cleanup');
+        console.log('OriginalUI: Triggering automatic memory cleanup');
         this.controller.cleanupRegistry.performPeriodicCleanup();
       }
     }
@@ -312,7 +312,7 @@ export class MemoryMonitor {
       results.issues.push('Cleanup had minimal memory impact');
     }
     
-    console.log('JustUI: Cleanup verification results:', {
+    console.log('OriginalUI: Cleanup verification results:', {
       memoryReduced: `${(results.memoryReduced / 1024 / 1024).toFixed(2)}MB`,
       percentageReduced: `${results.percentageReduced.toFixed(1)}%`,
       domNodesReduced: results.domNodesReduced,
@@ -332,11 +332,11 @@ export class MemoryMonitor {
    */
   forceGarbageCollection() {
     if (window.gc && typeof window.gc === 'function') {
-      console.log('JustUI: Forcing garbage collection');
+      console.log('OriginalUI: Forcing garbage collection');
       window.gc();
     } else if (this.options.gcAfterCleanup) {
       // Indirect GC trigger by creating and releasing memory pressure
-      console.log('JustUI: Triggering indirect garbage collection');
+      console.log('OriginalUI: Triggering indirect garbage collection');
       const temp = new Array(100000).fill(0).map((_, i) => ({ id: i }));
       temp.length = 0;
     }
@@ -424,6 +424,6 @@ export class MemoryMonitor {
     this.moduleReferences = new WeakMap();
     this.performanceMarks.clear();
     
-    console.log('JustUI: MemoryMonitor cleaned up');
+    console.log('OriginalUI: MemoryMonitor cleaned up');
   }
 }

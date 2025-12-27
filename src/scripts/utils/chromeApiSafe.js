@@ -21,7 +21,7 @@
  * 
  * @module chromeApiSafe
  * @since 1.0.0
- * @author JustUI Team
+ * @author OriginalUI Team
  */
 
 /**
@@ -221,7 +221,7 @@ function getCircuitBreaker(operationType) {
  */
 const StorageLogger = {
   error: (operation, context, error, metadata = {}) => {
-    console.error(`JustUI Storage Error [${operation}]:`, {
+    console.error(`OriginalUI Storage Error [${operation}]:`, {
       context,
       error: error.message || error,
       timestamp: new Date().toISOString(),
@@ -231,7 +231,7 @@ const StorageLogger = {
   },
   
   warn: (operation, context, message, metadata = {}) => {
-    console.warn(`JustUI Storage Warning [${operation}]:`, {
+    console.warn(`OriginalUI Storage Warning [${operation}]:`, {
       context,
       message,
       timestamp: new Date().toISOString(),
@@ -240,7 +240,7 @@ const StorageLogger = {
   },
   
   info: (operation, context, message, metadata = {}) => {
-    console.info(`JustUI Storage Info [${operation}]:`, {
+    console.info(`OriginalUI Storage Info [${operation}]:`, {
       context,
       message,
       timestamp: new Date().toISOString(),
@@ -603,7 +603,7 @@ export const debouncedStorageSet = (() => {
       if (timeouts.size >= MAX_ENTRIES) {
         const firstKey = timeouts.keys().next().value;
         cleanupTimeout(firstKey);
-        console.warn(`JustUI: debouncedStorageSet map reached max size (${MAX_ENTRIES}), removed oldest entry`);
+        console.warn(`OriginalUI: debouncedStorageSet map reached max size (${MAX_ENTRIES}), removed oldest entry`);
       }
 
       // Set new timeout
@@ -617,7 +617,7 @@ export const debouncedStorageSet = (() => {
           resolve();
         } catch (error) {
           cleanup();
-          console.warn('JustUI: debouncedStorageSet failed:', error);
+          console.warn('OriginalUI: debouncedStorageSet failed:', error);
           resolve(); // Still resolve to prevent hanging promises
         }
       }, delay);

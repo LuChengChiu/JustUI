@@ -333,7 +333,7 @@
       
       // Show a brief notification
       try {
-        console.warn('🛡️ JustUI blocked a pop-under advertisement');
+        console.warn('🛡️ OriginalUI blocked a pop-under advertisement');
       } catch (e) { /* ignore */ }
       
       return null;

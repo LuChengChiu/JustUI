@@ -316,6 +316,6 @@ export class PerformanceTracker {
     // Clear hybrid metrics
     this.resetHybridMetrics();
     
-    console.log('JustUI: PerformanceTracker cleaned up');
+    console.log('OriginalUI: PerformanceTracker cleaned up');
   }
 }

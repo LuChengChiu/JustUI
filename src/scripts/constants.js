@@ -1,5 +1,5 @@
 /**
- * Shared constants for JustUI Chrome Extension
+ * Shared constants for OriginalUI Chrome Extension
  */
 
 // Maximum z-index value (2^31 - 1) - used for overlay detection and modal positioning

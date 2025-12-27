@@ -42,7 +42,7 @@ export class MutationProtector {
     this.executeRulesCallback = executeRulesCallback;
     this.setupObserver();
     
-    console.log('JustUI: Mutation protector started');
+    console.log('OriginalUI: Mutation protector started');
   }
 
   /**
@@ -60,7 +60,7 @@ export class MutationProtector {
     }
 
     this.isActive = false;
-    console.log('JustUI: Mutation protector stopped');
+    console.log('OriginalUI: Mutation protector stopped');
   }
 
   /**
@@ -81,7 +81,7 @@ export class MutationProtector {
     // Reset state
     this.immediateRemovalCount = 0;
     
-    console.log('JustUI: Mutation protector cleaned up');
+    console.log('OriginalUI: Mutation protector cleaned up');
   }
 
   /**
@@ -113,7 +113,7 @@ export class MutationProtector {
 
       // Log immediate removals
       if (this.immediateRemovalCount > 0) {
-        console.log(`JustUI: MutationProtector immediately removed ${this.immediateRemovalCount} threats`);
+        console.log(`OriginalUI: MutationProtector immediately removed ${this.immediateRemovalCount} threats`);
       }
 
       // Schedule full rule execution (debounced)
@@ -134,9 +134,9 @@ export class MutationProtector {
         characterDataOldValue: false
       });
 
-      console.log('JustUI: MutationProtector observing', targetNode.tagName);
+      console.log('OriginalUI: MutationProtector observing', targetNode.tagName);
     } else {
-      console.warn('JustUI: No valid target node for MutationProtector');
+      console.warn('OriginalUI: No valid target node for MutationProtector');
     }
   }
 
@@ -156,7 +156,7 @@ export class MutationProtector {
         threats.forEach(threat => {
           const { element, threatType, confidence } = threat;
           
-          console.warn('JustUI: MutationProtector detected immediate threat', JSON.stringify({
+          console.warn('OriginalUI: MutationProtector detected immediate threat', JSON.stringify({
             threatType,
             confidence,
             element: element.tagName,
@@ -354,7 +354,7 @@ export class MutationProtector {
         try {
           callback(data);
         } catch (error) {
-          console.error(`JustUI: Error in ${eventType} callback:`, error);
+          console.error(`OriginalUI: Error in ${eventType} callback:`, error);
         }
       });
     }

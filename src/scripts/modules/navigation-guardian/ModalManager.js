@@ -23,7 +23,7 @@
  * @module ModalManager
  * @extends CleanableModule
  * @since 1.0.0
- * @author JustUI Team
+ * @author OriginalUI Team
  */
 
 import { MAX_Z_INDEX } from '../../constants.js';
@@ -66,7 +66,7 @@ export class ModalManager extends CleanableModule {
      */
     this.urlValidator = null;
     
-    console.log('JustUI: ModalManager initialized');
+    console.log('OriginalUI: ModalManager initialized');
   }
 
   /**
@@ -141,7 +141,7 @@ export class ModalManager extends CleanableModule {
     return new Promise(async (resolve) => {
       // Prevent multiple modals for the same URL
       if (this.activeModal) {
-        console.warn('JustUI: Navigation modal already exists, ignoring duplicate');
+        console.warn('OriginalUI: Navigation modal already exists, ignoring duplicate');
         resolve(false); // Default to deny for safety
         return;
       }
@@ -152,7 +152,7 @@ export class ModalManager extends CleanableModule {
         try {
           validatedURL = this.urlValidator(targetURL);
         } catch (validatorError) {
-          console.error('JustUI: Error in URL validator callback:', validatorError);
+          console.error('OriginalUI: Error in URL validator callback:', validatorError);
           // Use original URL as fallback - validation errors shouldn't break modal display
           validatedURL = targetURL;
         }
@@ -179,15 +179,15 @@ export class ModalManager extends CleanableModule {
           try {
             this.statisticsCallback(userDecision);
           } catch (callbackError) {
-            console.error('JustUI: Error in statistics callback:', callbackError);
+            console.error('OriginalUI: Error in statistics callback:', callbackError);
           }
         }
         
-        console.log('JustUI: Navigation Guardian modal result for', targetURL, ':', userDecision);
+        console.log('OriginalUI: Navigation Guardian modal result for', targetURL, ':', userDecision);
         resolve(userDecision);
         
       } catch (error) {
-        console.error('JustUI: Error showing React modal:', error);
+        console.error('OriginalUI: Error showing React modal:', error);
         
         // Clear active modal flag on error
         this.activeModal = null;
@@ -223,16 +223,16 @@ export class ModalManager extends CleanableModule {
         try {
           callback(allowed);
         } catch (callbackError) {
-          console.error('JustUI: Error in legacy callback:', callbackError);
+          console.error('OriginalUI: Error in legacy callback:', callbackError);
           // Callback error handling - error already logged, no further action needed
         }
       })
       .catch(error => {
-        console.error('JustUI: Modal error:', error);
+        console.error('OriginalUI: Modal error:', error);
         try {
           callback(false); // Default to deny for safety
         } catch (callbackError) {
-          console.error('JustUI: Error in legacy callback (fallback):', callbackError);
+          console.error('OriginalUI: Error in legacy callback (fallback):', callbackError);
         }
       });
   }
@@ -241,7 +241,7 @@ export class ModalManager extends CleanableModule {
    * Enhanced cleanup with comprehensive resource management
    */
   cleanup() {
-    console.log('JustUI: Starting ModalManager cleanup...');
+    console.log('OriginalUI: Starting ModalManager cleanup...');
     
     this.setLifecyclePhase(LIFECYCLE_PHASES.CLEANUP_PENDING);
     
@@ -256,10 +256,10 @@ export class ModalManager extends CleanableModule {
       // Call parent cleanup
       super.cleanup();
       
-      console.log('JustUI: ModalManager cleanup completed');
+      console.log('OriginalUI: ModalManager cleanup completed');
       
     } catch (error) {
-      console.error('JustUI: Error during ModalManager cleanup:', error);
+      console.error('OriginalUI: Error during ModalManager cleanup:', error);
       this.setLifecyclePhase(LIFECYCLE_PHASES.ERROR);
       throw error;
     }

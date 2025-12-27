@@ -22,7 +22,7 @@
  * 
  * @module ElementRemover
  * @since 1.0.0
- * @author JustUI Team
+ * @author OriginalUI Team
  */
 
 /**
@@ -116,7 +116,7 @@ export class ElementRemover {
       element.setAttribute('data-justui-strategy', strategy);
     } catch (error) {
       // Element might be in a state where attributes can't be set
-      console.debug('JustUI: Could not set debug attributes on element:', error);
+      console.debug('OriginalUI: Could not set debug attributes on element:', error);
     }
 
     let removalSuccess = false;
@@ -150,7 +150,7 @@ export class ElementRemover {
       }
       
     } catch (error) {
-      console.warn('JustUI: Error during element removal:', error);
+      console.warn('OriginalUI: Error during element removal:', error);
       return false;
     }
 
@@ -183,7 +183,7 @@ export class ElementRemover {
   static applyRemovalStrategy(element) {
     // Safety check: Don't remove critical page elements
     if (this.isCriticalElement(element)) {
-      console.warn('JustUI: Prevented removal of critical element:', element.tagName, element.className);
+      console.warn('OriginalUI: Prevented removal of critical element:', element.tagName, element.className);
       // Fallback to neutralization
       this.neutralizeElement(element);
       return;
@@ -269,7 +269,7 @@ export class ElementRemover {
       }
       
     } catch (error) {
-      console.warn('JustUI: Error during element neutralization:', error);
+      console.warn('OriginalUI: Error during element neutralization:', error);
     }
   }
 
@@ -381,7 +381,7 @@ export class ElementRemover {
       try {
         callback(event, data);
       } catch (error) {
-        console.warn('JustUI: Error in cleanup callback:', error);
+        console.warn('OriginalUI: Error in cleanup callback:', error);
       }
     });
   }
@@ -399,7 +399,7 @@ export class ElementRemover {
       
       const cacheAge = currentTime - this.removalStats.lastReset;
       if (cacheAge > this.maxCacheAge) {
-        console.log('JustUI: Auto-resetting ElementRemover stats due to age');
+        console.log('OriginalUI: Auto-resetting ElementRemover stats due to age');
         this.resetStats();
       }
     }
@@ -427,7 +427,7 @@ export class ElementRemover {
    * WeakSet automatically cleans up when elements are garbage collected
    */
   static cleanup() {
-    console.log('JustUI: Starting ElementRemover cleanup...');
+    console.log('OriginalUI: Starting ElementRemover cleanup...');
     
     const preCleanupStats = { ...this.removalStats };
     
@@ -444,7 +444,7 @@ export class ElementRemover {
     // Update cleanup timing
     this.lastCleanupCheck = Date.now();
     
-    console.log('JustUI: ElementRemover cleanup completed:', {
+    console.log('OriginalUI: ElementRemover cleanup completed:', {
       beforeCleanup: preCleanupStats,
       removedCallbacks: callbackCount,
       newWeakSetCreated: true,
@@ -490,15 +490,15 @@ export class ElementRemover {
         element.disabled = false;
       }
       
-      // Clean up JustUI attributes
+      // Clean up OriginalUI attributes
       const justUIAttrs = ['data-justui-removed', 'data-justui-timestamp', 'data-justui-strategy'];
       justUIAttrs.forEach(attr => element.removeAttribute(attr));
       
-      console.log('JustUI: Element restoration attempted for:', element.tagName);
+      console.log('OriginalUI: Element restoration attempted for:', element.tagName);
       return true;
       
     } catch (error) {
-      console.warn('JustUI: Error during element restoration:', error);
+      console.warn('OriginalUI: Error during element restoration:', error);
       return false;
     }
   }

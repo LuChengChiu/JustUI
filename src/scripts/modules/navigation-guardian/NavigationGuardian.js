@@ -26,7 +26,7 @@
  * @module NavigationGuardian
  * @extends CleanableModule
  * @since 1.0.0
- * @author JustUI Team
+ * @author OriginalUI Team
  */
 
 import { MAX_Z_INDEX } from '../../constants.js';
@@ -145,7 +145,7 @@ export class NavigationGuardian extends CleanableModule {
       return this.securityValidator.validateURLSecurity(url);
     });
     
-    console.log('JustUI: NavigationGuardian initialized with enhanced modular cleanup');
+    console.log('OriginalUI: NavigationGuardian initialized with enhanced modular cleanup');
   }
 
   /**
@@ -170,7 +170,7 @@ export class NavigationGuardian extends CleanableModule {
     this.startModalCacheCleanup();
     
     this.setLifecyclePhase(LIFECYCLE_PHASES.ACTIVE);
-    console.log('JustUI: NavigationGuardian initialized with whitelist:', whitelist.length);
+    console.log('OriginalUI: NavigationGuardian initialized with whitelist:', whitelist.length);
   }
 
   /**
@@ -178,7 +178,7 @@ export class NavigationGuardian extends CleanableModule {
    */
   enable() {
     this.isEnabled = true;
-    console.log('JustUI: NavigationGuardian enabled');
+    console.log('OriginalUI: NavigationGuardian enabled');
   }
 
   /**
@@ -186,7 +186,7 @@ export class NavigationGuardian extends CleanableModule {
    */
   disable() {
     this.isEnabled = false;
-    console.log('JustUI: NavigationGuardian disabled');
+    console.log('OriginalUI: NavigationGuardian disabled');
   }
 
   /**
@@ -224,7 +224,7 @@ export class NavigationGuardian extends CleanableModule {
       options: undefined
     });
     
-    console.log('JustUI: Navigation Guardian listeners setup complete');
+    console.log('OriginalUI: Navigation Guardian listeners setup complete');
   }
 
   /**
@@ -307,7 +307,7 @@ export class NavigationGuardian extends CleanableModule {
       
       // If this messageId is already being processed, ignore duplicate
       if (this.pendingModalKeys.has(messageId)) {
-        console.debug('JustUI: Ignoring duplicate navigation request:', messageId);
+        console.debug('OriginalUI: Ignoring duplicate navigation request:', messageId);
         return;
       }
       
@@ -389,7 +389,7 @@ export class NavigationGuardian extends CleanableModule {
     }).then(allowed => {
       callback(allowed);
     }).catch(error => {
-      console.error('JustUI: Modal error:', error);
+      console.error('OriginalUI: Modal error:', error);
       callback(false); // Default to deny for safety
     });
   }
@@ -403,9 +403,9 @@ export class NavigationGuardian extends CleanableModule {
       script.src = chrome.runtime.getURL('scripts/injected-script.js');
       script.onload = () => script.remove();
       (document.head || document.documentElement).appendChild(script);
-      console.log('JustUI: Navigation Guardian injected script loaded');
+      console.log('OriginalUI: Navigation Guardian injected script loaded');
     } catch (error) {
-      console.error('JustUI: Failed to inject navigation script:', error);
+      console.error('OriginalUI: Failed to inject navigation script:', error);
     }
   }
 
@@ -526,7 +526,7 @@ export class NavigationGuardian extends CleanableModule {
    * Enhanced cleanup with comprehensive resource management
    */
   cleanup() {
-    console.log('JustUI: Starting NavigationGuardian cleanup...');
+    console.log('OriginalUI: Starting NavigationGuardian cleanup...');
     
     // Set cleanup phase
     this.setLifecyclePhase(LIFECYCLE_PHASES.CLEANUP_PENDING);
@@ -551,7 +551,7 @@ export class NavigationGuardian extends CleanableModule {
           element.removeEventListener(type, handler, options);
           removedListeners++;
         } catch (error) {
-          console.warn(`JustUI: Error removing NavigationGuardian ${type} listener:`, error);
+          console.warn(`OriginalUI: Error removing NavigationGuardian ${type} listener:`, error);
         }
       });
       
@@ -575,7 +575,7 @@ export class NavigationGuardian extends CleanableModule {
       // Call parent cleanup
       super.cleanup();
       
-      console.log('JustUI: NavigationGuardian cleanup completed:', {
+      console.log('OriginalUI: NavigationGuardian cleanup completed:', {
         removedListeners,
         clearedPendingModals: pendingModalCount,
         finalCacheStats,
@@ -583,7 +583,7 @@ export class NavigationGuardian extends CleanableModule {
       });
       
     } catch (error) {
-      console.error('JustUI: Error during NavigationGuardian cleanup:', error);
+      console.error('OriginalUI: Error during NavigationGuardian cleanup:', error);
       this.setLifecyclePhase(LIFECYCLE_PHASES.ERROR);
       throw error;
     }
@@ -646,7 +646,7 @@ export class NavigationGuardian extends CleanableModule {
       this.cleanupExpiredModals();
     }, 10000); // Check every 10 seconds
     
-    console.log('JustUI: Started modal cache cleanup timer');
+    console.log('OriginalUI: Started modal cache cleanup timer');
   }
   
   /**
@@ -656,7 +656,7 @@ export class NavigationGuardian extends CleanableModule {
     if (this.modalCleanupTimer) {
       clearInterval(this.modalCleanupTimer);
       this.modalCleanupTimer = null;
-      console.log('JustUI: Stopped modal cache cleanup timer');
+      console.log('OriginalUI: Stopped modal cache cleanup timer');
     }
   }
   
@@ -677,7 +677,7 @@ export class NavigationGuardian extends CleanableModule {
     }
     
     if (removedCount > 0) {
-      console.log(`JustUI: Cleaned up ${removedCount} expired pending modals`);
+      console.log(`OriginalUI: Cleaned up ${removedCount} expired pending modals`);
     }
   }
   
@@ -703,7 +703,7 @@ export class NavigationGuardian extends CleanableModule {
         this.modalCacheStats.totalCleaned++;
       }
       
-      console.log(`JustUI: NavigationGuardian cache limit enforcement - removed ${toRemove.length} oldest entries`);
+      console.log(`OriginalUI: NavigationGuardian cache limit enforcement - removed ${toRemove.length} oldest entries`);
     }
   }
   

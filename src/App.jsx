@@ -322,9 +322,9 @@ export default function App() {
 
   return (
     <div className="w-96 rounded-lg h-auto p-0 bg-[#F9F8FB]">
-      <header className="flex w-full items-center justify-end pr-2">
+      <header className="flex w-full items-center justify-end pr-2 pb-1">
         <H1 color="accent" align="center" className="text-[26px]">
-          JustUI
+          OriginalUI
         </H1>
       </header>
 

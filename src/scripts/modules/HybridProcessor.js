@@ -46,7 +46,7 @@ export class HybridProcessor {
       const { criticalElements, bulkElements } = elementClassifier.classifyBatch(allElements);
       const classificationTime = performance.now() - classificationStart;
       
-      console.log(`JustUI: Hybrid classification - ${criticalElements.length} critical, ${bulkElements.length} bulk elements (${Math.round(classificationTime)}ms)`);
+      console.log(`OriginalUI: Hybrid classification - ${criticalElements.length} critical, ${bulkElements.length} bulk elements (${Math.round(classificationTime)}ms)`);
       
       // 2. Execute both strategies in parallel
       const [bulkResults, criticalResults] = await Promise.all([
@@ -72,12 +72,12 @@ export class HybridProcessor {
       return totalRemoved;
       
     } catch (error) {
-      console.error('JustUI: Error in hybrid strategy execution:', error);
+      console.error('OriginalUI: Error in hybrid strategy execution:', error);
       this.stats.processingErrors++;
       
       // Fallback to traditional processing if enabled
       if (this.config.fallbackToRealTime) {
-        console.warn('JustUI: Falling back to real-time processing for all elements');
+        console.warn('OriginalUI: Falling back to real-time processing for all elements');
         return await this._executeFallbackProcessing(allElements);
       }
       
@@ -148,7 +148,7 @@ export class HybridProcessor {
       };
       
     } catch (error) {
-      console.error('JustUI: Error in bulk optimization:', error);
+      console.error('OriginalUI: Error in bulk optimization:', error);
       return { removedCount: 0, processedCount: 0, errors: [error.message] };
     }
   }
@@ -170,7 +170,7 @@ export class HybridProcessor {
     const errors = [];
     
     try {
-      console.log(`JustUI: Real-time processing ${elements.length} critical elements`);
+      console.log(`OriginalUI: Real-time processing ${elements.length} critical elements`);
       
       for (const element of elements) {
         try {
@@ -207,7 +207,7 @@ export class HybridProcessor {
               removedCount++;
               this.removedElementsSet.add(element);
               
-              console.log(`JustUI: Critical element removed (score: ${analysis.totalScore}, confidence: ${Math.round(analysis.confidence * 100)}%, time: ${Math.round(elementTime)}ms)`, {
+              console.log(`OriginalUI: Critical element removed (score: ${analysis.totalScore}, confidence: ${Math.round(analysis.confidence * 100)}%, time: ${Math.round(elementTime)}ms)`, {
                 rules: analysis.matchedRules,
                 element: element.tagName + (element.className ? `.${element.className.split(' ')[0]}` : '')
               });
@@ -218,15 +218,15 @@ export class HybridProcessor {
           
           // Log slow critical elements
           if (elementTime > this.config.criticalElementTimeout * 0.8) {
-            console.warn(`JustUI: Slow critical element (${Math.round(elementTime)}ms):`, element.tagName);
+            console.warn(`OriginalUI: Slow critical element (${Math.round(elementTime)}ms):`, element.tagName);
           }
           
         } catch (error) {
           if (error.message.includes('timeout')) {
-            console.warn('JustUI: Critical element analysis timeout, neutralizing element');
+            console.warn('OriginalUI: Critical element analysis timeout, neutralizing element');
             ElementRemover.removeElement(element, 'critical-timeout', ElementRemover.REMOVAL_STRATEGIES.NEUTRALIZE);
           } else {
-            console.error('JustUI: Error analyzing critical element:', error);
+            console.error('OriginalUI: Error analyzing critical element:', error);
             errors.push(error.message);
           }
         }
@@ -251,7 +251,7 @@ export class HybridProcessor {
       };
       
     } catch (error) {
-      console.error('JustUI: Error in real-time detection:', error);
+      console.error('OriginalUI: Error in real-time detection:', error);
       return { removedCount: 0, processedCount: 0, errors: [error.message] };
     }
   }
@@ -342,7 +342,7 @@ export class HybridProcessor {
           if (!validation.valid) {
             validationFailures++;
             this.stats.validationFailures++;
-            console.debug(`JustUI: Skipping removal due to ${validation.reason}:`, element.tagName);
+            console.debug(`OriginalUI: Skipping removal due to ${validation.reason}:`, element.tagName);
             continue;
           }
         }
@@ -359,7 +359,7 @@ export class HybridProcessor {
         
       } catch (error) {
         errors.push(error.message);
-        console.error('JustUI: Error during batch removal:', error);
+        console.error('OriginalUI: Error during batch removal:', error);
       }
     }
     
@@ -397,7 +397,7 @@ export class HybridProcessor {
    */
   async _executeFallbackProcessing(allElements) {
     this.stats.fallbacksTriggered++;
-    console.warn('JustUI: Executing fallback processing');
+    console.warn('OriginalUI: Executing fallback processing');
     
     // Simple sequential processing as fallback
     let removedCount = 0;
@@ -430,9 +430,9 @@ export class HybridProcessor {
       bulkResults, criticalResults, totalTime, classificationTime
     } = results;
     
-    console.log(`JustUI: Hybrid processing completed - ${totalRemoved} elements removed in ${Math.round(totalTime)}ms`);
+    console.log(`OriginalUI: Hybrid processing completed - ${totalRemoved} elements removed in ${Math.round(totalTime)}ms`);
     
-    console.log('JustUI: Hybrid Performance Summary:', {
+    console.log('OriginalUI: Hybrid Performance Summary:', {
       classification: {
         totalElements,
         criticalElements: criticalCount,
@@ -510,6 +510,6 @@ export class HybridProcessor {
     this.adDetectionEngine = null;
     this.config = null;
     
-    console.log('JustUI: HybridProcessor cleaned up');
+    console.log('OriginalUI: HybridProcessor cleaned up');
   }
 }

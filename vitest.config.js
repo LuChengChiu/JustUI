@@ -1,5 +1,5 @@
 /**
- * Vitest Configuration for JustUI Chrome Extension
+ * Vitest Configuration for OriginalUI Chrome Extension
  * Optimized for testing Chrome extension modules with proper mocking
  */
 

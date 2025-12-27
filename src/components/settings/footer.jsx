@@ -8,7 +8,7 @@ export default function Footer() {
   return (
     <div className="text-center mt-4">
       <Text color="muted" align="center">
-        © {currentYear} JustUI v{currentVersion} Beta
+        © {currentYear} OriginalUI v{currentVersion} Beta
       </Text>
     </div>
   );

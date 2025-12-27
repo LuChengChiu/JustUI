@@ -122,11 +122,11 @@ export class CleanableModule {
       try {
         listener(newPhase, oldPhase, this);
       } catch (error) {
-        console.warn('JustUI: Error in lifecycle listener:', error);
+        console.warn('OriginalUI: Error in lifecycle listener:', error);
       }
     });
     
-    console.debug(`JustUI: ${this.constructor.name} lifecycle: ${oldPhase} -> ${newPhase}`);
+    console.debug(`OriginalUI: ${this.constructor.name} lifecycle: ${oldPhase} -> ${newPhase}`);
   }
   
   /**
@@ -245,14 +245,14 @@ export class CleanupRegistry {
    */
   register(module, name = 'unnamed', compartment = 'default', options = {}) {
     if (!isCleanable(module)) {
-      console.warn(`JustUI: Module ${name} does not implement cleanup interface`);
+      console.warn(`OriginalUI: Module ${name} does not implement cleanup interface`);
       return false;
     }
     
     // Analyze cleanup needs
     const cleanupAnalysis = analyzeCleanupNeeds(module);
     if (cleanupAnalysis.riskLevel === 'high') {
-      console.warn(`JustUI: High memory leak risk detected for ${name}:`, cleanupAnalysis.recommendations);
+      console.warn(`OriginalUI: High memory leak risk detected for ${name}:`, cleanupAnalysis.recommendations);
     }
     
     // Create compartment if it doesn't exist
@@ -294,9 +294,9 @@ export class CleanupRegistry {
     // Setup lifecycle monitoring if supported
     if (isLifecycleAware(module)) {
       module.onPhaseChange((newPhase, oldPhase) => {
-        console.debug(`JustUI: Module ${name} lifecycle: ${oldPhase} -> ${newPhase}`);
+        console.debug(`OriginalUI: Module ${name} lifecycle: ${oldPhase} -> ${newPhase}`);
         if (newPhase === LIFECYCLE_PHASES.ERROR) {
-          console.warn(`JustUI: Module ${name} entered error state, scheduling cleanup`);
+          console.warn(`OriginalUI: Module ${name} entered error state, scheduling cleanup`);
           if (moduleEntry.options.autoCleanup) {
             setTimeout(() => this.cleanupModule(moduleEntry), 1000);
           }
@@ -307,7 +307,7 @@ export class CleanupRegistry {
     // Check compartment size limits
     this.enforceCompartmentLimits(compartment);
     
-    console.log(`JustUI: Registered module ${name} in compartment ${compartment} (risk: ${cleanupAnalysis.riskLevel})`);
+    console.log(`OriginalUI: Registered module ${name} in compartment ${compartment} (risk: ${cleanupAnalysis.riskLevel})`);
     return true;
   }
   
@@ -378,7 +378,7 @@ export class CleanupRegistry {
     // Stop periodic cleanup
     this.stopPeriodicCleanup();
     
-    console.log(`JustUI: Cleanup completed - ${results.filter(r => r.success).length}/${results.length} successful`);
+    console.log(`OriginalUI: Cleanup completed - ${results.filter(r => r.success).length}/${results.length} successful`);
     return results;
   }
   
@@ -410,17 +410,17 @@ export class CleanupRegistry {
       return Promise.race([cleanupPromise, timeoutPromise])
         .then(() => {
           const duration = Date.now() - startTime;
-          console.log(`JustUI: Successfully cleaned up ${name} from ${compartment} (${duration}ms)`);
+          console.log(`OriginalUI: Successfully cleaned up ${name} from ${compartment} (${duration}ms)`);
           return { name, compartment, success: true, duration, analysis: moduleEntry.cleanupAnalysis };
         })
         .catch((error) => {
           const duration = Date.now() - startTime;
-          console.warn(`JustUI: Error cleaning up ${name}:`, error);
+          console.warn(`OriginalUI: Error cleaning up ${name}:`, error);
           return { name, compartment, success: false, error: error.message, duration };
         });
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.warn(`JustUI: Synchronous error cleaning up ${name}:`, error);
+      console.warn(`OriginalUI: Synchronous error cleaning up ${name}:`, error);
       return { name, compartment, success: false, error: error.message, duration };
     }
   }
@@ -460,7 +460,7 @@ export class CleanupRegistry {
       } catch (error) {
         results.errors++;
         results.modules.push({ name: entry.name, success: false, error });
-        console.warn(`JustUI: Error cleaning up ${entry.name}:`, error);
+        console.warn(`OriginalUI: Error cleaning up ${entry.name}:`, error);
       }
     }
 
@@ -473,7 +473,7 @@ export class CleanupRegistry {
       results
     });
 
-    console.log(`JustUI: Compartment ${compartmentName} cleanup: ${results.cleaned} cleaned, ${results.errors} errors`);
+    console.log(`OriginalUI: Compartment ${compartmentName} cleanup: ${results.cleaned} cleaned, ${results.errors} errors`);
     return results;
   }
 
@@ -494,7 +494,7 @@ export class CleanupRegistry {
       const excess = moduleArray.length - this.options.maxCompartmentSize;
       const toRemove = moduleArray.slice(0, excess);
       
-      console.log(`JustUI: Compartment ${compartmentName} over limit, removing ${toRemove.length} oldest modules`);
+      console.log(`OriginalUI: Compartment ${compartmentName} over limit, removing ${toRemove.length} oldest modules`);
       
       for (const entry of toRemove) {
         try {
@@ -502,7 +502,7 @@ export class CleanupRegistry {
           this.modules.delete(entry);
           compartmentData.modules.delete(entry);
         } catch (error) {
-          console.warn(`JustUI: Error during LRU cleanup of ${entry.name}:`, error);
+          console.warn(`OriginalUI: Error during LRU cleanup of ${entry.name}:`, error);
         }
       }
     }
@@ -518,7 +518,7 @@ export class CleanupRegistry {
       this.performPeriodicCleanup();
     }, this.options.cleanupInterval);
     
-    console.log('JustUI: Started periodic cleanup');
+    console.log('OriginalUI: Started periodic cleanup');
   }
 
   /**
@@ -528,7 +528,7 @@ export class CleanupRegistry {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
-      console.log('JustUI: Stopped periodic cleanup');
+      console.log('OriginalUI: Stopped periodic cleanup');
     }
   }
 
@@ -547,7 +547,7 @@ export class CleanupRegistry {
     }
 
     if (expiredCompartments.length > 0) {
-      console.log(`JustUI: Cleaning up ${expiredCompartments.length} expired compartments`);
+      console.log(`OriginalUI: Cleaning up ${expiredCompartments.length} expired compartments`);
       expiredCompartments.forEach(name => this.cleanupCompartment(name));
     }
   }
@@ -644,7 +644,7 @@ export class CleanupRegistry {
    * Enhanced cleanup method for the registry itself with verification
    */
   cleanup() {
-    console.log('JustUI: Starting CleanupRegistry cleanup...');
+    console.log('OriginalUI: Starting CleanupRegistry cleanup...');
     
     // Take pre-cleanup snapshot
     const preCleanupStats = this.getMemoryStats();
@@ -666,7 +666,7 @@ export class CleanupRegistry {
       }
     };
     
-    console.log('JustUI: CleanupRegistry cleanup completed:', {
+    console.log('OriginalUI: CleanupRegistry cleanup completed:', {
       before: {
         modules: preCleanupStats.totalModules,
         compartments: preCleanupStats.totalCompartments,

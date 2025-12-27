@@ -17,7 +17,7 @@
  *
  * @module SecurityValidator
  * @since 1.0.0
- * @author JustUI Team
+ * @author OriginalUI Team
  */
 
 /**
@@ -248,7 +248,7 @@ export class SecurityValidator {
       // Determine if this is likely a pop-under attempt
       analysis.isPopUnder = analysis.riskScore >= 6;
     } catch (error) {
-      console.warn("JustUI: Error analyzing URL threats:", error);
+      console.warn("OriginalUI: Error analyzing URL threats:", error);
       analysis.threats.push({ type: "Analysis error", score: 1 });
       analysis.riskScore += 1;
     }

@@ -76,7 +76,7 @@ export class SnapshotManager {
       
       return snapshot;
     } catch (error) {
-      console.warn('JustUI: Error creating snapshot for element:', error);
+      console.warn('OriginalUI: Error creating snapshot for element:', error);
       return this._createErrorSnapshot(element, error);
     }
   }
@@ -90,7 +90,7 @@ export class SnapshotManager {
     const snapshots = [];
     const startTime = performance.now();
     
-    console.log(`JustUI: Creating bulk snapshots for ${elements.length} elements`);
+    console.log(`OriginalUI: Creating bulk snapshots for ${elements.length} elements`);
     
     try {
       // CRITICAL: Tight loop without DOM mutations allows browser to batch layout calculations
@@ -107,11 +107,11 @@ export class SnapshotManager {
       }
       
       const duration = performance.now() - startTime;
-      console.log(`JustUI: Created ${snapshots.length} snapshots in ${Math.round(duration)}ms`);
+      console.log(`OriginalUI: Created ${snapshots.length} snapshots in ${Math.round(duration)}ms`);
       
       return snapshots;
     } catch (error) {
-      console.error('JustUI: Error in bulk snapshot creation:', error);
+      console.error('OriginalUI: Error in bulk snapshot creation:', error);
       return snapshots; // Return partial results
     }
   }
@@ -351,6 +351,6 @@ export class SnapshotManager {
     this.resetStats();
     this.config = null;
     
-    console.log('JustUI: SnapshotManager cleaned up');
+    console.log('OriginalUI: SnapshotManager cleaned up');
   }
 }

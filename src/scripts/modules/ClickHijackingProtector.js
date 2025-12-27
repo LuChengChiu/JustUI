@@ -17,7 +17,7 @@ export class ClickHijackingProtector {
    */
   activate() {
     this.isActive = true;
-    console.log("JustUI: Click hijacking protection activated");
+    console.log("OriginalUI: Click hijacking protection activated");
   }
 
   /**
@@ -25,7 +25,7 @@ export class ClickHijackingProtector {
    */
   deactivate() {
     this.isActive = false;
-    console.log("JustUI: Click hijacking protection deactivated");
+    console.log("OriginalUI: Click hijacking protection deactivated");
   }
 
   /**
@@ -39,7 +39,7 @@ export class ClickHijackingProtector {
       try {
         element.removeEventListener(type, handler, options);
       } catch (error) {
-        console.warn(`JustUI: Error removing ${type} listener:`, error);
+        console.warn(`OriginalUI: Error removing ${type} listener:`, error);
       }
     });
     
@@ -47,7 +47,7 @@ export class ClickHijackingProtector {
     this.eventListeners = [];
     this.capturedClicks.clear();
     
-    console.log("JustUI: Click hijacking protection cleaned up");
+    console.log("OriginalUI: Click hijacking protection cleaned up");
   }
 
   /**
@@ -69,7 +69,7 @@ export class ClickHijackingProtector {
       const suspiciousOverlay = this.findSuspiciousOverlay(clickedElement);
 
       if (suspiciousOverlay) {
-        console.warn("JustUI: Blocked click on suspicious overlay", {
+        console.warn("OriginalUI: Blocked click on suspicious overlay", {
           overlay: suspiciousOverlay,
           clickTarget: clickedElement,
         });
@@ -182,7 +182,7 @@ export class ClickHijackingProtector {
       const isSuspiciousClick = suspiciousFactors.length >= 2;
 
       if (isSuspiciousClick) {
-        console.log("JustUI: Blocked suspicious click event:", {
+        console.log("OriginalUI: Blocked suspicious click event:", {
           element:
             element.tagName +
             (element.className ? "." + element.className : ""),
@@ -197,7 +197,7 @@ export class ClickHijackingProtector {
         // Show brief notification
         try {
           console.warn(
-            "🛡️ JustUI blocked a suspicious click (likely ad/malware)"
+            "🛡️ OriginalUI blocked a suspicious click (likely ad/malware)"
           );
         } catch (e) {
           /* ignore */
@@ -206,7 +206,7 @@ export class ClickHijackingProtector {
         return false;
       }
     } catch (error) {
-      console.warn("JustUI: Error in advanced click protection:", error);
+      console.warn("OriginalUI: Error in advanced click protection:", error);
     }
 
     // Allow the click to proceed if not suspicious
@@ -226,7 +226,7 @@ export class ClickHijackingProtector {
         const target = event.target;
         if (this.isSuspiciousInterceptor(target)) {
           console.warn(
-            `JustUI: Blocked ${eventType} on suspicious element`,
+            `OriginalUI: Blocked ${eventType} on suspicious element`,
             target
           );
           event.preventDefault();
@@ -341,7 +341,7 @@ export class ClickHijackingProtector {
     };
 
     console.log(
-      "JustUI: Removing suspicious click hijacking overlay",
+      "OriginalUI: Removing suspicious click hijacking overlay",
       overlayInfo
     );
 
@@ -386,7 +386,7 @@ export class ClickHijackingProtector {
 
     if (removedCount > 0) {
       console.log(
-        `JustUI: Click protection scan removed ${removedCount} suspicious overlays`
+        `OriginalUI: Click protection scan removed ${removedCount} suspicious overlays`
       );
     }
 

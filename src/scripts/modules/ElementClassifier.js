@@ -102,7 +102,7 @@ export class ElementClassifier {
           }
         }
       } catch (error) {
-        console.warn(`JustUI: Invalid selector "${selector}":`, error);
+        console.warn(`OriginalUI: Invalid selector "${selector}":`, error);
       }
     }
 
@@ -170,7 +170,7 @@ export class ElementClassifier {
       return 'bulk';
     } catch (error) {
       // If classification fails, err on the side of caution
-      console.warn('JustUI: Error classifying element, defaulting to critical:', error);
+      console.warn('OriginalUI: Error classifying element, defaulting to critical:', error);
       return 'critical';
     }
   }
@@ -262,6 +262,6 @@ export class ElementClassifier {
     this.resetStats();
     this.criticalSelectors = [];
     
-    console.log('JustUI: ElementClassifier cleaned up');
+    console.log('OriginalUI: ElementClassifier cleaned up');
   }
 }

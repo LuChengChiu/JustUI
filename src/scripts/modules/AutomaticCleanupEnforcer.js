@@ -56,7 +56,7 @@ export class AutomaticCleanupEnforcer {
       enforcementFailures: 0
     };
     
-    console.log('JustUI: AutomaticCleanupEnforcer initialized with policy:', this.options.policy);
+    console.log('OriginalUI: AutomaticCleanupEnforcer initialized with policy:', this.options.policy);
   }
   
   /**
@@ -67,7 +67,7 @@ export class AutomaticCleanupEnforcer {
    */
   registerModule(module, moduleId, metadata = {}) {
     if (!module || typeof module !== 'object') {
-      console.warn('JustUI: Cannot register invalid module for cleanup monitoring');
+      console.warn('OriginalUI: Cannot register invalid module for cleanup monitoring');
       return false;
     }
     
@@ -87,7 +87,7 @@ export class AutomaticCleanupEnforcer {
     // Perform initial analysis
     this.analyzeModule(registrationInfo);
     
-    console.log(`JustUI: Registered module ${moduleId} for cleanup monitoring`);
+    console.log(`OriginalUI: Registered module ${moduleId} for cleanup monitoring`);
     return true;
   }
   
@@ -99,7 +99,7 @@ export class AutomaticCleanupEnforcer {
     if (this.registeredModules.has(moduleId)) {
       this.registeredModules.delete(moduleId);
       this.leakDetectionResults.delete(moduleId);
-      console.log(`JustUI: Unregistered module ${moduleId} from cleanup monitoring`);
+      console.log(`OriginalUI: Unregistered module ${moduleId} from cleanup monitoring`);
       return true;
     }
     return false;
@@ -110,7 +110,7 @@ export class AutomaticCleanupEnforcer {
    */
   startMonitoring() {
     if (this.isMonitoring) {
-      console.warn('JustUI: Cleanup monitoring already active');
+      console.warn('OriginalUI: Cleanup monitoring already active');
       return;
     }
     
@@ -121,7 +121,7 @@ export class AutomaticCleanupEnforcer {
       this.performMonitoringCycle();
     }, this.options.monitoringInterval);
     
-    console.log('JustUI: Started automatic cleanup monitoring');
+    console.log('OriginalUI: Started automatic cleanup monitoring');
   }
   
   /**
@@ -134,7 +134,7 @@ export class AutomaticCleanupEnforcer {
     }
     
     this.isMonitoring = false;
-    console.log('JustUI: Stopped automatic cleanup monitoring');
+    console.log('OriginalUI: Stopped automatic cleanup monitoring');
   }
   
   /**
@@ -142,7 +142,7 @@ export class AutomaticCleanupEnforcer {
    */
   performMonitoringCycle() {
     if (!isExtensionContextValid()) {
-      console.debug('JustUI: Extension context invalid, skipping monitoring cycle');
+      console.debug('OriginalUI: Extension context invalid, skipping monitoring cycle');
       return;
     }
     
@@ -150,7 +150,7 @@ export class AutomaticCleanupEnforcer {
     let detectedLeaks = 0;
     let enforcedCleanups = 0;
     
-    console.debug('JustUI: Starting cleanup monitoring cycle...');
+    console.debug('OriginalUI: Starting cleanup monitoring cycle...');
     
     for (const [moduleId, registrationInfo] of this.registeredModules) {
       try {
@@ -166,7 +166,7 @@ export class AutomaticCleanupEnforcer {
         }
         
       } catch (error) {
-        console.warn(`JustUI: Error analyzing module ${moduleId}:`, error);
+        console.warn(`OriginalUI: Error analyzing module ${moduleId}:`, error);
         this.performanceMetrics.enforcementFailures++;
       }
     }
@@ -177,7 +177,7 @@ export class AutomaticCleanupEnforcer {
     this.performanceMetrics.automaticCleanups += enforcedCleanups;
     
     if (detectedLeaks > 0 || enforcedCleanups > 0) {
-      console.log(`JustUI: Monitoring cycle completed in ${cycleTime}ms - Leaks: ${detectedLeaks}, Cleanups: ${enforcedCleanups}`);
+      console.log(`OriginalUI: Monitoring cycle completed in ${cycleTime}ms - Leaks: ${detectedLeaks}, Cleanups: ${enforcedCleanups}`);
     }
   }
   
@@ -271,7 +271,7 @@ export class AutomaticCleanupEnforcer {
   handleDetectedLeak(moduleId, registrationInfo, analysisResult) {
     const { module } = registrationInfo;
     
-    console.warn(`JustUI: Memory leak detected in module ${moduleId}:`, {
+    console.warn(`OriginalUI: Memory leak detected in module ${moduleId}:`, {
       leakTypes: analysisResult.leakTypes,
       riskLevel: analysisResult.riskLevel,
       recommendations: analysisResult.recommendations
@@ -305,7 +305,7 @@ export class AutomaticCleanupEnforcer {
     registrationInfo.cleanupAttempts++;
     
     try {
-      console.log(`JustUI: Attempting automatic cleanup of module ${moduleId} (attempt ${registrationInfo.cleanupAttempts})`);
+      console.log(`OriginalUI: Attempting automatic cleanup of module ${moduleId} (attempt ${registrationInfo.cleanupAttempts})`);
       
       // Set cleanup phase if lifecycle aware
       if (isLifecycleAware(module)) {
@@ -325,7 +325,7 @@ export class AutomaticCleanupEnforcer {
         Promise.race([cleanupPromise, timeoutPromise])
           .then(() => {
             const cleanupTime = Date.now() - cleanupStart;
-            console.log(`JustUI: Successfully cleaned up module ${moduleId} (${cleanupTime}ms)`);
+            console.log(`OriginalUI: Successfully cleaned up module ${moduleId} (${cleanupTime}ms)`);
             
             // Mark as cleaned
             if (isLifecycleAware(module)) {
@@ -335,7 +335,7 @@ export class AutomaticCleanupEnforcer {
             analysisResult.cleanupTriggered = true;
           })
           .catch((error) => {
-            console.error(`JustUI: Failed to cleanup module ${moduleId}:`, error);
+            console.error(`OriginalUI: Failed to cleanup module ${moduleId}:`, error);
             
             if (isLifecycleAware(module)) {
               module.setLifecyclePhase(LIFECYCLE_PHASES.ERROR);
@@ -344,12 +344,12 @@ export class AutomaticCleanupEnforcer {
             this.performanceMetrics.enforcementFailures++;
           });
       } else {
-        console.warn(`JustUI: Module ${moduleId} does not have cleanup method`);
+        console.warn(`OriginalUI: Module ${moduleId} does not have cleanup method`);
         this.performanceMetrics.enforcementFailures++;
       }
       
     } catch (error) {
-      console.error(`JustUI: Error during automatic cleanup of ${moduleId}:`, error);
+      console.error(`OriginalUI: Error during automatic cleanup of ${moduleId}:`, error);
       this.performanceMetrics.enforcementFailures++;
     }
   }
@@ -401,7 +401,7 @@ export class AutomaticCleanupEnforcer {
       }
       
     } catch (error) {
-      console.debug(`JustUI: Error during DOM leak detection for ${moduleId}:`, error);
+      console.debug(`OriginalUI: Error during DOM leak detection for ${moduleId}:`, error);
     }
     
     return result;
@@ -441,7 +441,7 @@ export class AutomaticCleanupEnforcer {
       }
       
     } catch (error) {
-      console.debug(`JustUI: Error during timer leak detection for ${moduleId}:`, error);
+      console.debug(`OriginalUI: Error during timer leak detection for ${moduleId}:`, error);
     }
     
     return result;
@@ -500,7 +500,7 @@ export class AutomaticCleanupEnforcer {
    * Clean up the enforcer itself
    */
   cleanup() {
-    console.log('JustUI: Cleaning up AutomaticCleanupEnforcer...');
+    console.log('OriginalUI: Cleaning up AutomaticCleanupEnforcer...');
     
     this.stopMonitoring();
     this.registeredModules.clear();
@@ -513,6 +513,6 @@ export class AutomaticCleanupEnforcer {
       enforcementFailures: 0
     };
     
-    console.log('JustUI: AutomaticCleanupEnforcer cleaned up');
+    console.log('OriginalUI: AutomaticCleanupEnforcer cleaned up');
   }
 }

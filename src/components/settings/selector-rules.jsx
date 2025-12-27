@@ -2,7 +2,7 @@ import CheckboxCard from "../ui/checkbox/card";
 import { H1, Text } from "../ui/typography";
 
 const URL =
-  "https://github.com/LuChengChiu/JustUI/blob/main/src/data/defaultRules.json";
+  "https://github.com/LuChengChiu/OriginalUI/blob/main/src/data/defaultRules.json";
 
 export default function DefaultSelectorRuleManager({ checked, onChange }) {
   return (
@@ -22,7 +22,7 @@ export default function DefaultSelectorRuleManager({ checked, onChange }) {
             href={URL}
             className="text-[10px] text-accent cursor-pointer underline italic"
           >
-            Github JustUI Selector Rules
+            Github OriginalUI Selector Rules
           </a>
         </div>
       </CheckboxCard>

@@ -7,7 +7,7 @@ export class ScriptAnalyzer {
     this.isActive = false;
     this.scriptObserver = null;
     this.blockedScriptsCount = 0;
-    console.log('JustUI: ScriptAnalyzer initialized');
+    console.log('OriginalUI: ScriptAnalyzer initialized');
   }
 
   /**
@@ -17,7 +17,7 @@ export class ScriptAnalyzer {
     this.isActive = true;
     this.scanExistingScripts();
     this.startMonitoring();
-    console.log('JustUI: Script analysis and monitoring activated');
+    console.log('OriginalUI: Script analysis and monitoring activated');
   }
 
   /**
@@ -26,7 +26,7 @@ export class ScriptAnalyzer {
   deactivate() {
     this.isActive = false;
     this.stopMonitoring();
-    console.log('JustUI: Script analysis and monitoring deactivated');
+    console.log('OriginalUI: Script analysis and monitoring deactivated');
   }
 
   /**
@@ -119,7 +119,7 @@ export class ScriptAnalyzer {
         const analysis = this.analyzeScriptContent(scriptContent, script);
         
         if (legacyMatch || analysis.shouldBlock) {
-          console.log('JustUI: Blocked malicious script:', {
+          console.log('OriginalUI: Blocked malicious script:', {
             legacyMatch,
             analysis: {
               riskScore: analysis.riskScore,
@@ -135,12 +135,12 @@ export class ScriptAnalyzer {
       });
       
       if (blockedScriptsCount > 0) {
-        console.log(`🛡️ JustUI: Blocked ${blockedScriptsCount} malicious scripts on page load`);
+        console.log(`🛡️ OriginalUI: Blocked ${blockedScriptsCount} malicious scripts on page load`);
         this.blockedScriptsCount += blockedScriptsCount;
       }
       
     } catch (error) {
-      console.error('JustUI: Error scanning existing scripts:', error);
+      console.error('OriginalUI: Error scanning existing scripts:', error);
     }
   }
 
@@ -178,7 +178,7 @@ export class ScriptAnalyzer {
                 const analysis = this.analyzeScriptContent(scriptContent, script);
                 
                 if (legacyMatch || analysis.shouldBlock) {
-                  console.log('JustUI: Blocked dynamic script injection:', {
+                  console.log('OriginalUI: Blocked dynamic script injection:', {
                     timing: 'real-time',
                     legacyMatch,
                     analysis: {
@@ -199,7 +199,7 @@ export class ScriptAnalyzer {
                   
                   // Show user notification for high-risk pop-unders
                   if (analysis.isPopUnder) {
-                    console.warn('🛡️ JustUI: Blocked high-risk pop-under script injection');
+                    console.warn('🛡️ OriginalUI: Blocked high-risk pop-under script injection');
                   }
                 }
               });
@@ -215,11 +215,11 @@ export class ScriptAnalyzer {
           childList: true,
           subtree: true
         });
-        console.log('JustUI: Script monitoring active');
+        console.log('OriginalUI: Script monitoring active');
       }
       
     } catch (error) {
-      console.error('JustUI: Error setting up script monitoring:', error);
+      console.error('OriginalUI: Error setting up script monitoring:', error);
     }
   }
 
@@ -230,7 +230,7 @@ export class ScriptAnalyzer {
     if (this.scriptObserver) {
       this.scriptObserver.disconnect();
       this.scriptObserver = null;
-      console.log('JustUI: Script monitoring stopped');
+      console.log('OriginalUI: Script monitoring stopped');
     }
   }
 
@@ -253,7 +253,7 @@ export class ScriptAnalyzer {
     this.isActive = false;
     this.stopMonitoring();
     this.blockedScriptsCount = 0;
-    console.log('JustUI: ScriptAnalyzer cleaned up');
+    console.log('OriginalUI: ScriptAnalyzer cleaned up');
   }
 
   /**

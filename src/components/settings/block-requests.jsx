@@ -3,7 +3,7 @@ import TagsInput from "../ui/tags-input";
 import { H1, H3, Text } from "../ui/typography";
 
 const DEFAULT_BLOCK_URL =
-  "https://github.com/LuChengChiu/JustUI/blob/main/src/data/defaultBlockRequests.json";
+  "https://github.com/LuChengChiu/OriginalUI/blob/main/src/data/defaultBlockRequests.json";
 
 export default function BlockRequestsManager({
   checked,
@@ -28,7 +28,7 @@ export default function BlockRequestsManager({
             href={DEFAULT_BLOCK_URL}
             className="text-[10px] text-accent cursor-pointer underline italic"
           >
-            Github JustUI Block Domains
+            Github OriginalUI Block Domains
           </a>
         </div>
       </CheckboxCard>

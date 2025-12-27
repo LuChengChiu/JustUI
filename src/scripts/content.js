@@ -1,5 +1,5 @@
 /**
- * JustUI Content Script - Modular Architecture
+ * OriginalUI Content Script - Modular Architecture
  * Main orchestrator for ad blocking and click hijacking protection
  */
 
@@ -24,9 +24,9 @@ import AdDetectionEngine from "./adDetectionEngine.js";
 import { HYBRID_CONFIG } from "./constants.js";
 
 /**
- * Main JustUI Controller - Orchestrates all protection modules
+ * Main OriginalUI Controller - Orchestrates all protection modules
  */
-class JustUIController {
+class OriginalUIController {
   constructor() {
     // Core state
     this.isActive = false;
@@ -130,11 +130,11 @@ class JustUIController {
     this.adDetectionEngine = null;
 
     console.log(
-      "JustUI: Controller initialized for domain:",
+      "OriginalUI: Controller initialized for domain:",
       this.currentDomain
     );
     console.log(
-      "JustUI: Registered",
+      "OriginalUI: Registered",
       this.cleanupRegistry.getModuleCount(),
       "cleanable modules:",
       this.cleanupRegistry.getModuleNames()
@@ -145,7 +145,7 @@ class JustUIController {
    * Initialize the controller and all protection systems
    */
   async initialize() {
-    console.log("JustUI: Initializing protection systems...");
+    console.log("OriginalUI: Initializing protection systems...");
 
     // 1. FIRST: Load settings to get whitelist (before any protections)
     await this.loadSettings();
@@ -155,7 +155,7 @@ class JustUIController {
 
     // 3. Initialize AdDetectionEngine
     this.adDetectionEngine = new AdDetectionEngine();
-    console.log("JustUI: AdDetectionEngine initialized");
+    console.log("OriginalUI: AdDetectionEngine initialized");
 
     // 4. Initialize HybridProcessor with AdDetectionEngine
     this.hybridProcessor = new HybridProcessor(this.adDetectionEngine, {
@@ -169,12 +169,12 @@ class JustUIController {
       "HybridProcessor",
       "analysis"
     );
-    console.log("JustUI: HybridProcessor initialized");
+    console.log("OriginalUI: HybridProcessor initialized");
 
     // 5. Check whitelist/active state BEFORE applying security protections
     if (!this.isActive || this.isDomainWhitelisted()) {
       console.log(
-        "JustUI: Skipping protections - extension inactive or domain whitelisted",
+        "OriginalUI: Skipping protections - extension inactive or domain whitelisted",
         {
           isActive: this.isActive,
           isDomainWhitelisted: this.isDomainWhitelisted(),
@@ -196,7 +196,7 @@ class JustUIController {
     // 9. Start memory monitoring after all systems are initialized
     this.memoryMonitor.startMonitoring(this);
 
-    console.log("JustUI: Initialization complete with memory monitoring");
+    console.log("OriginalUI: Initialization complete with memory monitoring");
   }
 
   /**
@@ -208,7 +208,7 @@ class JustUIController {
       return;
     }
 
-    console.log("JustUI: Starting protection systems");
+    console.log("OriginalUI: Starting protection systems");
 
     // Start click hijacking protection
     this.clickProtector.activate();
@@ -238,7 +238,7 @@ class JustUIController {
    * Stop all protection systems
    */
   stopProtection() {
-    console.log("JustUI: Stopping protection systems");
+    console.log("OriginalUI: Stopping protection systems");
 
     this.scriptAnalyzer.deactivate();
     this.clickProtector.deactivate();
@@ -250,7 +250,7 @@ class JustUIController {
    * Execute all enabled rule sets
    */
   async executeRules() {
-    console.log("JustUI: Executing rules", {
+    console.log("OriginalUI: Executing rules", {
       isActive: this.isActive,
       isDomainWhitelisted: this.isDomainWhitelisted(),
       currentDomain: this.currentDomain,
@@ -258,7 +258,7 @@ class JustUIController {
 
     if (!this.isActive || this.isDomainWhitelisted()) {
       console.log(
-        "JustUI: Skipping execution - extension inactive or domain whitelisted"
+        "OriginalUI: Skipping execution - extension inactive or domain whitelisted"
       );
       return;
     }
@@ -292,7 +292,7 @@ class JustUIController {
       0
     );
     if (totalRemoved > 0) {
-      console.log(`JustUI: Total elements removed: ${totalRemoved}`, stats);
+      console.log(`OriginalUI: Total elements removed: ${totalRemoved}`, stats);
     }
   }
 
@@ -318,12 +318,12 @@ class JustUIController {
 
         if (removed > 0) {
           console.log(
-            `JustUI: Default rule "${rule.description}" removed ${removed} elements`
+            `OriginalUI: Default rule "${rule.description}" removed ${removed} elements`
           );
         }
       } catch (error) {
         console.error(
-          `JustUI: Error executing default rule "${rule.id}":`,
+          `OriginalUI: Error executing default rule "${rule.id}":`,
           error
         );
       }
@@ -354,12 +354,12 @@ class JustUIController {
 
         if (removed > 0) {
           console.log(
-            `JustUI: Custom rule "${rule.description}" removed ${removed} elements`
+            `OriginalUI: Custom rule "${rule.description}" removed ${removed} elements`
           );
         }
       } catch (error) {
         console.error(
-          `JustUI: Error executing custom rule "${rule.id}":`,
+          `OriginalUI: Error executing custom rule "${rule.id}":`,
           error
         );
       }
@@ -410,7 +410,7 @@ class JustUIController {
           }
         }
       } catch (error) {
-        console.error("JustUI: Error in pattern analysis:", error);
+        console.error("OriginalUI: Error in pattern analysis:", error);
       }
     }
 
@@ -434,7 +434,7 @@ class JustUIController {
    * Perform initial scan for existing threats
    */
   performInitialScan() {
-    console.log("JustUI: Performing initial threat scan");
+    console.log("OriginalUI: Performing initial threat scan");
 
     // Scan for click hijacking overlays
     const removedOverlays = this.clickProtector.scanAndRemoveExistingOverlays();
@@ -443,7 +443,7 @@ class JustUIController {
     const scriptStats = this.scriptAnalyzer.getStats();
 
     console.log(
-      `JustUI: Initial scan complete. Removed ${removedOverlays} suspicious overlays, blocked ${scriptStats.blockedScriptsCount} scripts`
+      `OriginalUI: Initial scan complete. Removed ${removedOverlays} suspicious overlays, blocked ${scriptStats.blockedScriptsCount} scripts`
     );
   }
 
@@ -478,7 +478,7 @@ class JustUIController {
       };
       this.domainStats = {};
 
-      console.log("JustUI: Settings loaded", {
+      console.log("OriginalUI: Settings loaded", {
         isActive: this.isActive,
         isDomainWhitelisted: this.isDomainWhitelisted(),
         rulesCount: {
@@ -494,7 +494,7 @@ class JustUIController {
       });
     } catch (error) {
       console.warn(
-        "JustUI: Failed to load settings from storage:",
+        "OriginalUI: Failed to load settings from storage:",
         error.message
       );
 
@@ -510,7 +510,7 @@ class JustUIController {
       this.navigationStats = { blockedCount: 0, allowedCount: 0 };
       this.domainStats = {};
 
-      console.log("JustUI: Using default settings due to storage error");
+      console.log("OriginalUI: Using default settings due to storage error");
     }
   }
 
@@ -632,7 +632,7 @@ class JustUIController {
     if (!isExtensionContextValid()) {
       // Use debug-level logging for expected scenario (page unload, extension reload)
       console.debug(
-        "JustUI: Extension context invalid, skipping domain stats update"
+        "OriginalUI: Extension context invalid, skipping domain stats update"
       );
       return;
     }
@@ -659,7 +659,7 @@ class JustUIController {
         });
       } else {
         console.debug(
-          "JustUI: Extension context became invalid during stats update, skipping storage"
+          "OriginalUI: Extension context became invalid during stats update, skipping storage"
         );
       }
     } catch (error) {
@@ -669,12 +669,12 @@ class JustUIController {
         !isExtensionContextValid()
       ) {
         console.debug(
-          "JustUI: Extension context invalidated during storage operation:",
+          "OriginalUI: Extension context invalidated during storage operation:",
           error.message
         );
       } else {
         console.warn(
-          "JustUI: Failed to update domain stats in storage:",
+          "OriginalUI: Failed to update domain stats in storage:",
           error.message
         );
       }
@@ -687,7 +687,7 @@ class JustUIController {
    * Uses registry pattern to follow SOLID principles with memory verification
    */
   destructor() {
-    console.log("JustUI: Starting controller destructor...");
+    console.log("OriginalUI: Starting controller destructor...");
 
     // Take pre-cleanup memory snapshot
     const beforeSnapshot = this.memoryMonitor.takeMemorySnapshot("cleanup");
@@ -712,7 +712,7 @@ class JustUIController {
     const successful = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
     console.log(
-      `JustUI: Cleanup completed - ${successful} successful, ${failed} failed`
+      `OriginalUI: Cleanup completed - ${successful} successful, ${failed} failed`
     );
 
     // Clear controller state
@@ -735,25 +735,25 @@ class JustUIController {
 
     // Log final memory report
     const memoryReport = this.memoryMonitor.getMemoryReport();
-    console.log("JustUI: Final memory report:", {
+    console.log("OriginalUI: Final memory report:", {
       verificationResults,
       recommendations: memoryReport.recommendations,
       memoryHistory: memoryReport.history.length,
     });
 
-    console.log("JustUI: Controller destructor completed with verification");
+    console.log("OriginalUI: Controller destructor completed with verification");
   }
 }
 
 // Initialize controller when DOM is ready
-const justUIController = new JustUIController();
+const originalUIController = new OriginalUIController();
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () =>
-    justUIController.initialize()
+    originalUIController.initialize()
   );
 } else {
-  justUIController.initialize();
+  originalUIController.initialize();
 }
 
 // Comprehensive lifecycle cleanup - prevents memory leaks
@@ -763,8 +763,8 @@ const performCleanup = (reason) => {
   if (isCleanedUp) return;
   isCleanedUp = true;
 
-  console.log(`JustUI: Performing cleanup due to: ${reason}`);
-  justUIController.destructor();
+  console.log(`OriginalUI: Performing cleanup due to: ${reason}`);
+  originalUIController.destructor();
 };
 
 // Page navigation/unload cleanup (modern approach - no deprecated 'unload' event)
@@ -775,14 +775,14 @@ window.addEventListener("pagehide", () => performCleanup("pagehide"));
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
     // Don't fully cleanup on visibility change, but ensure we can cleanup later
-    console.log("JustUI: Page hidden, prepared for cleanup");
+    console.log("OriginalUI: Page hidden, prepared for cleanup");
   }
 });
 
 // Extension context invalidation cleanup
 const checkExtensionContext = () => {
   if (!isExtensionContextValid()) {
-    console.debug("JustUI: Extension context invalidated, triggering cleanup");
+    console.debug("OriginalUI: Extension context invalidated, triggering cleanup");
     performCleanup("extension-context-invalidated");
   }
 };
@@ -807,4 +807,4 @@ if (chrome?.runtime?.onSuspend) {
 }
 
 // Export for testing/debugging
-window.JustUIController = justUIController;
+window.OriginalUIController = originalUIController;

@@ -77,7 +77,7 @@ class RequestBlockingProtector {
       const url = typeof resource === 'string' ? resource : resource.url;
       
       if (self.shouldBlockRequest(url)) {
-        const error = new Error(`net::ERR_BLOCKED_BY_CLIENT - Request blocked by JustUI: ${url}`);
+        const error = new Error(`net::ERR_BLOCKED_BY_CLIENT - Request blocked by OriginalUI: ${url}`);
         error.name = 'NetworkError';
         self.recordBlockedRequest(url, 'fetch');
         return Promise.reject(error);
@@ -99,7 +99,7 @@ class RequestBlockingProtector {
         this.send = function() {
           setTimeout(() => {
             if (this.onerror) {
-              this.onerror(new Error(`net::ERR_BLOCKED_BY_CLIENT - Request blocked by JustUI: ${url}`));
+              this.onerror(new Error(`net::ERR_BLOCKED_BY_CLIENT - Request blocked by OriginalUI: ${url}`));
             }
           }, 0);
         };
@@ -175,7 +175,7 @@ class RequestBlockingProtector {
       data: { url, type, timestamp: Date.now() }
     }).catch(() => {}); // Ignore errors if background script is not available
     
-    console.log(`🛡️ JustUI blocked request: ${type} - ${url}`);
+    console.log(`🛡️ OriginalUI blocked request: ${type} - ${url}`);
   }
 
   getBlockingStats() {
@@ -238,7 +238,7 @@ class RequestBlockingProtector {
         this.requestCache.delete(entries[i][0]);
       }
       
-      console.log(`JustUI: RequestBlockingProtector cache cleaned up, removed ${toRemove} old entries`);
+      console.log(`OriginalUI: RequestBlockingProtector cache cleaned up, removed ${toRemove} old entries`);
     }
   }
 
@@ -252,7 +252,7 @@ class RequestBlockingProtector {
     // Create new WeakMap to clear any references
     this.blockedRequests = new WeakMap();
     
-    console.log('JustUI: RequestBlockingProtector cleaned up');
+    console.log('OriginalUI: RequestBlockingProtector cleaned up');
   }
 
   // Backward compatibility

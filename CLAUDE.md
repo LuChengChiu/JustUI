@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-JustUI is a comprehensive Chrome Extension built with React 19, Vite 7, and Tailwind CSS 4. It provides advanced web protection through multiple defensive systems:
+OriginalUI is a comprehensive Chrome Extension built with React 19, Vite 7, and Tailwind CSS 4. It provides advanced web protection through multiple defensive systems:
 
 1. **Element Removal System** - Removes unwanted DOM elements (ads, trackers, etc.) using CSS selectors
 2. **Navigation Guardian** - Intercepts and blocks malicious cross-origin navigation attempts with user confirmation modals  
@@ -138,7 +138,7 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 - Improved form validation and user feedback
 
 *Content Script (src/scripts/content.js):*
-- **JustUIController**: Main orchestrator coordinating all protection modules with comprehensive cleanup management
+- **OriginalUIController**: Main orchestrator coordinating all protection modules with comprehensive cleanup management
 - **ScriptAnalyzer**: Advanced script threat detection and real-time monitoring
 - **NavigationGuardian**: Cross-origin navigation interception with user confirmation modals
 - **ClickHijackingProtector**: Advanced click analysis and suspicious overlay detection
@@ -176,7 +176,7 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 ## Development Guidelines
 
 **Data Flow:**
-1. User loads page → JustUIController loads settings FIRST (whitelist check before any protections)
+1. User loads page → OriginalUIController loads settings FIRST (whitelist check before any protections)
 2. If domain IS whitelisted OR extension inactive → Skip all protections, only setup message listeners
 3. If active and NOT whitelisted → Activate ScriptAnalyzer and all protection modules
 4. NavigationGuardian monitors cross-origin navigation attempts
@@ -239,7 +239,7 @@ The content script uses a clean modular architecture with specialized protection
 
 ```
 src/scripts/
-├── content.js                         // JustUIController orchestrator
+├── content.js                         // OriginalUIController orchestrator
 ├── constants.js                       // Shared constants and performance tuning parameters
 ├── adDetectionEngine.js               // Advanced pattern detection engine
 ├── modules/

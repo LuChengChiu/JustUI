@@ -1,4 +1,4 @@
-// Advanced Ad Detection Engine for JustUI Chrome Extension
+// Advanced Ad Detection Engine for OriginalUI Chrome Extension
 // Implements pattern-based detection rules with weighted scoring
 
 import { MAX_Z_INDEX, HIGH_Z_INDEX_THRESHOLD } from './constants.js';
@@ -111,7 +111,7 @@ class AdDetectionEngine {
             });
           }
         } catch (error) {
-          console.warn(`JustUI: Error executing rule ${rule.name}:`, error);
+          console.warn(`OriginalUI: Error executing rule ${rule.name}:`, error);
         }
       }
 
@@ -128,7 +128,7 @@ class AdDetectionEngine {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error("JustUI: Error in AdDetectionEngine.analyze:", error);
+      console.error("OriginalUI: Error in AdDetectionEngine.analyze:", error);
       return {
         isAd: false,
         confidence: 0,

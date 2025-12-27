@@ -76,7 +76,7 @@ const validateWhitelistDomain = (domain) => {
 /**
  * WhitelistManager Component
  *
- * Manages domain whitelist for JustUI extension. Provides validation,
+ * Manages domain whitelist for OriginalUI extension. Provides validation,
  * user-friendly input handling, and clear feedback for domain management.
  *
  * @component

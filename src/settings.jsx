@@ -146,7 +146,7 @@ function SettingsBeta() {
         <div className="bg-white rounded-2xl shadow-[1px_4px_5px_3px_var(--color-accent)] pb-8 pt-0.5 gap-y-1">
           <div className="flex w-full items-center justify-end pr-2">
             <H1 color="accent" align="center" className="text-[30px]">
-              JustUI
+              OriginalUI
             </H1>
           </div>
 

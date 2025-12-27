@@ -1,13 +1,13 @@
-# JustUI
+# OriginalUI
 
-![GitHub Created At](https://img.shields.io/github/created-at/LuChengChiu/JustUI?color=bright-green&style=flat-square)
-![GitHub contributors](https://img.shields.io/github/contributors/LuChengChiu/JustUI?color=bright-green&style=flat-square)
-[![license](https://img.shields.io/github/license/LuChengChiu/JustUI.svg?color=bright-green&style=flat-square)](LICENSE)
+![GitHub Created At](https://img.shields.io/github/created-at/LuChengChiu/OriginalUI?color=bright-green&style=flat-square)
+![GitHub contributors](https://img.shields.io/github/contributors/LuChengChiu/OriginalUI?color=bright-green&style=flat-square)
+[![license](https://img.shields.io/github/license/LuChengChiu/OriginalUI.svg?color=bright-green&style=flat-square)](LICENSE)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
 > A comprehensive Chrome Extension providing advanced web protection through intelligent content filtering and navigation security.
 
-JustUI is a powerful Chrome extension built with modern web technologies (React 19, Vite 7, Tailwind CSS 4) that delivers multi-layered protection against unwanted web content. It combines element removal, pattern detection, navigation interception, and network request blocking to create a safer, cleaner browsing experience.
+OriginalUI is a powerful Chrome extension built with modern web technologies (React 19, Vite 7, Tailwind CSS 4) that delivers multi-layered protection against unwanted web content. It combines element removal, pattern detection, navigation interception, and network request blocking to create a safer, cleaner browsing experience.
 
 ## Table of Contents
 
@@ -37,7 +37,7 @@ JustUI is a powerful Chrome extension built with modern web technologies (React 
 
 Modern web browsing is increasingly plagued by intrusive advertisements, tracking scripts, malicious redirects, and unwanted pop-ups. While traditional ad blockers focus primarily on network-level blocking, they often miss sophisticated threats that operate through JavaScript injection, DOM manipulation, and behavioral tracking.
 
-JustUI takes a comprehensive, defense-in-depth approach by combining multiple protection strategies:
+OriginalUI takes a comprehensive, defense-in-depth approach by combining multiple protection strategies:
 
 1. **CSS Selector-based Element Removal** - Removes known unwanted elements from the DOM
 2. **Heuristic Pattern Detection** - Identifies and blocks advertisements through behavioral analysis
@@ -97,8 +97,8 @@ npm --version   # v9.0.0 or higher recommended
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/LuChengChiu/JustUI.git
-cd JustUI
+git clone https://github.com/LuChengChiu/OriginalUI.git
+cd OriginalUI
 npm install
 ```
 
@@ -115,13 +115,13 @@ Load the extension in Chrome:
 3. Click "Load unpacked"
 4. Select the `dist/` directory from the project folder
 
-The JustUI icon should now appear in your Chrome toolbar.
+The OriginalUI icon should now appear in your Chrome toolbar.
 
 ## Usage
 
 ### Quick Start
 
-1. **Activate Protection** - Click the JustUI icon and toggle the extension ON
+1. **Activate Protection** - Click the OriginalUI icon and toggle the extension ON
 2. **Browse Normally** - The extension will automatically protect you across all websites
 3. **Trust Clean Sites** - Click "Add to whitelist" for sites you trust to exempt them from all protection
 4. **View Statistics** - See real-time blocked element counts and navigation attempt statistics in the popup
@@ -133,18 +133,18 @@ The whitelist contains domains that are **clean/trusted** and **exempt from all 
 **Add a domain to whitelist:**
 
 1. Navigate to the trusted site
-2. Click the JustUI icon
+2. Click the OriginalUI icon
 3. Click "Add to whitelist"
 
 **Remove from whitelist:**
 
 1. Navigate to the whitelisted site
-2. Click the JustUI icon
+2. Click the OriginalUI icon
 3. Click "Remove from whitelist"
 
 **Bulk management:**
 
-1. Right-click JustUI icon → Options
+1. Right-click OriginalUI icon → Options
 2. Navigate to "Whitelist" section
 3. Add, edit, or remove domains
 
@@ -152,7 +152,7 @@ The whitelist contains domains that are **clean/trusted** and **exempt from all 
 
 Create custom CSS selector rules to remove specific elements:
 
-1. Right-click JustUI icon → Options
+1. Right-click OriginalUI icon → Options
 2. Navigate to "Custom Rules" section
 3. Click "Add New Rule"
 4. Fill in the form:
@@ -177,7 +177,7 @@ Example custom rule:
 
 ### Settings Configuration
 
-Access comprehensive settings by right-clicking the JustUI icon and selecting "Options":
+Access comprehensive settings by right-clicking the OriginalUI icon and selecting "Options":
 
 - **Whitelist Management** - Add/remove trusted domains
 - **Default Rules** - Toggle built-in protection rules
@@ -191,7 +191,7 @@ Access comprehensive settings by right-clicking the JustUI icon and selecting "O
 
 ### Core Components
 
-JustUI uses a modular architecture with clear separation of concerns:
+OriginalUI uses a modular architecture with clear separation of concerns:
 
 ```
 src/
@@ -203,7 +203,7 @@ src/
 │   ├── ui/                            # Reusable UI components
 │   └── settings/                      # Modular settings components
 ├── scripts/
-│   ├── content.js                     # JustUIController orchestrator
+│   ├── content.js                     # OriginalUIController orchestrator
 │   ├── background.js                  # Service worker
 │   ├── injected-script.js             # Page-world JavaScript interception
 │   ├── constants.js                   # Shared configuration
@@ -235,7 +235,7 @@ Each protection module operates independently with well-defined interfaces:
 
 ### Data Flow
 
-1. User loads page → JustUIController loads settings first
+1. User loads page → OriginalUIController loads settings first
 2. If domain is whitelisted OR extension inactive → Skip all protections
 3. If active and not whitelisted → Activate all enabled protection modules
 4. NavigationGuardian monitors cross-origin navigation attempts
@@ -303,7 +303,7 @@ Load the extension in Chrome for testing:
 
 ### Storage Schema
 
-JustUI uses Chrome's Storage API with the following schema:
+OriginalUI uses Chrome's Storage API with the following schema:
 
 ```javascript
 {
@@ -390,4 +390,4 @@ See [LICENSE](LICENSE) for details.
 
 ---
 
-**Note**: This extension is in active development. Features and APIs may change. Please report issues at [github.com/LuChengChiu/JustUI/issues](https://github.com/LuChengChiu/JustUI/issues).
+**Note**: This extension is in active development. Features and APIs may change. Please report issues at [github.com/LuChengChiu/OriginalUI/issues](https://github.com/LuChengChiu/OriginalUI/issues).
