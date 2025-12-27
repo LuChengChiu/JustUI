@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Functional Testing - OriginalUI Navigation Guardian</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .header p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .test-card {
+      background: white;
+      color: #333;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .test-card h2 {
+      color: #1e3a8a;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+
+    .test-card p {
+      color: #666;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+
+    .test-link {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background: #3b82f6;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .test-link:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+    }
+
+    .test-link.danger {
+      background: #ef4444;
+    }
+
+    .test-link.danger:hover {
+      background: #dc2626;
+    }
+
+    .test-link.warning {
+      background: #f59e0b;
+    }
+
+    .test-link.warning:hover {
+      background: #d97706;
+    }
+
+    .checklist {
+      background: white;
+      color: #333;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .checklist h2 {
+      color: #1e3a8a;
+      margin-bottom: 1.5rem;
+      font-size: 1.8rem;
+    }
+
+    .checklist-item {
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      background: #f3f4f6;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .checklist-item input {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    .checklist-item label {
+      flex: 1;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .high-z-index {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #10b981;
+      color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      z-index: 999999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      font-weight: 600;
+    }
+
+    .stats {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .stats h3 {
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .stat-row:last-child {
+      border-bottom: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="high-z-index">
+    High Z-Index Element (999999)
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h1>⚙️ Functional Testing Suite</h1>
+      <p>Comprehensive tests for Navigation Guardian Shadow DOM implementation</p>
+    </div>
+
+    <div class="stats">
+      <h3>📊 Test Statistics</h3>
+      <div class="stat-row">
+        <span>Modals Opened:</span>
+        <span id="modal-count">0</span>
+      </div>
+      <div class="stat-row">
+        <span>Allowed:</span>
+        <span id="allowed-count">0</span>
+      </div>
+      <div class="stat-row">
+        <span>Blocked:</span>
+        <span id="blocked-count">0</span>
+      </div>
+      <div class="stat-row">
+        <span>Average Open Time:</span>
+        <span id="avg-time">N/A</span>
+      </div>
+    </div>
+
+    <div class="test-grid">
+      <div class="test-card">
+        <h2>🎯 Basic Navigation</h2>
+        <p>Test basic cross-origin navigation detection</p>
+        <a href="https://example.com" target="_blank" class="test-link">
+          Example.com
+        </a>
+        <a href="https://google.com" target="_blank" class="test-link">
+          Google.com
+        </a>
+      </div>
+
+      <div class="test-card">
+        <h2>⚠️ Suspicious URLs</h2>
+        <p>Test threat detection and risk scoring</p>
+        <a href="https://bit.ly/test" target="_blank" class="test-link warning">
+          URL Shortener
+        </a>
+        <a href="https://malicious-ad.example" target="_blank" class="test-link danger">
+          Malicious Ad
+        </a>
+      </div>
+
+      <div class="test-card">
+        <h2>🚀 Pop-under Detection</h2>
+        <p>Test pop-under analysis and blocking</p>
+        <button onclick="testPopUnder()" class="test-link warning">
+          Simulate Pop-under
+        </button>
+        <button onclick="testMultiplePopups()" class="test-link danger">
+          Multiple Pop-ups
+        </button>
+      </div>
+
+      <div class="test-card">
+        <h2>⌨️ Keyboard Shortcuts</h2>
+        <p>Test keyboard event propagation through Shadow DOM</p>
+        <a href="https://test-esc-key.example" target="_blank" class="test-link">
+          Test ESC Key
+        </a>
+        <a href="https://test-enter-key.example" target="_blank" class="test-link">
+          Test Enter Key
+        </a>
+      </div>
+
+      <div class="test-card">
+        <h2>🎨 Z-Index Testing</h2>
+        <p>Verify modal appears above all page content</p>
+        <a href="https://z-index-test.example" target="_blank" class="test-link">
+          Trigger Modal
+        </a>
+        <p style="margin-top: 1rem; font-size: 0.9rem; color: #999;">
+          Modal should appear above the green box in the top-right corner
+        </p>
+      </div>
+
+      <div class="test-card">
+        <h2>🔄 Rapid Click Testing</h2>
+        <p>Test modal queueing and duplicate prevention</p>
+        <button onclick="rapidClickTest()" class="test-link warning">
+          Rapid Click Test
+        </button>
+        <p style="margin-top: 1rem; font-size: 0.9rem; color: #999;">
+          Should only show one modal at a time
+        </p>
+      </div>
+    </div>
+
+    <div class="checklist">
+      <h2>✅ Functional Requirements Checklist</h2>
+
+      <div class="checklist-item">
+        <input type="checkbox" id="check1">
+        <label for="check1">
+          <strong>ESC key closes modal</strong> - Press ESC when modal is open
+        </label>
+      </div>
+
+      <div class="checklist-item">
+        <input type="checkbox" id="check2">
+        <label for="check2">
+          <strong>Enter key triggers Allow</strong> - Press Enter when modal is open
+        </label>
+      </div>
+
+      <div class="checklist-item">
+        <input type="checkbox" id="check3">
+        <label for="check3">
+          <strong>Click outside closes modal</strong> - Click on dark backdrop
+        </label>
+      </div>
+
+      <div class="checklist-item">
+        <input type="checkbox" id="check4">
+        <label for="check4">
+          <strong>Block button works</strong> - Click "Block" and navigation is denied
+        </label>
+      </div>
+
+      <div class="checklist-item">
+        <input type="checkbox" id="check5">
+        <label for="check5">
+          <strong>Allow button works</strong> - Click "Allow" and navigation proceeds
+        </label>
+      </div>
+
+      <div class="checklist-item">
+        <input type="checkbox" id="check6">
+        <label for="check6">
+          <strong>Focus trap works</strong> - Tab key cycles only within modal
+        </label>
+      </div>
+
+      <div class="checklist-item">
+        <input type="checkbox" id="check7">
+        <label for="check7">
+          <strong>Modal appears on top</strong> - Modal visible above high z-index elements
+        </label>
+      </div>
+
+      <div class="checklist-item">
+        <input type="checkbox" id="check8">
+        <label for="check8">
+          <strong>Threat details display</strong> - Suspicious URLs show threat analysis
+        </label>
+      </div>
+
+      <div class="checklist-item">
+        <input type="checkbox" id="check9">
+        <label for="check9">
+          <strong>Pop-under badge shows</strong> - Pop-under attempts show "POP-UNDER" badge
+        </label>
+      </div>
+
+      <div class="checklist-item">
+        <input type="checkbox" id="check10">
+        <label for="check10">
+          <strong>No duplicate modals</strong> - Rapid clicks don't create multiple modals
+        </label>
+      </div>
+
+      <div class="checklist-item">
+        <input type="checkbox" id="check11">
+        <label for="check11">
+          <strong>Shadow DOM structure</strong> - DevTools shows #shadow-root with styles
+        </label>
+      </div>
+
+      <div class="checklist-item">
+        <input type="checkbox" id="check12">
+        <label for="check12">
+          <strong>Performance acceptable</strong> - Modal opens in <200ms (check console)
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let modalCount = 0;
+    let allowedCount = 0;
+    let blockedCount = 0;
+    let totalTime = 0;
+
+    function testPopUnder() {
+      // Simulate pop-under behavior
+      const start = performance.now();
+      window.open('https://popup-ad.example', '_blank');
+      modalCount++;
+      updateStats();
+    }
+
+    function testMultiplePopups() {
+      // Try to open multiple pop-ups rapidly
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+          window.open(`https://popup-${i}.example`, '_blank');
+          modalCount++;
+          updateStats();
+        }, i * 100);
+      }
+    }
+
+    function rapidClickTest() {
+      // Simulate rapid clicking on external link
+      const link = document.createElement('a');
+      link.href = 'https://rapid-test.example';
+      link.target = '_blank';
+
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          link.click();
+          modalCount++;
+          updateStats();
+        }, i * 50);
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('modal-count').textContent = modalCount;
+      document.getElementById('allowed-count').textContent = allowedCount;
+      document.getElementById('blocked-count').textContent = blockedCount;
+
+      if (modalCount > 0) {
+        const avgTime = (totalTime / modalCount).toFixed(2);
+        document.getElementById('avg-time').textContent = `${avgTime}ms`;
+      }
+    }
+
+    // Listen for storage updates (statistics from extension)
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'NAVIGATION_STATS') {
+        allowedCount = event.data.allowed || 0;
+        blockedCount = event.data.blocked || 0;
+        updateStats();
+      }
+    });
+
+    // Log page load
+    console.log('%c⚙️ Functional Test Page Loaded', 'background: #3b82f6; color: white; padding: 8px; font-size: 14px; font-weight: bold;');
+    console.log('Use the test buttons and links above to verify all functionality');
+    console.log('Check the checklist after each test');
+  </script>
+</body>
+</html>

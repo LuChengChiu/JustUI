@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shadow DOM CSS Isolation Test - OriginalUI</title>
+  <style>
+    /* ============================================
+       AGGRESSIVE CSS RESETS
+       These styles are designed to break modals
+       that don't use Shadow DOM isolation
+       ============================================ */
+
+    /* Universal reset with !important */
+    * {
+      margin: 0 !important;
+      padding: 0 !important;
+      box-sizing: content-box !important;
+      border: 0 !important;
+    }
+
+    /* Force all divs to have red background */
+    div {
+      background: red !important;
+      color: yellow !important;
+      font-size: 10px !important;
+    }
+
+    /* Break all buttons */
+    button {
+      font-size: 8px !important;
+      color: green !important;
+      background: orange !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+    }
+
+    /* Remove all spacing */
+    p, h1, h2, h3, h4, h5, h6, span, a {
+      margin: 0 !important;
+      padding: 0 !important;
+      line-height: 1 !important;
+    }
+
+    /* Force all text to be tiny and green */
+    body, body * {
+      font-size: 8px !important;
+      color: lime !important;
+      font-family: "Comic Sans MS" !important;
+    }
+
+    /* Remove all borders and shadows */
+    * {
+      box-shadow: none !important;
+      border: none !important;
+      outline: none !important;
+    }
+
+    /* Force content-box (breaks Tailwind) */
+    *, *::before, *::after {
+      box-sizing: content-box !important;
+    }
+
+    /* Page styling (should NOT affect Shadow DOM modal) */
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: white !important;
+      font-size: 16px !important;
+    }
+
+    .test-container {
+      background: white;
+      padding: 3rem !important;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      max-width: 800px;
+      color: #333 !important;
+    }
+
+    .test-container h1 {
+      color: #667eea !important;
+      margin-bottom: 1.5rem !important;
+      font-size: 32px !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    }
+
+    .test-container p {
+      font-size: 16px !important;
+      line-height: 1.6 !important;
+      margin-bottom: 1rem !important;
+      color: #555 !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    }
+
+    .test-links {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 2rem !important;
+    }
+
+    .test-link {
+      display: inline-block;
+      padding: 1rem 2rem !important;
+      background: #667eea;
+      color: white !important;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 18px !important;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    }
+
+    .test-link:hover {
+      background: #764ba2;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
+    }
+
+    .warning-box {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b !important;
+      padding: 1rem !important;
+      margin: 1.5rem 0 !important;
+      border-radius: 4px;
+    }
+
+    .warning-box strong {
+      color: #92400e !important;
+      font-size: 16px !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    }
+
+    .warning-box p {
+      color: #78350f !important;
+      margin-top: 0.5rem !important;
+      font-size: 14px !important;
+    }
+
+    .success-criteria {
+      background: #d1fae5;
+      border-left: 4px solid #10b981 !important;
+      padding: 1.5rem !important;
+      margin: 1.5rem 0 !important;
+      border-radius: 4px;
+    }
+
+    .success-criteria h2 {
+      color: #065f46 !important;
+      font-size: 20px !important;
+      margin-bottom: 1rem !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    }
+
+    .success-criteria ul {
+      list-style: none;
+      padding-left: 0 !important;
+    }
+
+    .success-criteria li {
+      color: #047857 !important;
+      font-size: 15px !important;
+      padding: 0.5rem 0 !important;
+      line-height: 1.5 !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    }
+
+    .success-criteria li::before {
+      content: "✓ ";
+      color: #10b981;
+      font-weight: bold;
+      margin-right: 0.5rem;
+    }
+
+    code {
+      background: #f3f4f6;
+      padding: 0.2rem 0.4rem !important;
+      border-radius: 3px;
+      font-family: "Monaco", "Courier New", monospace !important;
+      font-size: 13px !important;
+      color: #1f2937 !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>🧪 Shadow DOM CSS Isolation Test</h1>
+
+    <p>
+      This page contains <strong>extremely aggressive CSS resets</strong> designed to break
+      modals that don't use Shadow DOM isolation. The CSS on this page tries to:
+    </p>
+
+    <ul style="margin-left: 2rem !important; margin-bottom: 1rem !important;">
+      <li style="font-size: 15px !important; color: #555 !important; line-height: 1.8 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;">Set all padding and margins to 0 with <code>!important</code></li>
+      <li style="font-size: 15px !important; color: #555 !important; line-height: 1.8 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;">Force all divs to have red backgrounds and yellow text</li>
+      <li style="font-size: 15px !important; color: #555 !important; line-height: 1.8 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;">Make all buttons 8px font size with green text and orange backgrounds</li>
+      <li style="font-size: 15px !important; color: #555 !important; line-height: 1.8 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;">Force <code>box-sizing: content-box</code> on everything</li>
+      <li style="font-size: 15px !important; color: #555 !important; line-height: 1.8 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;">Remove all box shadows and border radius</li>
+    </ul>
+
+    <div class="warning-box">
+      <strong>⚠️ Without Shadow DOM isolation:</strong>
+      <p>The Navigation Guardian modal would be completely broken - no spacing, wrong colors, broken layout.</p>
+    </div>
+
+    <div class="success-criteria">
+      <h2>✅ Success Criteria (WITH Shadow DOM):</h2>
+      <ul>
+        <li>Modal has proper padding (NOT zero)</li>
+        <li>Modal background is white (NOT red)</li>
+        <li>Buttons have normal font size and colors (NOT 8px green)</li>
+        <li>Modal has rounded corners (border-radius works)</li>
+        <li>Backdrop has blur effect</li>
+        <li>Fonts render correctly (Days One, Barlow)</li>
+        <li>Buttons are properly sized and styled</li>
+        <li>Text is readable (NOT 8px lime Comic Sans)</li>
+      </ul>
+    </div>
+
+    <div class="test-links">
+      <a href="https://example.com" target="_blank" class="test-link">
+        🔗 Test External Link (Should Trigger Modal)
+      </a>
+
+      <a href="https://malicious-site.example" target="_blank" class="test-link">
+        ⚠️ Test "Malicious" Link (Should Trigger Modal)
+      </a>
+
+      <a href="https://suspicious-redirect.test" target="_blank" class="test-link">
+        🚨 Test Suspicious Redirect (Should Trigger Modal)
+      </a>
+    </div>
+
+    <div class="warning-box" style="margin-top: 2rem !important;">
+      <strong>📋 Testing Instructions:</strong>
+      <ol style="margin-left: 1.5rem !important; margin-top: 0.5rem !important;">
+        <li style="font-size: 14px !important; color: #78350f !important; line-height: 1.6 !important; margin-bottom: 0.5rem !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;">
+          Load the OriginalUI extension in Chrome (from <code>dist/</code> folder)
+        </li>
+        <li style="font-size: 14px !important; color: #78350f !important; line-height: 1.6 !important; margin-bottom: 0.5rem !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;">
+          Click any of the test links above
+        </li>
+        <li style="font-size: 14px !important; color: #78350f !important; line-height: 1.6 !important; margin-bottom: 0.5rem !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;">
+          Navigation Guardian modal should appear
+        </li>
+        <li style="font-size: 14px !important; color: #78350f !important; line-height: 1.6 !important; margin-bottom: 0.5rem !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;">
+          Inspect the modal with DevTools (look for <code>#shadow-root</code>)
+        </li>
+        <li style="font-size: 14px !important; color: #78350f !important; line-height: 1.6 !important; margin-bottom: 0.5rem !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;">
+          Verify all success criteria above are met
+        </li>
+        <li style="font-size: 14px !important; color: #78350f !important; line-height: 1.6 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;">
+          Check browser console for performance metrics
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    // Log page load for debugging
+    console.log('%c🧪 CSS Isolation Test Page Loaded', 'background: #667eea; color: white; padding: 8px; font-size: 14px; font-weight: bold;');
+    console.log('This page has aggressive CSS that will break non-Shadow-DOM modals');
+    console.log('Click any test link to trigger the Navigation Guardian modal');
+  </script>
+</body>
+</html>

@@ -5,6 +5,12 @@ import ShieldLink from "./icons/shield-link.jsx";
 import Button from "./ui/button/index.jsx";
 import Dialog from "./ui/dialog.jsx";
 import { H3, Text } from "./ui/typography.jsx";
+import {
+  createShadowDOMContainer,
+  fetchCSSContent,
+  injectCSSIntoShadow,
+  injectGoogleFontsIntoShadow
+} from "../utils/shadowDOM.js";
 
 // Ensure React is available globally for JSX components in content script
 if (typeof window !== "undefined" && !window.React) {
@@ -83,6 +89,7 @@ export default function ExternalLinkModal({
   config = {},
   onAllow,
   onDeny,
+  portalTarget = document.body, // NEW: Accept portal target for Shadow DOM support
 }) {
   const { url: targetURL = "", threatDetails = null } = config;
   const { isPopUnder = false, riskScore = 0 } = threatDetails ?? {};
@@ -111,6 +118,7 @@ export default function ExternalLinkModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <Dialog.Content
+        portalTarget={portalTarget}
         maxWidth="max-w-lg"
         showCloseButton={false}
         onKeyDown={handleKeyDown}
@@ -210,107 +218,31 @@ export const useExternalLinkModal = () => {
   };
 };
 
-/**
- * Inject Google Fonts for Days One and Barlow
- * Returns a Promise that resolves when fonts are loaded
- */
-const injectGoogleFonts = () => {
-  return new Promise((resolve) => {
-    // Check if fonts are already injected
-    const existingFonts = document.getElementById("justui-google-fonts");
-    if (existingFonts) {
-      resolve(); // Fonts already loaded
-      return;
-    }
-
-    // Create Google Fonts link element
-    const fontsLink = document.createElement("link");
-    fontsLink.id = "justui-google-fonts";
-    fontsLink.rel = "stylesheet";
-    fontsLink.href =
-      "https://fonts.googleapis.com/css2?family=Days+One&family=Barlow:wght@100;200;300;400;500;600;700;800;900&display=swap";
-
-    // Wait for fonts to load before resolving
-    fontsLink.onload = () => {
-      console.log("OriginalUI: Successfully loaded Google Fonts for modal");
-      resolve();
-    };
-
-    // Handle loading errors
-    fontsLink.onerror = () => {
-      console.error("OriginalUI: Failed to load Google Fonts for modal");
-      resolve(); // Resolve anyway to avoid hanging
-    };
-
-    // Inject into document head
-    document.head.appendChild(fontsLink);
-    console.log("OriginalUI: Injected Google Fonts link for modal");
-  });
-};
+// Legacy injection functions removed - now using Shadow DOM utilities
 
 /**
- * Inject Tailwind CSS into the page if not already present
- * Returns a Promise that resolves when CSS is loaded
- */
-const injectTailwindCSS = () => {
-  return new Promise((resolve) => {
-    // Check if CSS is already injected
-    const existingLink = document.getElementById("justui-tailwind-css");
-    if (existingLink) {
-      resolve(); // CSS already loaded
-      return;
-    }
-
-    // Create CSS link element
-    const cssLink = document.createElement("link");
-    cssLink.id = "justui-tailwind-css";
-    cssLink.rel = "stylesheet";
-    cssLink.type = "text/css";
-
-    // Use the extension URL to load the CSS file
-    if (chrome?.runtime?.getURL) {
-      cssLink.href = chrome.runtime.getURL("index.css");
-
-      // Wait for CSS to load before resolving
-      cssLink.onload = () => {
-        console.log("OriginalUI: Successfully loaded index.css for modal");
-        resolve();
-      };
-
-      // Handle loading errors
-      cssLink.onerror = () => {
-        console.error("OriginalUI: Failed to load index.css for modal");
-        resolve(); // Resolve anyway to avoid hanging
-      };
-    } else {
-      console.warn(
-        "OriginalUI: Chrome runtime not available, CSS may not load properly"
-      );
-      resolve(); // Resolve anyway to avoid hanging
-      return;
-    }
-
-    // Inject into document head
-    document.head.appendChild(cssLink);
-    console.log("OriginalUI: Injected CSS link for modal");
-  });
-};
-
-/**
- * Standalone function for showing confirmation modal
+ * Standalone function for showing confirmation modal with Shadow DOM encapsulation
  * Used by ModalManager for content script integration
  */
 export const showExternalLinkModal = async (config) => {
   return new Promise(async (resolve) => {
+    let shadowDOMSetup = null;
+
     try {
-      // Load Google Fonts and Tailwind CSS in parallel before rendering
-      await Promise.all([injectGoogleFonts(), injectTailwindCSS()]);
+      // Step 1: Create Shadow DOM container with portal target
+      shadowDOMSetup = createShadowDOMContainer();
+      const { container, shadowRoot, portalTarget } = shadowDOMSetup;
 
-      // Create a container for the modal
-      const container = document.createElement("div");
-      container.id = "justui-external-link-modal-root";
-      document.body.appendChild(container);
+      // Step 2: Fetch CSS content
+      const cssContent = await fetchCSSContent();
 
+      // Step 3: Inject CSS and fonts in parallel into Shadow DOM
+      await Promise.all([
+        injectCSSIntoShadow(shadowRoot, cssContent),
+        injectGoogleFontsIntoShadow(shadowRoot)
+      ]);
+
+      // Step 4: Create React root (on light DOM container for React internals)
       const root = createRoot(container);
 
       const cleanup = () => {
@@ -325,18 +257,26 @@ export const showExternalLinkModal = async (config) => {
         resolve(allowed);
       };
 
-      // Render the modal AFTER both fonts and CSS are loaded
+      // Step 5: Render modal with Shadow DOM portal target
       root.render(
         React.createElement(ExternalLinkModal, {
           isOpen: true,
           config: config,
+          portalTarget: portalTarget, // NEW: Pass Shadow DOM target
           onAllow: () => handleResult(true),
           onDeny: () => handleResult(false),
           onClose: () => handleResult(false),
         })
       );
+
     } catch (error) {
-      console.error("OriginalUI: Failed to render React modal:", error);
+      console.error("OriginalUI: Failed to render React modal with Shadow DOM:", error);
+
+      // Cleanup on error
+      if (shadowDOMSetup?.container?.parentNode) {
+        shadowDOMSetup.container.parentNode.removeChild(shadowDOMSetup.container);
+      }
+
       resolve(false); // Default to deny on error
     }
   });

@@ -74,6 +74,7 @@ const DialogTrigger = ({ asChild = false, children, ...props }) => {
  * DialogContent - Main dialog container with overlay and animations
  */
 const DialogContent = ({
+  portalTarget = document.body, // NEW: Accept portal target for Shadow DOM support
   className = "",
   children,
   showCloseButton = true,
@@ -132,7 +133,7 @@ const DialogContent = ({
         {children}
       </div>
     </div>,
-    document.body
+    portalTarget // Changed from document.body to support Shadow DOM
   );
 };
 

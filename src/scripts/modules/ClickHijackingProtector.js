@@ -111,6 +111,12 @@ export class ClickHijackingProtector {
       const clickTime = Date.now();
       const element = event.target;
 
+      // Whitelist: Allow clicks on Navigation Guardian modal
+      const modalRoot = element.closest('#justui-external-link-modal-root');
+      if (modalRoot) {
+        return true; // Allow click - this is our own modal
+      }
+
       // Analyze the click context for suspicious patterns
       const suspiciousFactors = [];
 

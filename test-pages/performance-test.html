@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performance & Memory Test - OriginalUI</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .header h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .metric-card {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .metric-card h3 {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .metric-value {
+      font-size: 2.5rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #10b981, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .metric-value.warning {
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .test-section {
+      background: white;
+      color: #333;
+      padding: 2rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .test-section h2 {
+      color: #0f172a;
+      margin-bottom: 1.5rem;
+      font-size: 1.8rem;
+    }
+
+    .test-button {
+      padding: 1rem 2rem;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-right: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .test-button:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+    }
+
+    .test-button.danger {
+      background: #ef4444;
+    }
+
+    .test-button.danger:hover {
+      background: #dc2626;
+    }
+
+    .test-button.success {
+      background: #10b981;
+    }
+
+    .test-button.success:hover {
+      background: #059669;
+    }
+
+    .test-button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #3b82f6);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .log-container {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin-top: 1.5rem;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: "Monaco", "Courier New", monospace;
+      font-size: 0.9rem;
+    }
+
+    .log-entry {
+      padding: 0.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-entry.success {
+      color: #10b981;
+    }
+
+    .log-entry.warning {
+      color: #f59e0b;
+    }
+
+    .log-entry.error {
+      color: #ef4444;
+    }
+
+    .benchmark-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+    }
+
+    .benchmark-table th {
+      background: #f1f5f9;
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .benchmark-table td {
+      padding: 1rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .benchmark-table tr:hover {
+      background: #f8fafc;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-badge.pass {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-badge.fail {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚡ Performance & Memory Testing</h1>
+      <p style="opacity: 0.8; margin-top: 1rem;">Measure Shadow DOM modal performance and detect memory leaks</p>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <h3>Modals Opened</h3>
+        <div class="metric-value" id="modal-count">0</div>
+      </div>
+
+      <div class="metric-card">
+        <h3>Average Open Time</h3>
+        <div class="metric-value" id="avg-time">N/A</div>
+      </div>
+
+      <div class="metric-card">
+        <h3>CSS Injection Time</h3>
+        <div class="metric-value" id="css-time">N/A</div>
+      </div>
+
+      <div class="metric-card">
+        <h3>Memory Usage</h3>
+        <div class="metric-value" id="memory-usage">N/A</div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>🎯 Performance Benchmarks</h2>
+      <p style="margin-bottom: 1.5rem; color: #64748b;">
+        Run automated tests to measure modal performance across multiple iterations
+      </p>
+
+      <button class="test-button" onclick="runSingleTest()">
+        Single Modal Test
+      </button>
+
+      <button class="test-button" onclick="run10Tests()">
+        10 Iterations Test
+      </button>
+
+      <button class="test-button" onclick="run50Tests()">
+        50 Iterations Test
+      </button>
+
+      <button class="test-button danger" onclick="run100Tests()">
+        100 Iterations (Memory Leak Test)
+      </button>
+
+      <button class="test-button success" onclick="clearLogs()">
+        Clear Logs
+      </button>
+
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress"></div>
+      </div>
+
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Target</th>
+            <th>Actual</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Modal Open Time</td>
+            <td>&lt; 200ms</td>
+            <td id="bench-modal-time">-</td>
+            <td id="bench-modal-status">-</td>
+          </tr>
+          <tr>
+            <td>CSS Injection Time</td>
+            <td>&lt; 50ms</td>
+            <td id="bench-css-time">-</td>
+            <td id="bench-css-status">-</td>
+          </tr>
+          <tr>
+            <td>Font Loading Time</td>
+            <td>&lt; 150ms</td>
+            <td id="bench-font-time">-</td>
+            <td id="bench-font-status">-</td>
+          </tr>
+          <tr>
+            <td>Memory Leak Test</td>
+            <td>Stable after 100 cycles</td>
+            <td id="bench-memory">-</td>
+            <td id="bench-memory-status">-</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="log-container" id="log-container">
+        <div class="log-entry">📊 Performance testing console - Click a test button to begin</div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>🧪 Manual Performance Tests</h2>
+      <p style="margin-bottom: 1.5rem; color: #64748b;">
+        Click these links and check the browser console for detailed performance metrics
+      </p>
+
+      <a href="https://perf-test-1.example" target="_blank" class="test-button">
+        Test Link 1
+      </a>
+
+      <a href="https://perf-test-2.example" target="_blank" class="test-button">
+        Test Link 2
+      </a>
+
+      <a href="https://perf-test-3.example" target="_blank" class="test-button">
+        Test Link 3
+      </a>
+
+      <div style="margin-top: 1.5rem; padding: 1rem; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px; color: #78350f;">
+        <strong>💡 Performance Testing Tips:</strong>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+          <li>Open Chrome DevTools → Console to see detailed timing logs</li>
+          <li>Use Performance tab to record modal opening process</li>
+          <li>Use Memory tab to take heap snapshots before/after 100 iterations</li>
+          <li>Force garbage collection (trash icon) before taking snapshots</li>
+          <li>Look for "Detached HTMLDivElement" growth (indicates memory leak)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let modalCount = 0;
+    let totalTime = 0;
+    let cssTime = 0;
+    let fontTime = 0;
+    let isRunning = false;
+
+    function log(message, type = 'info') {
+      const logContainer = document.getElementById('log-container');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      const timestamp = new Date().toLocaleTimeString();
+      entry.textContent = `[${timestamp}] ${message}`;
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function updateMetrics() {
+      document.getElementById('modal-count').textContent = modalCount;
+
+      if (modalCount > 0) {
+        const avg = (totalTime / modalCount).toFixed(2);
+        document.getElementById('avg-time').textContent = `${avg}ms`;
+
+        if (avg < 200) {
+          document.getElementById('avg-time').className = 'metric-value';
+        } else {
+          document.getElementById('avg-time').className = 'metric-value warning';
+        }
+      }
+
+      if (cssTime > 0) {
+        document.getElementById('css-time').textContent = `${cssTime.toFixed(2)}ms`;
+      }
+
+      // Memory usage (if available)
+      if (performance.memory) {
+        const memMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2);
+        document.getElementById('memory-usage').textContent = `${memMB}MB`;
+      }
+    }
+
+    function updateBenchmarks(modalTime, cssTime, fontTime) {
+      // Modal open time
+      document.getElementById('bench-modal-time').textContent = `${modalTime.toFixed(2)}ms`;
+      const modalStatus = modalTime < 200 ? 'pass' : 'fail';
+      document.getElementById('bench-modal-status').innerHTML =
+        `<span class="status-badge ${modalStatus}">${modalStatus.toUpperCase()}</span>`;
+
+      // CSS injection time
+      if (cssTime > 0) {
+        document.getElementById('bench-css-time').textContent = `${cssTime.toFixed(2)}ms`;
+        const cssStatus = cssTime < 50 ? 'pass' : 'fail';
+        document.getElementById('bench-css-status').innerHTML =
+          `<span class="status-badge ${cssStatus}">${cssStatus.toUpperCase()}</span>`;
+      }
+
+      // Font loading time
+      if (fontTime > 0) {
+        document.getElementById('bench-font-time').textContent = `${fontTime.toFixed(2)}ms`;
+        const fontStatus = fontTime < 150 ? 'pass' : 'fail';
+        document.getElementById('bench-font-status').innerHTML =
+          `<span class="status-badge ${fontStatus}">${fontStatus.toUpperCase()}</span>`;
+      }
+    }
+
+    function setProgress(percent) {
+      document.getElementById('progress').style.width = `${percent}%`;
+    }
+
+    async function openModal() {
+      return new Promise((resolve) => {
+        const start = performance.now();
+        const link = document.createElement('a');
+        link.href = `https://test-${Date.now()}.example`;
+        link.target = '_blank';
+        link.click();
+
+        // Simulate modal close after 500ms
+        setTimeout(() => {
+          const end = performance.now();
+          const time = end - start;
+          modalCount++;
+          totalTime += time;
+          updateMetrics();
+          resolve(time);
+        }, 500);
+      });
+    }
+
+    async function runSingleTest() {
+      if (isRunning) return;
+      isRunning = true;
+
+      log('🚀 Starting single modal test...', 'success');
+      const time = await openModal();
+      log(`✅ Modal opened in ${time.toFixed(2)}ms`, 'success');
+      updateBenchmarks(time, cssTime, fontTime);
+
+      isRunning = false;
+      setProgress(100);
+    }
+
+    async function run10Tests() {
+      if (isRunning) return;
+      isRunning = true;
+
+      log('🚀 Starting 10 iteration test...', 'success');
+      const times = [];
+
+      for (let i = 0; i < 10; i++) {
+        const time = await openModal();
+        times.push(time);
+        setProgress(((i + 1) / 10) * 100);
+        log(`Iteration ${i + 1}/10: ${time.toFixed(2)}ms`);
+      }
+
+      const avg = times.reduce((a, b) => a + b, 0) / times.length;
+      log(`✅ Completed 10 iterations - Average: ${avg.toFixed(2)}ms`, 'success');
+      updateBenchmarks(avg, cssTime, fontTime);
+
+      isRunning = false;
+    }
+
+    async function run50Tests() {
+      if (isRunning) return;
+      isRunning = true;
+
+      log('🚀 Starting 50 iteration test...', 'success');
+      const times = [];
+
+      for (let i = 0; i < 50; i++) {
+        const time = await openModal();
+        times.push(time);
+        setProgress(((i + 1) / 50) * 100);
+
+        if ((i + 1) % 10 === 0) {
+          log(`Progress: ${i + 1}/50 iterations`);
+        }
+      }
+
+      const avg = times.reduce((a, b) => a + b, 0) / times.length;
+      log(`✅ Completed 50 iterations - Average: ${avg.toFixed(2)}ms`, 'success');
+      updateBenchmarks(avg, cssTime, fontTime);
+
+      isRunning = false;
+    }
+
+    async function run100Tests() {
+      if (isRunning) return;
+      isRunning = true;
+
+      log('🚀 Starting 100 iteration memory leak test...', 'warning');
+      log('⚠️ This may take a while - watch memory usage in DevTools', 'warning');
+
+      const initialMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+      const times = [];
+
+      for (let i = 0; i < 100; i++) {
+        const time = await openModal();
+        times.push(time);
+        setProgress(((i + 1) / 100) * 100);
+
+        if ((i + 1) % 20 === 0) {
+          const currentMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+          const memDelta = ((currentMemory - initialMemory) / 1024 / 1024).toFixed(2);
+          log(`Progress: ${i + 1}/100 - Memory delta: ${memDelta}MB`);
+        }
+      }
+
+      const finalMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+      const memoryGrowth = ((finalMemory - initialMemory) / 1024 / 1024).toFixed(2);
+
+      const avg = times.reduce((a, b) => a + b, 0) / times.length;
+      log(`✅ Completed 100 iterations - Average: ${avg.toFixed(2)}ms`, 'success');
+      log(`📊 Memory growth: ${memoryGrowth}MB`, memoryGrowth < 10 ? 'success' : 'error');
+
+      if (memoryGrowth < 10) {
+        log('✅ Memory leak test PASSED - Memory growth is acceptable', 'success');
+        document.getElementById('bench-memory').textContent = `+${memoryGrowth}MB`;
+        document.getElementById('bench-memory-status').innerHTML =
+          '<span class="status-badge pass">PASS</span>';
+      } else {
+        log('❌ Memory leak test FAILED - Excessive memory growth detected', 'error');
+        document.getElementById('bench-memory').textContent = `+${memoryGrowth}MB`;
+        document.getElementById('bench-memory-status').innerHTML =
+          '<span class="status-badge fail">FAIL</span>';
+      }
+
+      updateBenchmarks(avg, cssTime, fontTime);
+      isRunning = false;
+    }
+
+    function clearLogs() {
+      document.getElementById('log-container').innerHTML =
+        '<div class="log-entry">📊 Performance testing console - Logs cleared</div>';
+      setProgress(0);
+    }
+
+    // Log page load
+    console.log('%c⚡ Performance Test Page Loaded', 'background: #3b82f6; color: white; padding: 8px; font-size: 14px; font-weight: bold;');
+    console.log('Use the test buttons to run automated performance benchmarks');
+    console.log('Open DevTools → Performance/Memory tabs for detailed profiling');
+
+    // Update memory usage periodically
+    setInterval(() => {
+      if (performance.memory) {
+        const memMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(2);
+        document.getElementById('memory-usage').textContent = `${memMB}MB`;
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
