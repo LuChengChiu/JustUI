@@ -39,8 +39,8 @@
     "default_title": "OriginalUI"
   },
   "icons": {
-    "16": "icons/icon_16_transparent.png",
-    "48": "icons/icon_48_transparent.png",
-    "128": "icons/icon_128_transparent.png"
+    "16": "icons/logo_16x16.png",
+    "48": "icons/logo_48x48.png",
+    "128": "icons/logo_128x128.png"
   }
 }
