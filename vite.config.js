@@ -68,6 +68,14 @@ const bundleContentScripts = (mode) => ({
           fileName: () => "background.js",
         },
         rollupOptions: {
+          external: [
+            // Note: @eyeo/abp2dnr is NOT external - it must be bundled for browser use
+            /^node:/,
+            'https',
+            'fs',
+            'fs/promises',
+            'path'
+          ],
           output: {
             extend: true,
           },
@@ -97,6 +105,8 @@ export default defineConfig(({ mode }) => ({
         copyFileSync("manifest.json", "dist/manifest.json");
         cpSync("icons", "dist/icons", { recursive: true });
         cpSync("src/data", "dist/data", { recursive: true });
+        // Copy network-blocking data (static rulesets) to match manifest path
+        cpSync("src/scripts/modules/network-blocking/data", "dist/network-blocking/data", { recursive: true });
         // Copy injected-script.js (runs in page world, doesn't need bundling)
         mkdirSync("dist/scripts", { recursive: true });
         copyFileSync(

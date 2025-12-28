@@ -1,0 +1,71 @@
+[
+  {
+    "id": "uBO_001",
+    "trigger": "doubleclick.net",
+    "category": "tracking",
+    "severity": "high",
+    "description": "Primary Google tracking and ad-serving domain.",
+    "resourceTypes": ["xmlhttprequest", "sub_frame"]
+  },
+  {
+    "id": "uBO_002",
+    "trigger": "google-analytics.com",
+    "category": "analytics",
+    "severity": "medium",
+    "description": "Used for behavioral tracking across sites.",
+    "resourceTypes": ["xmlhttprequest", "script"]
+  },
+  {
+    "id": "uBO_003",
+    "trigger": "api.segment.io",
+    "category": "telemetry",
+    "severity": "medium",
+    "description": "SaaS telemetry data collector.",
+    "resourceTypes": ["xmlhttprequest"]
+  },
+  {
+    "id": "uBO_004",
+    "trigger": "coin-hive.com",
+    "category": "malware",
+    "severity": "critical",
+    "description": "Cryptojacking script that consumes CPU power.",
+    "resourceTypes": ["script", "xmlhttprequest"]
+  },
+  {
+    "id": "uBO_005",
+    "trigger": ".*\\.evil-malware-cdn\\.com",
+    "category": "malware",
+    "severity": "critical",
+    "description": "Regex pattern for polymorphic malware subdomains.",
+    "isRegex": true,
+    "resourceTypes": ["main_frame", "sub_frame", "xmlhttprequest"]
+  },
+  {
+    "id": "uBO_006",
+    "trigger": "evil-tracker.org",
+    "type": "domain",
+    "reason": "Known Malware Distributor",
+    "severity": "high"
+  },
+  {
+    "id": "uBO_007",
+    "trigger": "tracking-api.io",
+    "type": "domain",
+    "reason": "Invasive user tracking",
+    "severity": "medium"
+  },
+  {
+    "id": "uBO_008",
+    "trigger": "malicious-redirect.com",
+    "type": "domain",
+    "reason": "Malicious redirect service",
+    "severity": "high"
+  },
+  {
+    "id": "uBO_009",
+    "trigger": "dangerous-analytics.com",
+    "type": "domain",
+    "reason": "Privacy-invasive analytics",
+    "severity": "medium"
+  }
+]

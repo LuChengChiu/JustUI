@@ -5,9 +5,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/build-network-rules.js",
     "build": "vite build --mode production",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
+    "update-adservers": "node scripts/build-network-rules.js",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
@@ -41,6 +43,7 @@
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-env": "^7.28.5",
+    "@eyeo/abp2dnr": "^1.0.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",

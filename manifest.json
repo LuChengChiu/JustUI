@@ -11,6 +11,16 @@
     "declarativeNetRequest",
     "declarativeNetRequestFeedback"
   ],
+  "host_permissions": ["<all_urls>"],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "easylist-adservers",
+        "enabled": true,
+        "path": "network-blocking/data/rulesets/easylist-adservers.json"
+      }
+    ]
+  },
   "background": {
     "service_worker": "scripts/background.js"
   },

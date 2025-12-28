@@ -8,12 +8,94 @@ import {
   safeStorageSetWithValidation,
 } from "./utils/chromeApiSafe.js";
 
+// Network Blocking System Imports
+import { NetworkBlockManager } from './modules/network-blocking/core/network-block-manager.js';
+import { DefaultBlockSource } from './modules/network-blocking/sources/index.js';
+import { DynamicRuleUpdater } from './modules/network-blocking/updaters/dynamic-rule-updater.js';
+import { JsonRuleParser } from './modules/network-blocking/parsers/json-rule-parser.js';
+import { JsonRuleConverter } from './modules/network-blocking/core/json-rule-converter.js';
+import { RULE_SOURCES_CONFIG } from './modules/network-blocking/config/sources.config.js';
+
+// ============================================================================
+// NETWORK BLOCKING SYSTEM
+// ============================================================================
+
+// ============================================================================
+// NETWORK BLOCKING MANAGER INITIALIZATION
+// ============================================================================
+
+// Initialize default block requests source (JSON format - browser-compatible)
+// Note: EasyList sources are static-only due to @eyeo/abp2dnr native dependencies
+const defaultBlockSource = new DefaultBlockSource(
+  RULE_SOURCES_CONFIG.defaultBlocks.name,
+  RULE_SOURCES_CONFIG.defaultBlocks.url,
+  RULE_SOURCES_CONFIG.defaultBlocks.idRange.start,
+  RULE_SOURCES_CONFIG.defaultBlocks.idRange.end,
+  RULE_SOURCES_CONFIG.defaultBlocks.updateInterval
+);
+
+// Create manager for JSON-based dynamic updates (browser-compatible)
+const defaultBlockManager = new NetworkBlockManager(
+  [defaultBlockSource],
+  new DynamicRuleUpdater(),
+  new JsonRuleParser(),
+  new JsonRuleConverter()
+);
+
+/**
+ * Unified control for static EasyList rulesets
+ * NOTE: EasyList rules are pre-converted at build time and loaded as static rulesets
+ * Only defaultBlockRequests use dynamic runtime updates
+ */
+async function updateRulesetStates(enabled) {
+  const staticRulesetIds = ['easylist-adservers'];
+
+  try {
+    if (enabled) {
+      // Enable static rulesets (EasyList adservers)
+      await chrome.declarativeNetRequest.updateEnabledRulesets({
+        enableRulesetIds: staticRulesetIds
+      });
+      console.log('✅ Static rulesets enabled:', staticRulesetIds);
+
+      // NEW: Trigger dynamic rule updates from NetworkBlockManager (JSON rules only)
+      try {
+        await defaultBlockManager.updateAll();
+        console.log('✅ Dynamic NetworkBlockManager rules updated');
+      } catch (error) {
+        console.error('Failed to update dynamic rules via NetworkBlockManager:', error);
+      }
+
+      // Maintain backward compatibility with old blocking system
+      await updateBlockingRules();
+    } else {
+      // Disable static rulesets
+      await chrome.declarativeNetRequest.updateEnabledRulesets({
+        disableRulesetIds: staticRulesetIds
+      });
+
+      // Clear all dynamic rules (IDs 10000-50999)
+      const allDynamicIds = [];
+      for (let id = 10000; id <= 50999; id++) {
+        allDynamicIds.push(id);
+      }
+      await chrome.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: allDynamicIds
+      });
+
+      console.log('🚫 All network blocking disabled');
+    }
+  } catch (error) {
+    console.error('Failed to update ruleset states:', error);
+  }
+}
+
 const REMOTE_RULES_URL =
   "https://raw.githubusercontent.com/LuChengChiu/OriginalUI/main/src/data/defaultRules.json";
 const REMOTE_WHITELIST_URL =
   "https://raw.githubusercontent.com/LuChengChiu/OriginalUI/main/src/data/defaultWhitelist.json";
 const REMOTE_BLOCK_REQUESTS_URL =
-  "https://raw.githubusercontent.com/LuChengChiu/OriginalUI/main/src/data/defaultBlockRequests.json";
+  "https://raw.githubusercontent.com/LuChengChiu/OriginalUI/main/src/network-blocking/data/default-block-requests.json";
 
 // Fetch default rules from remote URL with fallback to local file
 async function fetchDefaultRules() {
@@ -97,7 +179,7 @@ async function fetchDefaultBlockRequests() {
   // Fallback to local default block requests
   try {
     const localResponse = await fetch(
-      chrome.runtime.getURL("data/defaultBlockRequests.json")
+      chrome.runtime.getURL("network-blocking/data/default-block-requests.json")
     );
     const localBlockRequests = await localResponse.json();
     console.log("Using local default block requests", localBlockRequests);
@@ -294,6 +376,7 @@ chrome.runtime.onInstalled.addListener(async () => {
       "navigationStats",
       "blockRequestList",
       "requestBlockingEnabled",
+      "defaultBlockRequestEnabled",
     ]);
     const updates = {};
 
@@ -311,6 +394,8 @@ chrome.runtime.onInstalled.addListener(async () => {
       updates.popUnderProtectionEnabled = true;
     if (result.scriptAnalysisEnabled === undefined)
       updates.scriptAnalysisEnabled = true;
+    if (result.defaultBlockRequestEnabled === undefined)
+      updates.defaultBlockRequestEnabled = true;
 
     // Smart dependency: Ensure Script Analysis is enabled when Navigation Guardian is active
     if (
@@ -359,7 +444,12 @@ chrome.runtime.onInstalled.addListener(async () => {
           "OriginalUI Installation: Successfully saved all settings:",
           Object.keys(updates)
         );
-        // Initialize request blocking rules after storage is set
+
+        // Initialize network blocking rulesets (EasyList + defaultBlockRequests)
+        const blockingEnabled = result.defaultBlockRequestEnabled !== false;
+        await updateRulesetStates(blockingEnabled);
+
+        // Maintain backward compatibility with old blocking system
         updateBlockingRules();
       } catch (error) {
         console.error(
@@ -408,6 +498,12 @@ chrome.runtime.onInstalled.addListener(async () => {
   chrome.alarms.create("updateDefaults", {
     delayInMinutes: 1440,
     periodInMinutes: 1440,
+  });
+
+  // NEW: Daily default block requests updates (JSON-based)
+  chrome.alarms.create("updateDefaultBlocksDaily", {
+    delayInMinutes: 1440,       // 24 hours
+    periodInMinutes: 1440
   });
 });
 
@@ -469,6 +565,16 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         "OriginalUI: Failed to update defaults during scheduled alarm:",
         error
       );
+    }
+  }
+
+  // NEW: Daily default blocks updates (JSON-based)
+  if (alarm.name === "updateDefaultBlocksDaily") {
+    try {
+      console.log('🔄 Running daily default blocks update...');
+      await defaultBlockManager.updateAll();
+    } catch (error) {
+      console.error('OriginalUI: Failed to update default blocks:', error);
     }
   }
 });
@@ -1000,6 +1106,18 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     // Update blocking rules if request blocking settings changed
     if (changes.blockRequestList || changes.requestBlockingEnabled) {
       updateBlockingRules();
+    }
+
+    // NEW: React to defaultBlockRequestEnabled toggle
+    if (changes.defaultBlockRequestEnabled) {
+      const enabled = changes.defaultBlockRequestEnabled.newValue;
+      (async () => {
+        try {
+          await updateRulesetStates(enabled);
+        } catch (error) {
+          console.error('Failed to update ruleset states on toggle:', error);
+        }
+      })();
     }
 
     // Notify all content scripts of storage changes

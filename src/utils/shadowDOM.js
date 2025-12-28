@@ -54,8 +54,8 @@ let cachedFonts = null;
  */
 export function createShadowDOMContainer() {
   // Create light DOM host element with fixed positioning
-  const container = document.createElement('div');
-  container.id = 'justui-external-link-modal-root';
+  const container = document.createElement("div");
+  container.id = "originalui-external-link-modal-root";
 
   // Set critical inline styles for positioning and layering
   // pointer-events: none allows clicks to pass through to Shadow DOM content
@@ -71,12 +71,12 @@ export function createShadowDOMContainer() {
 
   // Attach Shadow DOM with open mode for debugging and DevTools compatibility
   // Open mode allows external JavaScript to access Shadow DOM via element.shadowRoot
-  const shadowRoot = container.attachShadow({ mode: 'open' });
+  const shadowRoot = container.attachShadow({ mode: "open" });
 
   // Create portal target div inside Shadow DOM
   // This is where React will render the modal content
-  const portalTarget = document.createElement('div');
-  portalTarget.className = 'shadow-content';
+  const portalTarget = document.createElement("div");
+  portalTarget.className = "shadow-content";
 
   // Enable pointer events on the portal target (clicks will work normally)
   portalTarget.style.cssText = `
@@ -90,12 +90,12 @@ export function createShadowDOMContainer() {
   // Append container to document body
   document.body.appendChild(container);
 
-  console.log('OriginalUI: Created Shadow DOM container with portal target');
+  console.log("OriginalUI: Created Shadow DOM container with portal target");
 
   return {
     container,
     shadowRoot,
-    portalTarget
+    portalTarget,
   };
 }
 
@@ -123,22 +123,22 @@ export function createShadowDOMContainer() {
  * // Custom CSS file
  * const customCSS = await fetchCSSContent('styles/custom.css');
  */
-export async function fetchCSSContent(cssPath = 'index.css') {
+export async function fetchCSSContent(cssPath = "index.css") {
   // Return cached CSS if available
   if (cachedCSS) {
-    console.log('OriginalUI: Using cached CSS content');
+    console.log("OriginalUI: Using cached CSS content");
     return cachedCSS;
   }
 
   try {
     // Validate Chrome runtime availability
     if (!chrome?.runtime?.getURL) {
-      throw new Error('Chrome runtime API unavailable');
+      throw new Error("Chrome runtime API unavailable");
     }
 
     // Get CSS file URL from Chrome extension
     const cssURL = chrome.runtime.getURL(cssPath);
-    console.log('OriginalUI: Fetching CSS from', cssURL);
+    console.log("OriginalUI: Fetching CSS from", cssURL);
 
     // Fetch CSS content
     const startTime = performance.now();
@@ -151,12 +151,15 @@ export async function fetchCSSContent(cssPath = 'index.css') {
     cachedCSS = await response.text();
     const endTime = performance.now();
 
-    console.log(`OriginalUI: Fetched ${cachedCSS.length} bytes of CSS in ${(endTime - startTime).toFixed(2)}ms`);
+    console.log(
+      `OriginalUI: Fetched ${cachedCSS.length} bytes of CSS in ${(
+        endTime - startTime
+      ).toFixed(2)}ms`
+    );
 
     return cachedCSS;
-
   } catch (error) {
-    console.error('OriginalUI: Failed to fetch CSS content:', error);
+    console.error("OriginalUI: Failed to fetch CSS content:", error);
     throw error;
   }
 }
@@ -189,33 +192,36 @@ export async function fetchCSSContent(cssPath = 'index.css') {
  */
 export function injectCSSIntoShadow(shadowRoot, cssContent) {
   if (!shadowRoot || !(shadowRoot instanceof ShadowRoot)) {
-    throw new Error('Invalid Shadow DOM root provided');
+    throw new Error("Invalid Shadow DOM root provided");
   }
 
-  if (typeof cssContent !== 'string' || cssContent.length === 0) {
-    throw new Error('CSS content must be a non-empty string');
+  if (typeof cssContent !== "string" || cssContent.length === 0) {
+    throw new Error("CSS content must be a non-empty string");
   }
 
   try {
     const startTime = performance.now();
 
     // Create style element
-    const styleElement = document.createElement('style');
+    const styleElement = document.createElement("style");
     styleElement.textContent = cssContent;
 
     // Add identifier for debugging
-    styleElement.setAttribute('data-justui-style', 'tailwind');
+    styleElement.setAttribute("data-justui-style", "tailwind");
 
     // Inject into Shadow DOM
     shadowRoot.appendChild(styleElement);
 
     const endTime = performance.now();
-    console.log(`OriginalUI: Injected ${cssContent.length} bytes of CSS into Shadow DOM in ${(endTime - startTime).toFixed(2)}ms`);
+    console.log(
+      `OriginalUI: Injected ${
+        cssContent.length
+      } bytes of CSS into Shadow DOM in ${(endTime - startTime).toFixed(2)}ms`
+    );
 
     return styleElement;
-
   } catch (error) {
-    console.error('OriginalUI: Failed to inject CSS into Shadow DOM:', error);
+    console.error("OriginalUI: Failed to inject CSS into Shadow DOM:", error);
     throw error;
   }
 }
@@ -259,7 +265,7 @@ export async function injectGoogleFontsIntoShadow(shadowRoot) {
 
   // If fonts already injected globally, skip
   if (fontsInjectedGlobally) {
-    console.log('OriginalUI: Google Fonts already loaded globally');
+    console.log("OriginalUI: Google Fonts already loaded globally");
     return true;
   }
 
@@ -267,10 +273,13 @@ export async function injectGoogleFontsIntoShadow(shadowRoot) {
     const startTime = performance.now();
 
     // Google Fonts URL for Days One and Barlow
-    const fontURL = 'https://fonts.googleapis.com/css2?family=Days+One&family=Barlow:wght@100;200;300;400;500;600;700;800;900&display=swap';
+    const fontURL =
+      "https://fonts.googleapis.com/css2?family=Days+One&family=Barlow:wght@100;200;300;400;500;600;700;800;900&display=swap";
 
-    console.log('OriginalUI: Loading Google Fonts globally for Shadow DOM compatibility');
-    console.log('OriginalUI: Fetching from', fontURL);
+    console.log(
+      "OriginalUI: Loading Google Fonts globally for Shadow DOM compatibility"
+    );
+    console.log("OriginalUI: Fetching from", fontURL);
 
     // Fetch Google Fonts CSS
     const response = await fetch(fontURL);
@@ -281,12 +290,16 @@ export async function injectGoogleFontsIntoShadow(shadowRoot) {
 
     const fontCSS = await response.text();
 
-    console.log('OriginalUI: Fetched', fontCSS.length, 'bytes of Google Fonts CSS');
+    console.log(
+      "OriginalUI: Fetched",
+      fontCSS.length,
+      "bytes of Google Fonts CSS"
+    );
 
     // Inject into document head (not Shadow DOM) to make fonts globally available
-    const styleElement = document.createElement('style');
+    const styleElement = document.createElement("style");
     styleElement.textContent = fontCSS;
-    styleElement.setAttribute('data-justui-fonts', 'google-fonts-global');
+    styleElement.setAttribute("data-justui-fonts", "google-fonts-global");
 
     // Inject into document head
     document.head.appendChild(styleElement);
@@ -296,26 +309,32 @@ export async function injectGoogleFontsIntoShadow(shadowRoot) {
 
     // Verify fonts loaded
     const daysOneLoaded = Array.from(document.fonts).some(
-      f => f.family.includes('Days One') && f.status === 'loaded'
+      (f) => f.family.includes("Days One") && f.status === "loaded"
     );
     const barlowLoaded = Array.from(document.fonts).some(
-      f => f.family.includes('Barlow') && f.status === 'loaded'
+      (f) => f.family.includes("Barlow") && f.status === "loaded"
     );
 
     const endTime = performance.now();
-    console.log(`OriginalUI: Loaded Google Fonts globally in ${(endTime - startTime).toFixed(2)}ms`);
-    console.log('OriginalUI: Font availability:', {
-      'Days One': daysOneLoaded ? '✅ loaded' : '❌ failed',
-      'Barlow': barlowLoaded ? '✅ loaded' : '❌ failed'
+    console.log(
+      `OriginalUI: Loaded Google Fonts globally in ${(
+        endTime - startTime
+      ).toFixed(2)}ms`
+    );
+    console.log("OriginalUI: Font availability:", {
+      "Days One": daysOneLoaded ? "✅ loaded" : "❌ failed",
+      Barlow: barlowLoaded ? "✅ loaded" : "❌ failed",
     });
 
     // Mark as injected so we don't do it again
     fontsInjectedGlobally = true;
 
     return { daysOneLoaded, barlowLoaded };
-
   } catch (error) {
-    console.error('OriginalUI: Failed to load Google Fonts globally (falling back to system fonts):', error);
+    console.error(
+      "OriginalUI: Failed to load Google Fonts globally (falling back to system fonts):",
+      error
+    );
 
     // Font loading is non-critical - continue without custom fonts
     // System font stack will be used as fallback
@@ -359,7 +378,7 @@ export async function injectGoogleFontsIntoShadow(shadowRoot) {
  * // With custom CSS
  * const setup = await createShadowDOMWithStyles('custom/theme.css');
  */
-export async function createShadowDOMWithStyles(cssPath = 'index.css') {
+export async function createShadowDOMWithStyles(cssPath = "index.css") {
   try {
     const totalStartTime = performance.now();
 
@@ -372,20 +391,26 @@ export async function createShadowDOMWithStyles(cssPath = 'index.css') {
     // Step 3: Inject CSS and fonts in parallel for performance
     await Promise.all([
       injectCSSIntoShadow(shadowRoot, cssContent),
-      injectGoogleFontsIntoShadow(shadowRoot)
+      injectGoogleFontsIntoShadow(shadowRoot),
     ]);
 
     const totalEndTime = performance.now();
-    console.log(`OriginalUI: Complete Shadow DOM setup finished in ${(totalEndTime - totalStartTime).toFixed(2)}ms`);
+    console.log(
+      `OriginalUI: Complete Shadow DOM setup finished in ${(
+        totalEndTime - totalStartTime
+      ).toFixed(2)}ms`
+    );
 
     return {
       container,
       shadowRoot,
-      portalTarget
+      portalTarget,
     };
-
   } catch (error) {
-    console.error('OriginalUI: Failed to create Shadow DOM with styles:', error);
+    console.error(
+      "OriginalUI: Failed to create Shadow DOM with styles:",
+      error
+    );
     throw error;
   }
 }
@@ -406,5 +431,5 @@ export async function createShadowDOMWithStyles(cssPath = 'index.css') {
 export function clearShadowDOMCache() {
   cachedCSS = null;
   cachedFonts = null;
-  console.log('OriginalUI: Cleared Shadow DOM CSS and font caches');
+  console.log("OriginalUI: Cleared Shadow DOM CSS and font caches");
 }

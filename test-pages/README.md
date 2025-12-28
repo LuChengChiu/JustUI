@@ -5,15 +5,18 @@ Comprehensive test pages for verifying the Navigation Guardian modal's Shadow DO
 ## 🎯 Test Pages
 
 ### 1. CSS Isolation Test (`css-isolation-test.html`)
+
 **Purpose**: Verify complete CSS isolation from host page styles
 
 **What it tests**:
+
 - Protection against aggressive CSS resets (`* { padding: 0 !important; }`)
 - Immunity to page-level style overrides
 - Proper spacing, colors, and fonts within Shadow DOM
 - Border-radius, box-shadow, and backdrop effects
 
 **Expected Results**:
+
 - ✅ Modal has proper padding (NOT zero)
 - ✅ Modal background is white (NOT red from page CSS)
 - ✅ Buttons have normal font size and colors (NOT 8px green)
@@ -24,9 +27,11 @@ Comprehensive test pages for verifying the Navigation Guardian modal's Shadow DO
 ---
 
 ### 2. Functional Test (`functional-test.html`)
+
 **Purpose**: Verify all interactive features work correctly
 
 **What it tests**:
+
 - Keyboard shortcuts (ESC, Enter)
 - Click handlers (Allow, Block, outside click)
 - Focus management and tab trapping
@@ -36,6 +41,7 @@ Comprehensive test pages for verifying the Navigation Guardian modal's Shadow DO
 - Modal queueing (duplicate prevention)
 
 **Expected Results**:
+
 - ✅ ESC key closes modal
 - ✅ Enter key triggers Allow action
 - ✅ Click outside closes modal
@@ -49,9 +55,11 @@ Comprehensive test pages for verifying the Navigation Guardian modal's Shadow DO
 ---
 
 ### 3. Performance Test (`performance-test.html`)
+
 **Purpose**: Measure performance and detect memory leaks
 
 **What it tests**:
+
 - Modal open time benchmarks
 - CSS injection performance
 - Font loading performance
@@ -59,6 +67,7 @@ Comprehensive test pages for verifying the Navigation Guardian modal's Shadow DO
 - Memory leak detection
 
 **Expected Results**:
+
 - ✅ Modal opens in <200ms
 - ✅ CSS injection <50ms
 - ✅ Font loading <150ms
@@ -70,11 +79,13 @@ Comprehensive test pages for verifying the Navigation Guardian modal's Shadow DO
 ## 🚀 How to Run Tests
 
 ### Step 1: Build the Extension
+
 ```bash
 npm run build
 ```
 
 ### Step 2: Load Extension in Chrome
+
 1. Open Chrome and navigate to `chrome://extensions`
 2. Enable "Developer mode" (toggle in top-right)
 3. Click "Load unpacked"
@@ -83,6 +94,7 @@ npm run build
 ### Step 3: Run Test Pages
 
 **Option A: Open test pages directly**
+
 ```bash
 # Open in your default browser
 open test-pages/css-isolation-test.html
@@ -91,6 +103,7 @@ open test-pages/performance-test.html
 ```
 
 **Option B: Use a local server (recommended)**
+
 ```bash
 # Using Python
 cd test-pages
@@ -103,15 +116,18 @@ python3 -m http.server 8000
 ```
 
 **Option C: Use Vite preview**
+
 ```bash
 npm run preview
 # Then navigate to the test pages
 ```
 
 ### Step 4: Open Chrome DevTools
+
 Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 
 **Recommended tabs**:
+
 - **Console**: See performance metrics and logs
 - **Elements**: Inspect Shadow DOM structure
 - **Performance**: Profile modal opening process
@@ -126,8 +142,9 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 1. Open `css-isolation-test.html`
 2. Click any test link to trigger the modal
 3. **Inspect the modal**:
+
    - Right-click the modal → Inspect Element
-   - Look for `<div id="justui-external-link-modal-root">`
+   - Look for `<div id="originalui-external-link-modal-root">`
    - Expand to find `#shadow-root`
    - Verify you see:
      - `<style data-justui-style="tailwind">` (~43KB CSS)
@@ -135,6 +152,7 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
      - `<div class="shadow-content">` (portal target)
 
 4. **Verify visual appearance**:
+
    - Modal should have proper spacing and padding
    - White background (not red)
    - Normal button sizes and colors (not 8px green)
@@ -155,6 +173,7 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 
 1. Open `functional-test.html`
 2. Work through the **interactive checklist**:
+
    - [ ] Click test link → Modal appears
    - [ ] Press ESC → Modal closes
    - [ ] Click test link → Press Enter → Navigation allowed
@@ -165,6 +184,7 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
    - [ ] Modal appears above green high-z-index box
 
 3. **Test special scenarios**:
+
    - Click "Rapid Click Test" → Only one modal should appear
    - Click suspicious URLs → Threat details should display
    - Test pop-under simulation → "POP-UNDER" badge shows
@@ -179,12 +199,14 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 
 1. Open `performance-test.html`
 2. **Run automated benchmarks**:
+
    - Click "Single Modal Test" → Check timing
    - Click "10 Iterations Test" → Average should be <200ms
    - Click "50 Iterations Test" → Monitor performance consistency
    - Click "100 Iterations (Memory Leak Test)" → Watch memory growth
 
 3. **Review benchmark table**:
+
    - All rows should show "PASS" status (green badge)
    - Modal Open Time: <200ms ✅
    - CSS Injection Time: <50ms ✅
@@ -192,6 +214,7 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
    - Memory Leak Test: Stable after 100 cycles ✅
 
 4. **Memory leak detection**:
+
    - Open DevTools → Memory tab
    - Click "Take snapshot" before test
    - Run 100 iterations test
@@ -218,6 +241,7 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 ## 📊 Success Criteria
 
 ### CSS Isolation (CRITICAL)
+
 - ✅ Modal immune to `* { padding: 0 !important; }`
 - ✅ Modal immune to page CSS resets
 - ✅ Proper spacing maintained on all pages
@@ -225,6 +249,7 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 - ✅ CSS and fonts loaded inside `#shadow-root`
 
 ### Functionality
+
 - ✅ All keyboard shortcuts work
 - ✅ All button interactions work
 - ✅ Focus management correct
@@ -233,6 +258,7 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 - ✅ Statistics tracking works
 
 ### Performance
+
 - ✅ Modal opens in <200ms
 - ✅ CSS injection <50ms
 - ✅ Font loading <150ms
@@ -244,13 +270,16 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 ## 🐛 Troubleshooting
 
 ### Modal doesn't appear
+
 **Check**:
+
 - Extension is loaded and active in `chrome://extensions`
 - No console errors (red messages)
 - Content script injected (check DevTools → Sources)
 - `index.css` accessible via `chrome.runtime.getURL()`
 
 **Solution**:
+
 - Reload extension
 - Reload test page
 - Check manifest.json has `index.css` in `web_accessible_resources`
@@ -258,13 +287,16 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 ---
 
 ### Styles are broken
+
 **Check**:
+
 - Shadow DOM structure in Elements tab
 - `<style>` tags present inside `#shadow-root`
 - CSS content length (~43KB)
 - No CSP violations in console
 
 **Solution**:
+
 - Inspect `#shadow-root` in DevTools
 - Verify `data-justui-style="tailwind"` attribute
 - Check Network tab for CSS load errors
@@ -273,12 +305,15 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 ---
 
 ### Fonts don't load
+
 **Check**:
+
 - Network tab for Google Fonts request
 - CORS errors in console
 - Internet connection
 
 **Solution**:
+
 - Fonts will fallback to system fonts (acceptable)
 - Check `injectGoogleFontsIntoShadow()` logs
 - Verify Google Fonts URL is accessible
@@ -286,12 +321,15 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 ---
 
 ### Performance is slow (>200ms)
+
 **Check**:
+
 - Console performance logs
 - Network tab for slow CSS fetch
 - Chrome DevTools Performance profile
 
 **Solution**:
+
 - CSS should be cached after first load
 - Check for network throttling
 - Disable other extensions
@@ -300,12 +338,15 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 ---
 
 ### Memory leaks detected
+
 **Check**:
+
 - DevTools → Memory → Heap snapshots
 - Look for "Detached HTMLDivElement" growth
 - Check if containers are being removed
 
 **Solution**:
+
 - Verify `cleanup()` calls `container.remove()`
 - Check for event listener cleanup
 - Test with fewer iterations
@@ -325,12 +366,14 @@ After running all tests, use this template to document results:
 **Extension Version**: 1.0.0
 
 ## CSS Isolation Test
+
 - [ ] Passed - Modal styling intact despite aggressive page CSS
 - [ ] Shadow DOM structure verified in DevTools
 - [ ] CSS and fonts loaded correctly
 - **Notes**: [Any issues or observations]
 
 ## Functional Test
+
 - [ ] All keyboard shortcuts working
 - [ ] All button interactions working
 - [ ] Focus management correct
@@ -339,6 +382,7 @@ After running all tests, use this template to document results:
 - **Notes**: [Any issues or observations]
 
 ## Performance Test
+
 - [ ] Modal open time: [X]ms (target: <200ms)
 - [ ] CSS injection: [X]ms (target: <50ms)
 - [ ] Font loading: [X]ms (target: <150ms)
@@ -347,6 +391,7 @@ After running all tests, use this template to document results:
 - **Notes**: [Any issues or observations]
 
 ## Overall Result
+
 - [ ] ✅ PASS - All tests passed
 - [ ] ⚠️ PARTIAL - Some issues found
 - [ ] ❌ FAIL - Critical issues found

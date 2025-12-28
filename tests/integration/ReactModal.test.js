@@ -99,7 +99,7 @@ describe('React Modal Integration Tests', () => {
     vi.clearAllTimers()
     
     // Clean up any remaining modal containers
-    const containers = document.querySelectorAll('#justui-external-link-modal-root')
+    const containers = document.querySelectorAll('#originalui-external-link-modal-root')
     containers.forEach(container => container.remove())
   })
 
@@ -449,7 +449,7 @@ describe('React Modal Integration Tests', () => {
       // Setup: React modal with cleanup
       const mockShowExternalLinkModal = vi.fn().mockImplementation(async (config) => {
         const container = document.createElement('div')
-        container.id = 'justui-external-link-modal-root'
+        container.id = 'originalui-external-link-modal-root'
         document.body.appendChild(container)
         
         mockRoot._container = container
@@ -486,7 +486,7 @@ describe('React Modal Integration Tests', () => {
       expect(mockRoot.unmount).toHaveBeenCalled()
       
       // Verify: No leftover containers
-      const containers = document.querySelectorAll('#justui-external-link-modal-root')
+      const containers = document.querySelectorAll('#originalui-external-link-modal-root')
       expect(containers.length).toBe(0)
     })
 
