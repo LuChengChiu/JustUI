@@ -10,10 +10,11 @@ import {
 
 // Network Blocking System Imports
 import { NetworkBlockManager } from './modules/network-blocking/core/network-block-manager.js';
-import { DefaultBlockSource } from './modules/network-blocking/sources/index.js';
+import { DefaultBlockSource, CustomPatternSource } from './modules/network-blocking/sources/index.js';
 import { DynamicRuleUpdater } from './modules/network-blocking/updaters/dynamic-rule-updater.js';
 import { JsonRuleParser } from './modules/network-blocking/parsers/json-rule-parser.js';
 import { JsonRuleConverter } from './modules/network-blocking/core/json-rule-converter.js';
+import { BudgetCoordinator } from './modules/network-blocking/core/budget-coordinator.js';
 import { RULE_SOURCES_CONFIG } from './modules/network-blocking/config/sources.config.js';
 
 // ============================================================================
@@ -24,7 +25,15 @@ import { RULE_SOURCES_CONFIG } from './modules/network-blocking/config/sources.c
 // NETWORK BLOCKING MANAGER INITIALIZATION
 // ============================================================================
 
-// Initialize default block requests source (JSON format - browser-compatible)
+// Initialize custom pattern source (Priority 1 - Highest)
+const customPatternSource = new CustomPatternSource(
+  RULE_SOURCES_CONFIG.customPatterns.name,
+  RULE_SOURCES_CONFIG.customPatterns.idRange.start,
+  RULE_SOURCES_CONFIG.customPatterns.idRange.end,
+  RULE_SOURCES_CONFIG.customPatterns.updateInterval
+);
+
+// Initialize default block requests source (Priority 2)
 // Note: EasyList sources are static-only due to @eyeo/abp2dnr native dependencies
 const defaultBlockSource = new DefaultBlockSource(
   RULE_SOURCES_CONFIG.defaultBlocks.name,
@@ -34,12 +43,16 @@ const defaultBlockSource = new DefaultBlockSource(
   RULE_SOURCES_CONFIG.defaultBlocks.updateInterval
 );
 
-// Create manager for JSON-based dynamic updates (browser-compatible)
+// Create budget coordinator (30,000 dynamic rule limit)
+const budgetCoordinator = new BudgetCoordinator(30000);
+
+// Create manager with priority-ordered sources and budget coordination
 const defaultBlockManager = new NetworkBlockManager(
-  [defaultBlockSource],
+  [customPatternSource, defaultBlockSource], // Priority order: custom > default
   new DynamicRuleUpdater(),
   new JsonRuleParser(),
-  new JsonRuleConverter()
+  new JsonRuleConverter(),
+  budgetCoordinator
 );
 
 /**
@@ -74,9 +87,9 @@ async function updateRulesetStates(enabled) {
         disableRulesetIds: staticRulesetIds
       });
 
-      // Clear all dynamic rules (IDs 10000-50999)
+      // Clear all dynamic rules (IDs 10000-64999 - expanded for custom patterns)
       const allDynamicIds = [];
-      for (let id = 10000; id <= 50999; id++) {
+      for (let id = 10000; id <= 64999; id++) {
         allDynamicIds.push(id);
       }
       await chrome.declarativeNetRequest.updateDynamicRules({
@@ -377,6 +390,7 @@ chrome.runtime.onInstalled.addListener(async () => {
       "blockRequestList",
       "requestBlockingEnabled",
       "defaultBlockRequestEnabled",
+      "networkBlockPatterns",
     ]);
     const updates = {};
 
@@ -420,6 +434,8 @@ chrome.runtime.onInstalled.addListener(async () => {
       updates.blockRequestList = defaultBlockRequests;
     if (result.requestBlockingEnabled === undefined)
       updates.requestBlockingEnabled = true;
+    if (!result.networkBlockPatterns)
+      updates.networkBlockPatterns = [];
 
     // Always update default rules from remote
     updates.defaultRules = defaultRules;
@@ -1119,8 +1135,23 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
         }
       })();
     }
+  }
 
-    // Notify all content scripts of storage changes
+  // Handle networkBlockPatterns changes (stored in sync)
+  if (namespace === "sync" && changes.networkBlockPatterns) {
+    console.log('🔄 Custom patterns updated, refreshing rules...');
+    (async () => {
+      try {
+        await defaultBlockManager.updateSource(customPatternSource);
+        console.log('✅ Custom patterns updated successfully');
+      } catch (error) {
+        console.error('Failed to update custom patterns:', error);
+      }
+    })();
+  }
+
+  // Notify all content scripts of storage changes (for local changes)
+  if (namespace === "local") {
     chrome.tabs.query({}, (tabs) => {
       tabs.forEach((tab) => {
         if (tab.url && tab.url.startsWith("http")) {

@@ -3,7 +3,7 @@
  * Prevents malicious overlays from intercepting user clicks
  */
 
-import { MAX_Z_INDEX, HIGH_Z_INDEX_THRESHOLD } from "../constants.js";
+import { MAX_Z_INDEX } from "../constants.js";
 export class ClickHijackingProtector {
   constructor() {
     this.isActive = false;
@@ -33,7 +33,7 @@ export class ClickHijackingProtector {
    */
   cleanup() {
     this.isActive = false;
-    
+
     // Remove all tracked event listeners
     this.eventListeners.forEach(({ element, type, handler, options }) => {
       try {
@@ -42,11 +42,11 @@ export class ClickHijackingProtector {
         console.warn(`OriginalUI: Error removing ${type} listener:`, error);
       }
     });
-    
+
     // Clear the listeners array
     this.eventListeners = [];
     this.capturedClicks.clear();
-    
+
     console.log("OriginalUI: Click hijacking protection cleaned up");
   }
 
@@ -94,7 +94,7 @@ export class ClickHijackingProtector {
       element: document,
       type: "click",
       handler: clickHandler,
-      options: clickOptions
+      options: clickOptions,
     });
 
     // Additional protection against pointer events
@@ -112,7 +112,7 @@ export class ClickHijackingProtector {
       const element = event.target;
 
       // Whitelist: Allow clicks on Navigation Guardian modal
-      const modalRoot = element.closest('#justui-external-link-modal-root');
+      const modalRoot = element.closest("#originalui-external-link-modal-root");
       if (modalRoot) {
         return true; // Allow click - this is our own modal
       }
@@ -121,67 +121,43 @@ export class ClickHijackingProtector {
       const suspiciousFactors = [];
 
       // Check if clicking on invisible or suspicious elements
-      const computedStyle = window.getComputedStyle(element);
+      const {
+        opacity,
+        visibility,
+        display,
+        position,
+        zIndex: rawZIndex,
+        ...computedStyleProps
+      } = window.getComputedStyle(element);
       const isInvisible =
-        computedStyle.opacity === "0" ||
-        computedStyle.visibility === "hidden" ||
-        computedStyle.display === "none";
+        opacity === "0" || visibility === "hidden" || display === "none";
 
       if (isInvisible) {
         suspiciousFactors.push("invisible_element");
       }
 
       // Check for suspicious z-index (like the iframe overlays)
-      const zIndex = parseInt(computedStyle.zIndex);
-      if (zIndex > HIGH_Z_INDEX_THRESHOLD) {
+      const zIndex = parseInt(rawZIndex);
+      if (zIndex > MAX_Z_INDEX) {
         suspiciousFactors.push("high_z_index");
       }
 
+      const isFixed = position === "fixed";
+      if (
+        (isFixed || position === "absolute") &&
+        computedStyleProps.top === "0px" &&
+        computedStyleProps.left === "0px"
+      ) {
+        suspiciousFactors.push("absolute_overlay");
+      }
+
       // Check for suspicious positioning
-      const isFixed = computedStyle.position === "fixed";
       const coversFullScreen =
         element.offsetWidth >= window.innerWidth * 0.8 &&
         element.offsetHeight >= window.innerHeight * 0.8;
 
-      if (isFixed && coversFullScreen) {
+      if (position === "fixed" && coversFullScreen) {
         suspiciousFactors.push("fullscreen_overlay");
-      }
-
-      // Check element attributes for ad-related patterns
-      const suspiciousAttributes = [
-        "data-ad",
-        "data-click-url",
-        "data-redirect",
-        "data-popup",
-        "data-popunder",
-      ];
-
-      const hasSuspiciousAttrs = suspiciousAttributes.some(
-        (attr) => element.hasAttribute(attr) || element.closest(`[${attr}]`)
-      );
-
-      if (hasSuspiciousAttrs) {
-        suspiciousFactors.push("suspicious_attributes");
-      }
-
-      // Check if element contains ad-related URLs in href or data attributes
-      const elementHTML = element.outerHTML.toLowerCase();
-      const adUrlPatterns = [
-        "adexchangeclear.com",
-        "doubleclick.net",
-        "googlesyndication.com",
-        "param_4=",
-        "param_5=",
-        "clicktracking",
-        "redirect.php",
-      ];
-
-      const hasAdUrls = adUrlPatterns.some((pattern) =>
-        elementHTML.includes(pattern)
-      );
-
-      if (hasAdUrls) {
-        suspiciousFactors.push("ad_urls");
       }
 
       // If multiple suspicious factors, likely a malicious click
@@ -199,23 +175,13 @@ export class ClickHijackingProtector {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
-
-        // Show brief notification
-        try {
-          console.warn(
-            "🛡️ OriginalUI blocked a suspicious click (likely ad/malware)"
-          );
-        } catch (e) {
-          /* ignore */
-        }
-
+        console.warn("🛡️ OriginalUI blocked a suspicious click (likely ad)");
         return false;
       }
     } catch (error) {
       console.warn("OriginalUI: Error in advanced click protection:", error);
     }
 
-    // Allow the click to proceed if not suspicious
     return true;
   }
 
@@ -251,7 +217,7 @@ export class ClickHijackingProtector {
         element: document,
         type: eventType,
         handler: handler,
-        options: options
+        options: options,
       });
     });
   }

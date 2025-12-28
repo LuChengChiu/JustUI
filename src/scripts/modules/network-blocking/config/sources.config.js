@@ -2,6 +2,13 @@
  * Centralized configuration for all rule sources (DRY principle)
  */
 export const RULE_SOURCES_CONFIG = {
+  customPatterns: {
+    name: "Custom User Patterns",
+    idRange: { start: 60000, end: 64999 },
+    updateInterval: 0, // Manual updates only
+    updateType: "dynamic",
+  },
+
   easylist: {
     thirdparty: {
       name: "EasyList Thirdparty",
