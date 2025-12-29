@@ -205,14 +205,6 @@ export class MemoryMonitor {
       {
         name: 'ElementRemover',
         check: () => this.controller.constructor.getStats?.() || {}
-      },
-      {
-        name: 'ElementClassifier', 
-        check: () => this.controller.elementClassifier?.getStats?.() || {}
-      },
-      {
-        name: 'PerformanceTracker',
-        check: () => this.controller.performanceTracker?.getHybridSummary?.() || {}
       }
     ];
     

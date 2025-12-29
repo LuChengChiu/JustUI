@@ -143,7 +143,6 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 - **NavigationGuardian**: Cross-origin navigation interception with user confirmation modals
 - **ClickHijackingProtector**: Advanced click analysis and suspicious overlay detection
 - **ElementRemover**: DOM element removal with multiple strategies (hide, remove, neutralize)
-- **PerformanceTracker**: Adaptive batch sizing for optimal pattern detection performance
 - **RequestBlockingProtector**: Request interception and blocking capabilities
 - **SuspiciousElementDetector**: Advanced suspicious element detection algorithms
 - **CleanupRegistry**: Centralized cleanup management for memory leak prevention
@@ -251,12 +250,8 @@ src/scripts/
 │   │   └── NavigationGuardian.original.js // Original monolithic version (backup)
 │   ├── ClickHijackingProtector.js     // Click analysis and overlay detection
 │   ├── ElementRemover.js              // DOM manipulation strategies
-│   ├── ElementClassifier.js           // Element classification for hybrid processing
-│   ├── HybridProcessor.js             // Dual-strategy processing orchestrator
 │   ├── MemoryMonitor.js               // Memory leak detection and monitoring
-│   ├── SnapshotManager.js             // Batch geometry capture for layout optimization
 │   ├── MutationProtector.js           // DOM change monitoring
-│   ├── PerformanceTracker.js          // Adaptive batch sizing for pattern detection
 │   ├── RequestBlockingProtector.js    // Request interception and blocking
 │   ├── SuspiciousElementDetector.js   // Advanced suspicious element detection
 │   └── ICleanable.js                  // Cleanup interface and registry for memory leak prevention
@@ -272,9 +267,7 @@ src/scripts/
 - **Easy Extensibility**: New protection features can be added as separate modules
 - **Maintainable Code**: Clear separation of concerns and well-defined interfaces
 - **Memory Leak Prevention**: Comprehensive cleanup system with ICleanable interface and CleanupRegistry
-- **Performance Optimization**: Adaptive batch sizing and performance tracking for optimal resource usage
-- **Hybrid Processing**: Dual-strategy approach with real-time critical element processing and bulk optimization
-- **Layout Optimization**: Snapshot-based geometry capture eliminates DOM thrashing
+- **Performance Optimization**: Time-sliced execution and adaptive processing for optimal resource usage
 
 **Cleanup Architecture:**
 
@@ -314,14 +307,11 @@ NavigationGuardian has been refactored from a monolithic 1100+ line module into 
 
 **Performance Optimization:**
 
-- **PerformanceTracker**: Adaptive batch sizing for pattern detection operations
 - **Time-Slicing**: Non-blocking execution that respects frame budgets
 - **Chrome API Safety**: Robust Chrome storage operations with retry mechanisms and context validation
 - **Debounced Operations**: Reduced API call frequency through intelligent debouncing
-- **Hybrid Processing Strategy**: ElementClassifier separates critical elements requiring real-time analysis from bulk elements suitable for batch processing
-- **SnapshotManager**: Eliminates layout thrashing through batch geometry capture with read-write separation
 - **MemoryMonitor**: Continuous memory leak detection with automatic garbage collection recommendations
-- **HybridProcessor**: Orchestrates dual processing strategies for optimal performance vs accuracy balance
+- **Sequential Pattern Detection**: Simple, efficient element analysis using AdDetectionEngine
 
 **Testing Extension:**
 1. Run `npm run build` to build to `dist/`

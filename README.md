@@ -224,12 +224,8 @@ Each protection module operates independently with well-defined interfaces:
 - **NavigationGuardian** - Cross-origin navigation interception with user confirmation
 - **ClickHijackingProtector** - Click analysis and overlay detection
 - **ElementRemover** - DOM manipulation with multiple strategies
-- **ElementClassifier** - Element classification for hybrid processing
-- **HybridProcessor** - Dual-strategy processing orchestrator
 - **MemoryMonitor** - Memory leak detection and monitoring
-- **SnapshotManager** - Batch geometry capture for layout optimization
 - **MutationProtector** - DOM change monitoring
-- **PerformanceTracker** - Adaptive batch sizing for pattern detection
 - **RequestBlockingProtector** - Request interception and blocking
 - **SuspiciousElementDetector** - Advanced suspicious element detection
 

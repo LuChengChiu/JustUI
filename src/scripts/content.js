@@ -9,10 +9,6 @@ import { ClickHijackingProtector } from "./modules/ClickHijackingProtector.js";
 import { MutationProtector } from "./modules/MutationProtector.js";
 import { ScriptAnalyzer } from "./modules/ScriptAnalyzer.js";
 import { NavigationGuardian } from "./modules/NavigationGuardian.js";
-import { PerformanceTracker } from "./modules/PerformanceTracker.js";
-import { ElementClassifier } from "./modules/ElementClassifier.js";
-import { SnapshotManager } from "./modules/SnapshotManager.js";
-import { HybridProcessor } from "./modules/HybridProcessor.js";
 import { CleanupRegistry } from "./modules/ICleanable.js";
 import { MemoryMonitor } from "./modules/MemoryMonitor.js";
 import {
@@ -21,7 +17,6 @@ import {
   isExtensionContextValid,
 } from "./utils/chromeApiSafe.js";
 import AdDetectionEngine from "./adDetectionEngine.js";
-import { HYBRID_CONFIG } from "./constants.js";
 
 /**
  * Main OriginalUI Controller - Orchestrates all protection modules
@@ -90,37 +85,6 @@ class OriginalUIController {
       "protection"
     );
 
-    // Hybrid processing modules with compartmentalization
-    this.elementClassifier = new ElementClassifier();
-    this.cleanupRegistry.register(
-      this.elementClassifier,
-      "ElementClassifier",
-      "analysis"
-    );
-
-    this.snapshotManager = new SnapshotManager(HYBRID_CONFIG);
-    this.cleanupRegistry.register(
-      this.snapshotManager,
-      "SnapshotManager",
-      "caching"
-    );
-
-    // Performance tracking (singleton to avoid repeated allocations)
-    this.performanceTracker = new PerformanceTracker();
-    this.cleanupRegistry.register(
-      this.performanceTracker,
-      "PerformanceTracker",
-      "monitoring"
-    );
-
-    // HybridProcessor will be initialized after AdDetectionEngine is available
-    this.hybridProcessor = null;
-
-    // Hybrid processing settings
-    this.hybridProcessingEnabled = HYBRID_CONFIG.ADAPTIVE_DETECTION_ENABLED;
-    this.bulkValidationEnabled = HYBRID_CONFIG.BULK_VALIDATION_ENABLED;
-    this.fallbackToRealTime = HYBRID_CONFIG.FALLBACK_TO_REALTIME;
-
     // Navigation Guardian settings (managed by NavigationGuardian module)
     this.navigationGuardEnabled = true;
     this.navigationStats = { blockedCount: 0, allowedCount: 0 };
@@ -157,21 +121,7 @@ class OriginalUIController {
     this.adDetectionEngine = new AdDetectionEngine();
     console.log("OriginalUI: AdDetectionEngine initialized");
 
-    // 4. Initialize HybridProcessor with AdDetectionEngine
-    this.hybridProcessor = new HybridProcessor(this.adDetectionEngine, {
-      criticalElementTimeout: HYBRID_CONFIG.CRITICAL_ELEMENT_TIMEOUT,
-      bulkValidationEnabled: this.bulkValidationEnabled,
-      fallbackToRealTime: this.fallbackToRealTime,
-      adaptiveDetectionEnabled: this.hybridProcessingEnabled,
-    });
-    this.cleanupRegistry.register(
-      this.hybridProcessor,
-      "HybridProcessor",
-      "analysis"
-    );
-    console.log("OriginalUI: HybridProcessor initialized");
-
-    // 5. Check whitelist/active state BEFORE applying security protections
+    // 4. Check whitelist/active state BEFORE applying security protections
     if (!this.isActive || this.isDomainWhitelisted()) {
       console.log(
         "OriginalUI: Skipping protections - extension inactive or domain whitelisted",
@@ -183,17 +133,17 @@ class OriginalUIController {
       return; // Exit early - no protections needed
     }
 
-    // 6. NOW activate security protections (domain is not whitelisted & extension is active)
+    // 5. NOW activate security protections (domain is not whitelisted & extension is active)
     this.scriptAnalyzer.activate();
 
-    // 7. Initialize NavigationGuardian with loaded settings
+    // 6. Initialize NavigationGuardian with loaded settings
     this.navigationGuardian.initialize(this.whitelist, this.navigationStats);
     this.navigationGuardian.enable();
 
-    // 8. Start all other protection systems
+    // 7. Start all other protection systems
     this.startProtection();
 
-    // 9. Start memory monitoring after all systems are initialized
+    // 8. Start memory monitoring after all systems are initialized
     this.memoryMonitor.startMonitoring(this);
 
     console.log("OriginalUI: Initialization complete with memory monitoring");
