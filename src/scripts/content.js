@@ -6,7 +6,6 @@
 // Import modules
 import { ElementRemover } from "./modules/ElementRemover.js";
 import { ClickHijackingProtector } from "./modules/ClickHijackingProtector.js";
-import { MutationProtector } from "./modules/MutationProtector.js";
 import { ScriptAnalyzer } from "./modules/ScriptAnalyzer.js";
 import { NavigationGuardian } from "./modules/NavigationGuardian.js";
 import { CleanupRegistry } from "./modules/ICleanable.js";
@@ -75,13 +74,6 @@ class OriginalUIController {
     this.cleanupRegistry.register(
       this.navigationGuardian,
       "NavigationGuardian",
-      "protection"
-    );
-
-    this.mutationProtector = new MutationProtector();
-    this.cleanupRegistry.register(
-      this.mutationProtector,
-      "MutationProtector",
       "protection"
     );
 
@@ -163,20 +155,6 @@ class OriginalUIController {
     // Start click hijacking protection
     this.clickProtector.activate();
 
-    // Set up event-driven communication between MutationProtector and ClickHijackingProtector
-    this.mutationProtector.onEvent("onClickHijackingDetected", (data) => {
-      if (data.action === "scan_overlays") {
-        this.clickProtector.scanAndRemoveExistingOverlays();
-      }
-    });
-
-    // Start mutation protection with rule execution callback
-    this.mutationProtector.start({
-      isActive: this.isActive,
-      isDomainWhitelisted: this.isDomainWhitelisted(),
-      executeRulesCallback: () => this.executeRules(),
-    });
-
     // Initial rule execution
     this.executeRules();
 
@@ -193,7 +171,6 @@ class OriginalUIController {
     this.scriptAnalyzer.deactivate();
     this.clickProtector.deactivate();
     this.navigationGuardian.disable();
-    this.mutationProtector.stop();
   }
 
   /**

@@ -144,7 +144,6 @@ Navigation Guardian provides comprehensive protection against malicious cross-or
 - **ClickHijackingProtector**: Advanced click analysis and suspicious overlay detection
 - **ElementRemover**: DOM element removal with multiple strategies (hide, remove, neutralize)
 - **RequestBlockingProtector**: Request interception and blocking capabilities
-- **SuspiciousElementDetector**: Advanced suspicious element detection algorithms
 - **CleanupRegistry**: Centralized cleanup management for memory leak prevention
 - **Pattern Detection**: Advanced pattern detection using AdDetectionEngine with time-slicing optimization
 - **Chrome API Safety**: Robust Chrome storage operations with context validation and retry mechanisms
@@ -251,9 +250,7 @@ src/scripts/
 │   ├── ClickHijackingProtector.js     // Click analysis and overlay detection
 │   ├── ElementRemover.js              // DOM manipulation strategies
 │   ├── MemoryMonitor.js               // Memory leak detection and monitoring
-│   ├── MutationProtector.js           // DOM change monitoring
 │   ├── RequestBlockingProtector.js    // Request interception and blocking
-│   ├── SuspiciousElementDetector.js   // Advanced suspicious element detection
 │   └── ICleanable.js                  // Cleanup interface and registry for memory leak prevention
 ├── utils/
 │   └── chromeApiSafe.js               // Safe Chrome API operations with context validation

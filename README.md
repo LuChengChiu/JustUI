@@ -225,9 +225,7 @@ Each protection module operates independently with well-defined interfaces:
 - **ClickHijackingProtector** - Click analysis and overlay detection
 - **ElementRemover** - DOM manipulation with multiple strategies
 - **MemoryMonitor** - Memory leak detection and monitoring
-- **MutationProtector** - DOM change monitoring
 - **RequestBlockingProtector** - Request interception and blocking
-- **SuspiciousElementDetector** - Advanced suspicious element detection
 
 ### Data Flow
 
