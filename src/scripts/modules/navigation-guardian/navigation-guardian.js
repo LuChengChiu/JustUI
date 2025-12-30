@@ -29,6 +29,7 @@
  * @author OriginalUI Team
  */
 
+import { domainMatches } from "../../../utils/domainMatch.js";
 import {
   isExtensionContextValid,
   safeStorageSet,
@@ -591,27 +592,10 @@ export class NavigationGuardian extends CleanableModule {
     }
 
     const result = this.whitelist.some((whitelistedDomain) =>
-      this.domainMatches(domain, whitelistedDomain)
+      domainMatches(domain, whitelistedDomain)
     );
     this.whitelistCache = { domain, result };
     return result;
-  }
-
-  /**
-   * Check if domain matches pattern (supports wildcards)
-   * @param {string} domain - Domain to check
-   * @param {string} pattern - Pattern to match against
-   * @returns {boolean} True if domain matches pattern
-   */
-  domainMatches(domain, pattern) {
-    // If pattern has wildcard prefix (*.example.com)
-    if (pattern.startsWith("*.")) {
-      const baseDomain = pattern.slice(2);
-      return domain === baseDomain || domain.endsWith("." + baseDomain);
-    }
-
-    // Exact match or subdomain match
-    return domain === pattern || domain.endsWith("." + pattern);
   }
 
   /**
