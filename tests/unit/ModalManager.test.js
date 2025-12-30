@@ -37,23 +37,7 @@ jest.mock('../../src/scripts/constants.js', () => ({
   MAX_Z_INDEX: 2147483647
 }));
 
-// Mock CleanableModule
-const mockCleanableModule = {
-  setLifecyclePhase: jest.fn(),
-  getLifecyclePhase: jest.fn(),
-  cleanup: jest.fn()
-};
-
-jest.mock('../../src/scripts/modules/ICleanable.js', () => ({
-  LIFECYCLE_PHASES: {
-    INITIALIZING: 'initializing',
-    ACTIVE: 'active',
-    CLEANUP_PENDING: 'cleanup_pending',
-    CLEANED: 'cleaned',
-    ERROR: 'error'
-  },
-  CleanableModule: jest.fn().mockImplementation(() => mockCleanableModule)
-}));
+// Note: ICleanable mock removed - ModalManager no longer extends CleanableModule
 
 describe('ModalManager', () => {
   let modalManager;

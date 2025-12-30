@@ -4,7 +4,6 @@
  * @fileoverview Provides centralized event listener management with automatic cleanup
  */
 
-import { LIFECYCLE_PHASES, CleanableModule } from './ICleanable.js';
 import { isExtensionContextValid } from '../utils/chromeApiSafe.js';
 
 /**
@@ -31,9 +30,8 @@ export const LISTENER_CATEGORIES = {
 /**
  * Centralized registry for managing all event listeners
  */
-export class EventListenerRegistry extends CleanableModule {
+export class EventListenerRegistry {
   constructor(options = {}) {
-    super();
     
     this.options = {
       enableLeakDetection: options.enableLeakDetection !== false,
@@ -556,36 +554,34 @@ export class EventListenerRegistry extends CleanableModule {
    */
   cleanup() {
     console.log('OriginalUI: Starting EventListenerRegistry cleanup...');
-    
-    this.setLifecyclePhase(LIFECYCLE_PHASES.CLEANUP_PENDING);
-    
+
     try {
       // Stop periodic cleanup
       this.stopPeriodicCleanup();
-      
+
       // Get final stats before cleanup
       const finalStats = this.getStats();
-      
+
       // Remove all listeners by priority
       const priorityOrder = [LISTENER_PRIORITIES.CRITICAL, LISTENER_PRIORITIES.HIGH, LISTENER_PRIORITIES.NORMAL, LISTENER_PRIORITIES.LOW];
       let totalRemoved = 0;
-      
+
       for (const priority of priorityOrder) {
         const listenersToRemove = [];
-        
+
         for (const [listenerId, listenerInfo] of this.listeners) {
           if (listenerInfo.metadata.priority === priority) {
             listenersToRemove.push(listenerId);
           }
         }
-        
+
         for (const listenerId of listenersToRemove) {
           if (this.remove(listenerId)) {
             totalRemoved++;
           }
         }
       }
-      
+
       // Clean up any remaining listeners
       const remainingIds = Array.from(this.listeners.keys());
       for (const listenerId of remainingIds) {
@@ -593,13 +589,13 @@ export class EventListenerRegistry extends CleanableModule {
           totalRemoved++;
         }
       }
-      
+
       // Clear all tracking structures
       this.listeners.clear();
       this.moduleListeners.clear();
       this.categoryListeners.clear();
       this.orphanedListeners.clear();
-      
+
       // Reset statistics
       this.listenerStats = {
         totalRegistered: 0,
@@ -609,10 +605,7 @@ export class EventListenerRegistry extends CleanableModule {
         autoCleanups: 0,
         lastLeakCheck: Date.now()
       };
-      
-      // Call parent cleanup
-      super.cleanup();
-      
+
       console.log('OriginalUI: EventListenerRegistry cleanup completed:', {
         totalRemoved,
         finalStats: {
@@ -621,10 +614,9 @@ export class EventListenerRegistry extends CleanableModule {
           healthScore: finalStats.healthScore
         }
       });
-      
+
     } catch (error) {
       console.error('OriginalUI: Error during EventListenerRegistry cleanup:', error);
-      this.setLifecyclePhase(LIFECYCLE_PHASES.ERROR);
       throw error;
     }
   }

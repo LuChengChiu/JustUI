@@ -27,22 +27,18 @@
  */
 
 import { MAX_Z_INDEX } from '../../constants.js';
-import { LIFECYCLE_PHASES, CleanableModule } from '../ICleanable.js';
 import { showExternalLinkModal } from '../../../components/external-link-modal.jsx';
 
 /**
  * ModalManager class providing modal UI creation and lifecycle management
- * @extends CleanableModule
  * @class
  */
-export class ModalManager extends CleanableModule {
+export class ModalManager {
   /**
    * Create a ModalManager instance
    * @constructor
    */
   constructor() {
-    super();
-    
     /**
      * Currently active modal element (for preventing duplicates)
      * @type {HTMLElement|null}
@@ -242,25 +238,19 @@ export class ModalManager extends CleanableModule {
    */
   cleanup() {
     console.log('OriginalUI: Starting ModalManager cleanup...');
-    
-    this.setLifecyclePhase(LIFECYCLE_PHASES.CLEANUP_PENDING);
-    
+
     try {
       // Clear active modal flag (React modal handles its own cleanup)
       this.activeModal = null;
-      
+
       // Clear callbacks
       this.statisticsCallback = null;
       this.urlValidator = null;
-      
-      // Call parent cleanup
-      super.cleanup();
-      
+
       console.log('OriginalUI: ModalManager cleanup completed');
-      
+
     } catch (error) {
       console.error('OriginalUI: Error during ModalManager cleanup:', error);
-      this.setLifecyclePhase(LIFECYCLE_PHASES.ERROR);
       throw error;
     }
   }

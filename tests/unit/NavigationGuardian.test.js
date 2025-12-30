@@ -55,16 +55,7 @@ const mockCleanableModule = {
   cleanup: jest.fn()
 };
 
-jest.mock('../../src/scripts/modules/ICleanable.js', () => ({
-  LIFECYCLE_PHASES: {
-    INITIALIZING: 'initializing',
-    ACTIVE: 'active',
-    CLEANUP_PENDING: 'cleanup_pending',
-    CLEANED: 'cleaned',
-    ERROR: 'error'
-  },
-  CleanableModule: jest.fn().mockImplementation(() => mockCleanableModule)
-}));
+// Note: ICleanable mock removed - NavigationGuardian no longer extends CleanableModule
 
 describe('NavigationGuardian Integration Tests', () => {
   let guardian;

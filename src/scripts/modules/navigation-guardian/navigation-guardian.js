@@ -34,23 +34,19 @@ import {
   isExtensionContextValid,
   safeStorageSet,
 } from "../../utils/chromeApiSafe.js";
-import { CleanableModule, LIFECYCLE_PHASES } from "../ICleanable.js";
 import { ModalManager } from "./modal-manager.js";
 import { SecurityValidator } from "./security-validator.js";
 
 /**
  * NavigationGuardian class providing comprehensive cross-origin navigation protection
- * @extends CleanableModule
  * @class
  */
-export class NavigationGuardian extends CleanableModule {
+export class NavigationGuardian {
   /**
    * Create a NavigationGuardian instance
    * @constructor
    */
   constructor() {
-    super();
-
     /**
      * Security validator for URL and threat validation
      * @type {SecurityValidator}
@@ -185,15 +181,12 @@ export class NavigationGuardian extends CleanableModule {
    * guardian.initialize(['google.com', 'github.com'], { blockedCount: 5, allowedCount: 10 });
    */
   initialize(whitelist = [], stats = { blockedCount: 0, allowedCount: 0 }) {
-    this.setLifecyclePhase(LIFECYCLE_PHASES.INITIALIZING);
-
     this.whitelist = whitelist;
     this.navigationStats = stats;
     this.setupEventListeners();
     this.injectNavigationScript();
     this.startModalCacheCleanup();
 
-    this.setLifecyclePhase(LIFECYCLE_PHASES.ACTIVE);
     console.log(
       "OriginalUI: NavigationGuardian initialized with whitelist:",
       whitelist.length
@@ -661,9 +654,6 @@ export class NavigationGuardian extends CleanableModule {
   cleanup() {
     console.log("OriginalUI: Starting NavigationGuardian cleanup...");
 
-    // Set cleanup phase
-    this.setLifecyclePhase(LIFECYCLE_PHASES.CLEANUP_PENDING);
-
     try {
       this.isEnabled = false;
 
@@ -711,21 +701,16 @@ export class NavigationGuardian extends CleanableModule {
       // Reset stats
       this.navigationStats = { blockedCount: 0, allowedCount: 0 };
 
-      // Call parent cleanup
-      super.cleanup();
-
       console.log("OriginalUI: NavigationGuardian cleanup completed:", {
         removedListeners,
         clearedPendingModals: pendingModalCount,
         finalCacheStats,
-        lifecyclePhase: this.getLifecyclePhase(),
       });
     } catch (error) {
       console.error(
         "OriginalUI: Error during NavigationGuardian cleanup:",
         error
       );
-      this.setLifecyclePhase(LIFECYCLE_PHASES.ERROR);
       throw error;
     }
   }
@@ -738,7 +723,6 @@ export class NavigationGuardian extends CleanableModule {
     return {
       navigationStats: this.getStats(),
       modalCache: this.getModalCacheStats(),
-      lifecycle: this.getLifecycleStats(),
       eventListeners: {
         registered: this.eventListeners.length,
         types: [...new Set(this.eventListeners.map((l) => l.type))],

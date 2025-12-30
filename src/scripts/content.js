@@ -8,7 +8,7 @@ import { domainMatches } from "../utils/domainMatch.js";
 import AdDetectionEngine from "./adDetectionEngine.js";
 import { ClickHijackingProtector } from "./modules/ClickHijackingProtector.js";
 import { ElementRemover } from "./modules/ElementRemover.js";
-import { CleanupRegistry } from "./modules/ICleanable.js";
+import { CleanupRegistry } from "./modules/cleanup-registry.js";
 import { ScriptAnalyzer } from "./modules/ScriptAnalyzer.js";
 import { NavigationGuardian } from "./modules/navigation-guardian/navigation-guardian.js";
 import { createRuleExecutionSystem } from "./modules/rule-execution/config/sources.config.js";
@@ -36,34 +36,30 @@ class OriginalUIController {
     this.customRulesEnabled = true;
     this.patternRulesEnabled = true;
 
-    // Cleanup registry for memory leak prevention with compartments
-    this.cleanupRegistry = new CleanupRegistry({
-      maxCompartmentSize: 20,
-      compartmentTTL: 300000, // 5 minutes
-      enablePeriodicCleanup: true,
-    });
+    // Cleanup registry for memory leak prevention
+    this.cleanupRegistry = new CleanupRegistry();
 
-    // Protection modules with compartmentalization
+    // Protection modules
 
     this.scriptAnalyzer = new ScriptAnalyzer();
     this.cleanupRegistry.register(
       this.scriptAnalyzer,
       "ScriptAnalyzer",
-      "analysis"
+      "normal"
     );
 
     this.clickProtector = new ClickHijackingProtector();
     this.cleanupRegistry.register(
       this.clickProtector,
       "ClickHijackingProtector",
-      "protection"
+      "normal"
     );
 
     this.navigationGuardian = new NavigationGuardian();
     this.cleanupRegistry.register(
       this.navigationGuardian,
       "NavigationGuardian",
-      "protection"
+      "high"
     );
 
     // Navigation Guardian settings (managed by NavigationGuardian module)
