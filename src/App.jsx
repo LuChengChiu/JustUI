@@ -15,6 +15,7 @@ const actionTypes = {
   LOAD_SETTINGS: "LOAD_SETTINGS",
   TOGGLE_MAIN: "TOGGLE_MAIN",
   TOGGLE_PROTECTION_SYSTEM: "TOGGLE_PROTECTION_SYSTEM",
+  UPDATE_PROTECTION_SYSTEMS: "UPDATE_PROTECTION_SYSTEMS",
   SET_DOMAIN_INFO: "SET_DOMAIN_INFO",
   UPDATE_STATS: "UPDATE_STATS",
   SET_LOADING: "SET_LOADING",
@@ -71,6 +72,14 @@ const protectionReducer = (state, action) => {
         protectionSystems: {
           ...state.protectionSystems,
           [action.system]: action.value,
+        },
+      };
+    case actionTypes.UPDATE_PROTECTION_SYSTEMS:
+      return {
+        ...state,
+        protectionSystems: {
+          ...state.protectionSystems,
+          ...action.systems,
         },
       };
     case actionTypes.SET_DOMAIN_INFO:
@@ -273,37 +282,47 @@ export default function App() {
     // Listen for storage changes to update state in real-time
     const storageListener = (changes, namespace) => {
       if (namespace === "local") {
-        const updates = {};
+        const protectionUpdates = {};
+        const protectionStorageMap = {
+          navigationGuardEnabled: "navigationGuard",
+          patternRulesEnabled: "patternRules",
+          defaultRulesEnabled: "defaultRules",
+          customRulesEnabled: "customRules",
+          defaultBlockRequestEnabled: "requestBlocking",
+        };
 
-        if (changes.domainStats) {
-          updates.domainStats = changes.domainStats.newValue || {};
-        }
-        if (changes.navigationGuardEnabled) {
-          updates.navigationGuardEnabled =
-            changes.navigationGuardEnabled.newValue;
-        }
-        if (changes.navigationStats) {
-          updates.navigationStats = changes.navigationStats.newValue || {
-            blockedCount: 0,
-            allowedCount: 0,
-          };
-        }
-        if (changes.patternRulesEnabled) {
-          updates.patternRulesEnabled = changes.patternRulesEnabled.newValue;
-        }
-        if (changes.defaultRulesEnabled) {
-          updates.defaultRulesEnabled = changes.defaultRulesEnabled.newValue;
-        }
-        if (changes.customRulesEnabled) {
-          updates.customRulesEnabled = changes.customRulesEnabled.newValue;
-        }
-        if (changes.defaultBlockRequestEnabled) {
-          updates.defaultBlockRequestEnabled =
-            changes.defaultBlockRequestEnabled.newValue;
+        Object.keys(protectionStorageMap).forEach((storageKey) => {
+          if (Object.prototype.hasOwnProperty.call(changes, storageKey)) {
+            const systemKey = protectionStorageMap[storageKey];
+            const newValue = changes[storageKey].newValue;
+            protectionUpdates[systemKey] = newValue !== false;
+          }
+        });
+
+        if (Object.keys(protectionUpdates).length > 0) {
+          dispatch({
+            type: actionTypes.UPDATE_PROTECTION_SYSTEMS,
+            systems: protectionUpdates,
+          });
         }
 
-        if (Object.keys(updates).length > 0) {
-          dispatch({ type: actionTypes.LOAD_SETTINGS, payload: updates });
+        if (Object.prototype.hasOwnProperty.call(changes, "domainStats")) {
+          dispatch({
+            type: actionTypes.UPDATE_STATS,
+            statType: "domain",
+            stats: changes.domainStats.newValue || {},
+          });
+        }
+
+        if (Object.prototype.hasOwnProperty.call(changes, "navigationStats")) {
+          dispatch({
+            type: actionTypes.UPDATE_STATS,
+            statType: "navigation",
+            stats: changes.navigationStats.newValue || {
+              blockedCount: 0,
+              allowedCount: 0,
+            },
+          });
         }
       }
     };
