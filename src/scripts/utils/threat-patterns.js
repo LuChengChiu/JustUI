@@ -43,11 +43,70 @@ export const TRACKING_PARAMETERS = [
 
 /**
  * Special URLs with security implications
+ * These URLs are commonly used in pop-under attacks and malicious redirects
  *
  * @type {string[]}
  * @constant
  */
 export const SPECIAL_URLS = ["about:blank"];
+
+/**
+ * Set for O(1) exact lookup of special URLs
+ * Used by isSpecialUrlExact() for efficient matching
+ *
+ * @type {Set<string>}
+ * @constant
+ * @private
+ */
+const SPECIAL_URLS_SET = new Set(SPECIAL_URLS);
+
+/**
+ * Pre-compiled regex pattern for special URLs
+ * Use this for efficient URL matching across modules
+ * Anchored to match entire URL only (not as substring)
+ *
+ * @type {RegExp}
+ * @constant
+ */
+export const SPECIAL_URLS_PATTERN = new RegExp(
+  `^(?:${SPECIAL_URLS.map((url) => url.replace(/[.*+?^${}()|[\]\\:]/g, "\\$&")).join("|")})$`,
+  "i"
+);
+
+/**
+ * Check if a URL matches any special URL pattern
+ *
+ * @param {string} url - URL to check
+ * @returns {boolean} True if URL matches a special URL pattern
+ *
+ * @example
+ * isSpecialUrl('about:blank'); // Returns true
+ * isSpecialUrl('https://example.com'); // Returns false
+ */
+export function isSpecialUrl(url) {
+  if (!url || typeof url !== "string") {
+    return false;
+  }
+  return SPECIAL_URLS_PATTERN.test(url);
+}
+
+/**
+ * Check if a string exactly matches a special URL (for iframe src checks)
+ * Uses Set for O(1) lookup performance
+ *
+ * @param {string} src - Source URL to check
+ * @returns {boolean} True if src exactly matches a special URL
+ *
+ * @example
+ * isSpecialUrlExact('about:blank'); // Returns true
+ * isSpecialUrlExact('https://about:blank.com'); // Returns false
+ */
+export function isSpecialUrlExact(src) {
+  if (!src || typeof src !== "string") {
+    return false;
+  }
+  return SPECIAL_URLS_SET.has(src);
+}
 
 /**
  * Compiled regex patterns for URL analysis
