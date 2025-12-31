@@ -13,6 +13,9 @@ export default function Toggle({
     <label className="relative inline-block">
       <input
         type="checkbox"
+        role="switch"
+        aria-checked={checked}
+        aria-disabled={disabled}
         className="peer appearance-none h-8 w-14 bg-white rounded-sm cursor-pointer"
         checked={checked}
         onChange={handleChange}

@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import Loading from "./components/ui/loading";
 
 import CurrentDomain from "./components/app/current-domain";
@@ -142,6 +142,7 @@ const storageAdapter = {
 
 export default function App() {
   const [state, dispatch] = useReducer(protectionReducer, initialState);
+  const whitelistTimeoutRef = useRef(null);
   const currentDomain = state?.domain?.current ?? "";
   // Toggle handlers
   const handleToggle = (newState) => {
@@ -161,9 +162,14 @@ export default function App() {
   const handleWhitelistToggle = () => {
     const whitelistAction = state.domain.isWhitelisted ? "remove" : "add";
 
+    if (whitelistTimeoutRef.current) {
+      clearTimeout(whitelistTimeoutRef.current);
+    }
+
     const timeout = setTimeout(() => {
       console.error("Timeout updating whitelist");
     }, 5000);
+    whitelistTimeoutRef.current = timeout;
 
     chrome.runtime.sendMessage(
       {
@@ -173,6 +179,7 @@ export default function App() {
       },
       (response) => {
         clearTimeout(timeout);
+        whitelistTimeoutRef.current = null;
         if (chrome.runtime.lastError) {
           console.error("Error updating whitelist:", chrome.runtime.lastError);
           return;
@@ -326,6 +333,9 @@ export default function App() {
 
     // Cleanup listener on unmount
     return () => {
+      if (whitelistTimeoutRef.current) {
+        clearTimeout(whitelistTimeoutRef.current);
+      }
       chrome.storage.onChanged.removeListener(storageListener);
     };
   }, []);

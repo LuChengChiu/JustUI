@@ -1,9 +1,9 @@
 import { useCallback, useState } from "react";
-import TagsInput from "../ui/tags-input";
 import Button from "../ui/button";
+import SettingsCheckbox from "../ui/checkbox/settings-checkbox";
+import TagsInput from "../ui/tags-input";
 import { H3, Text } from "../ui/typography";
 import RuleEditModal from "./rule-edit-modal";
-import SettingsCheckbox from "../ui/checkbox/settings-checkbox";
 
 const emptyRule = (
   <div className="text-center p-6  bg-gray-100 rounded-lg">
@@ -40,14 +40,17 @@ export default function CustomRulesManager({
   };
 
   // Handle modal save (both add and edit)
-  const handleModalSave = useCallback((ruleData, isEditMode) => {
-    if (isEditMode) {
-      onEditRule(ruleData);
-    } else {
-      onAddNewRule(ruleData);
-    }
-    handleClose();
-  }, []);
+  const handleModalSave = useCallback(
+    (ruleData, isEditMode) => {
+      if (isEditMode) {
+        onEditRule(ruleData);
+      } else {
+        onAddNewRule(ruleData);
+      }
+      handleClose();
+    },
+    [onEditRule, onAddNewRule, handleClose]
+  );
 
   // Handle opening modal for new rule
   const handleAddNewRule = () => {

@@ -290,6 +290,14 @@ class OriginalUIController {
    */
   setupMessageListeners() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      if (!chrome?.runtime?.id) {
+        return false;
+      }
+
+      if (sender?.id && sender.id !== chrome.runtime.id) {
+        return false;
+      }
+
       if (request.action === "storageChanged") {
         this.handleStorageChanges(request.changes);
       } else if (request.action === "whitelistUpdated") {
@@ -447,14 +455,15 @@ class OriginalUIController {
    * Comprehensive cleanup destructor - prevents memory leaks
    * Uses registry pattern to follow SOLID principles with memory verification
    */
-  destructor() {
+  async destructor() {
     console.log("OriginalUI: Starting controller destructor...");
 
     // Stop all protection systems first
     this.stopProtection();
 
     // Use cleanup registry to clean up all modules (follows Open/Closed Principle)
-    const results = this.cleanupRegistry.cleanupAll();
+    // CRITICAL FIX: Await cleanupAll() to ensure all modules finish cleanup before proceeding
+    const results = await this.cleanupRegistry.cleanupAll();
 
     // Log cleanup results for debugging
     const successful = results.filter((r) => r.success).length;
@@ -507,12 +516,12 @@ if (document.readyState === "loading") {
 // Comprehensive lifecycle cleanup - prevents memory leaks
 let isCleanedUp = false;
 
-const performCleanup = (reason) => {
+const performCleanup = async (reason) => {
   if (isCleanedUp) return;
   isCleanedUp = true;
 
   console.log(`OriginalUI: Performing cleanup due to: ${reason}`);
-  originalUIController.destructor();
+  await originalUIController.destructor();
 };
 
 // Page navigation/unload cleanup (modern approach - no deprecated 'unload' event)

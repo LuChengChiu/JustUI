@@ -29,6 +29,13 @@ global.chrome = {
     query: vi.fn(),
     sendMessage: vi.fn(),
     create: vi.fn()
+  },
+  alarms: {
+    create: vi.fn(),
+    clear: vi.fn(),
+    onAlarm: {
+      addListener: vi.fn()
+    }
   }
 };
 

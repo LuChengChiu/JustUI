@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { H2, Text } from "./typography";
 
@@ -82,6 +88,7 @@ const DialogContent = ({
   ...props
 }) => {
   const { isOpen, onClose } = useDialogContext();
+  const contentRef = useRef(null);
 
   // Handle ESC key
   useEffect(() => {
@@ -96,6 +103,62 @@ const DialogContent = ({
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
+
+  // Trap focus within dialog while open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const contentNode = contentRef.current;
+    if (!contentNode) return;
+
+    const previouslyFocused = document.activeElement;
+    const focusableSelector =
+      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+
+    const getFocusableElements = () =>
+      Array.from(contentNode.querySelectorAll(focusableSelector)).filter(
+        (element) => !element.hasAttribute("disabled")
+      );
+
+    const focusableElements = getFocusableElements();
+    if (focusableElements.length > 0) {
+      focusableElements[0].focus();
+    } else {
+      contentNode.focus();
+    }
+
+    const handleTabKey = (event) => {
+      if (event.key !== "Tab") return;
+
+      const elements = getFocusableElements();
+      if (elements.length === 0) {
+        event.preventDefault();
+        contentNode.focus();
+        return;
+      }
+
+      const first = elements[0];
+      const last = elements[elements.length - 1];
+      const isShift = event.shiftKey;
+
+      if (isShift && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!isShift && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleTabKey);
+
+    return () => {
+      document.removeEventListener("keydown", handleTabKey);
+      if (previouslyFocused && typeof previouslyFocused.focus === "function") {
+        previouslyFocused.focus();
+      }
+    };
+  }, [isOpen]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -127,6 +190,10 @@ const DialogContent = ({
           bg-white rounded-xl shadow-2xl ${maxWidth} w-full max-h-[90vh] overflow-y-auto
           animate-in zoom-in-95 duration-200 scale-100 relative
         `}
+        ref={contentRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         {showCloseButton && <DialogClose />}

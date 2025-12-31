@@ -8,6 +8,19 @@ import {
   safeStorageSetWithValidation,
 } from "./utils/chromeApiSafe.js";
 
+// Background Utility Imports
+import { rateLimiter } from './utils/background/rate-limiter.js';
+import {
+  isValidExtensionSender,
+  isTrustedUISender,
+  isValidDomain,
+} from './utils/background/message-validators.js';
+import {
+  fetchDefaultRules,
+  fetchDefaultWhitelist,
+} from './utils/background/remote-data-fetcher.js';
+import { EasyListDomSource } from './modules/rule-execution/sources/easylist-dom-source.js';
+
 // Network Blocking System Imports
 import { NetworkBlockManager } from './modules/network-blocking/core/network-block-manager.js';
 import { DefaultBlockSource, CustomPatternSource } from './modules/network-blocking/sources/index.js';
@@ -100,92 +113,76 @@ async function updateRulesetStates(enabled) {
   }
 }
 
-const REMOTE_RULES_URL =
-  "https://raw.githubusercontent.com/LuChengChiu/OriginalUI/main/src/data/defaultRules.json";
-const REMOTE_WHITELIST_URL =
-  "https://raw.githubusercontent.com/LuChengChiu/OriginalUI/main/src/data/defaultWhitelist.json";
+// ============================================================================
+// INSTALLATION STATE MANAGEMENT
+// ============================================================================
 
-// Fetch default rules from remote URL with fallback to local file
-async function fetchDefaultRules() {
-  // try {
-  //   // Try to fetch from remote URL first
-  //   const response = await fetch(REMOTE_RULES_URL);
-  //   if (response.ok) {
-  //     const remoteRules = await response.json();
-  //     console.log("Fetched rules from remote URL", remoteRules);
-  //     return remoteRules;
-  //   }
-  // } catch (error) {
-  //   console.log(
-  //     "Failed to fetch remote rules, falling back to local:",
-  //     error.message
-  //   );
-  // }
+const INSTALLATION_STATE = {
+  NOT_STARTED: 'not_started',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed'
+};
 
-  // Fallback to local default rules
+// Simple in-memory mutex to prevent concurrent installations
+let installationPromise = null;
+
+/**
+ * Robust installation with resumability and atomic commits
+ * Handles service worker termination gracefully
+ */
+async function performInstallation() {
+  // Mutex: Return existing promise if installation already running
+  if (installationPromise) {
+    return installationPromise;
+  }
+
+  installationPromise = _performInstallationImpl();
+
   try {
-    const localResponse = await fetch(
-      chrome.runtime.getURL("data/defaultRules.json")
-    );
-    const localRules = await localResponse.json();
-    console.log("Using local default rules", localRules);
-    return localRules;
-  } catch (error) {
-    console.error("Failed to load local default rules:", error);
-    return [];
+    await installationPromise;
+  } finally {
+    installationPromise = null;
   }
 }
 
-// Fetch default whitelist from remote URL with fallback to local file
-async function fetchDefaultWhitelist() {
-  // try {
-  //   // Try to fetch from remote URL first
-  //   const response = await fetch(REMOTE_WHITELIST_URL);
-  //   if (response.ok) {
-  //     const remoteWhitelist = await response.json();
-  //     console.log("Fetched whitelist from remote URL", remoteWhitelist);
-  //     return remoteWhitelist;
-  //   }
-  // } catch (error) {
-  //   console.log(
-  //     "Failed to fetch remote whitelist, falling back to local:",
-  //     error.message
-  //   );
-  // }
+async function _performInstallationImpl() {
+  // Check installation state + backward compatibility
+  const stateCheck = await safeStorageGet([
+    'installationState',
+    'isActive',
+    'defaultRules'
+  ]);
 
-  // Fallback to local default whitelist
-  try {
-    const localResponse = await fetch(
-      chrome.runtime.getURL("data/defaultWhitelist.json")
-    );
-    const localWhitelist = await localResponse.json();
-    console.log("Using local default whitelist", localWhitelist);
-    return localWhitelist;
-  } catch (error) {
-    console.error("Failed to load local default whitelist:", error);
-    return [];
-  }
-}
-
-
-// Initialize default storage structure on installation
-chrome.runtime.onInstalled.addListener(async () => {
-  // Early context validation check
-  if (!isExtensionContextValid()) {
-    console.warn(
-      "OriginalUI: Extension context invalid during installation, skipping initialization"
-    );
+  // BACKWARD COMPATIBILITY: Detect legacy installations (no installationState field)
+  if (!stateCheck.installationState &&
+      (stateCheck.isActive !== undefined || stateCheck.defaultRules)) {
+    console.log('OriginalUI: Legacy installation detected, marking complete');
+    await chrome.storage.local.set({
+      installationState: INSTALLATION_STATE.COMPLETED,
+      installationCompleteTime: Date.now()
+    });
     return;
   }
 
-  const [defaultRules, defaultWhitelist] =
-    await Promise.all([
+  if (stateCheck.installationState === INSTALLATION_STATE.COMPLETED) {
+    console.log('OriginalUI: Installation already completed, skipping');
+    return;
+  }
+
+  try {
+    // CHECKPOINT 1: Mark installation as in progress
+    await chrome.storage.local.set({
+      installationState: INSTALLATION_STATE.IN_PROGRESS,
+      installationStartTime: Date.now()
+    });
+
+    // STEP 1: Fetch remote data (can be retried - idempotent)
+    const [defaultRules, defaultWhitelist] = await Promise.all([
       fetchDefaultRules(),
       fetchDefaultWhitelist(),
     ]);
 
-  // Set default storage values if not already set
-  try {
+    // STEP 2: Read current storage state (can be retried - idempotent)
     const result = await safeStorageGet([
       "isActive",
       "whitelist",
@@ -201,6 +198,8 @@ chrome.runtime.onInstalled.addListener(async () => {
       "defaultBlockRequestEnabled",
       "networkBlockPatterns",
     ]);
+
+    // STEP 3: Build complete settings object (pure computation - safe)
     const updates = {};
 
     if (result.isActive === undefined) updates.isActive = false;
@@ -235,6 +234,7 @@ chrome.runtime.onInstalled.addListener(async () => {
         updates.navigationGuardEnabled = true;
       }
     }
+
     if (!result.navigationStats)
       updates.navigationStats = { blockedCount: 0, allowedCount: 0 };
     if (!result.networkBlockPatterns)
@@ -247,64 +247,91 @@ chrome.runtime.onInstalled.addListener(async () => {
     const customWhitelist = result.customWhitelist || [];
     updates.whitelist = [...new Set([...defaultWhitelist, ...customWhitelist])];
 
+    // STEP 4: ATOMIC COMMIT - Write all settings in single operation
     if (Object.keys(updates).length > 0) {
-      try {
-        // Use simple storage set for installation to avoid validation issues
-        await chrome.storage.local.set(updates);
-        console.log(
-          "OriginalUI Installation: Successfully saved all settings:",
-          Object.keys(updates)
-        );
-
-        // Initialize network blocking rulesets (EasyList + NetworkBlockManager)
-        const blockingEnabled = result.defaultBlockRequestEnabled !== false;
-        await updateRulesetStates(blockingEnabled);
-      } catch (error) {
-        console.error(
-          "OriginalUI Installation Failed: Could not save settings:",
-          error
-        );
-        // Fallback: try to save critical settings individually
-        try {
-          await chrome.storage.local.set({
-            defaultRules: updates.defaultRules,
-            isActive: updates.isActive,
-          });
-          console.log(
-            "OriginalUI Installation: Saved critical settings as fallback"
-          );
-        } catch (fallbackError) {
-          console.error(
-            "OriginalUI Installation: Even fallback failed:",
-            fallbackError
-          );
-        }
-      }
+      await chrome.storage.local.set(updates);
+      console.log(
+        "OriginalUI Installation: Successfully saved all settings:",
+        Object.keys(updates)
+      );
     }
+
+    // STEP 5: Configure network blocking (can be retried - idempotent)
+    const blockingEnabled = updates.defaultBlockRequestEnabled !== false;
+    await updateRulesetStates(blockingEnabled);
+
+    // STEP 6: Setup alarms (idempotent - creating existing alarms is safe)
+    chrome.alarms.create("updateDefaults", {
+      delayInMinutes: 1440,
+      periodInMinutes: 1440,
+    });
+
+    chrome.alarms.create("updateDefaultBlocksDaily", {
+      delayInMinutes: 1440,
+      periodInMinutes: 1440
+    });
+
+    chrome.alarms.create("updateEasyListDomRules", {
+      delayInMinutes: 10080,
+      periodInMinutes: 10080
+    });
+
+    // CHECKPOINT 2: Mark installation as completed (COMMIT POINT)
+    await chrome.storage.local.set({
+      installationState: INSTALLATION_STATE.COMPLETED,
+      installationCompleteTime: Date.now()
+    });
+
+    console.log('OriginalUI: Installation completed successfully');
+
   } catch (error) {
-    console.error(
-      "OriginalUI: Failed to initialize default storage during installation:",
-      error
+    console.error('OriginalUI: Installation failed:', error);
+
+    // Reset installation state to allow retry on next startup
+    await chrome.storage.local.set({
+      installationState: INSTALLATION_STATE.NOT_STARTED,
+      lastInstallationError: error.message,
+      lastInstallationErrorTime: Date.now()
+    });
+
+    throw error; // Re-throw to allow caller to handle
+  }
+}
+
+// Initialize default storage structure on installation
+chrome.runtime.onInstalled.addListener(async () => {
+  // Early context validation check
+  if (!isExtensionContextValid()) {
+    console.warn(
+      "OriginalUI: Extension context invalid during installation, skipping initialization"
     );
+    return;
   }
 
-  // Periodically update default rules and whitelist (once per day)
-  chrome.alarms.create("updateDefaults", {
-    delayInMinutes: 1440,
-    periodInMinutes: 1440,
-  });
+  try {
+    await performInstallation();
+  } catch (error) {
+    console.error('OriginalUI: Installation handler caught error:', error);
+    // Error already logged in performInstallation, state already reset
+  }
+});
 
-  // NEW: Daily default block requests updates (JSON-based)
-  chrome.alarms.create("updateDefaultBlocksDaily", {
-    delayInMinutes: 1440,       // 24 hours
-    periodInMinutes: 1440
-  });
+// Resume incomplete installation on startup (recovery mechanism)
+chrome.runtime.onStartup.addListener(async () => {
+  if (!isExtensionContextValid()) {
+    return;
+  }
 
-  // NEW: Weekly EasyList DOM rules updates (7 days = 10080 minutes)
-  chrome.alarms.create("updateEasyListDomRules", {
-    delayInMinutes: 10080,      // 7 days
-    periodInMinutes: 10080
-  });
+  const stateCheck = await safeStorageGet(['installationState']);
+
+  if (stateCheck.installationState === INSTALLATION_STATE.IN_PROGRESS) {
+    console.warn('OriginalUI: Detected incomplete installation, resuming...');
+    try {
+      await performInstallation();
+    } catch (error) {
+      console.error('OriginalUI: Installation resume failed:', error);
+    }
+  }
 });
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -382,113 +409,6 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 });
 
-// ============================================================================
-// MESSAGE VALIDATION UTILITIES
-// ============================================================================
-
-/**
- * Validate that message sender is from this extension
- * @param {object} sender - Message sender object
- * @returns {boolean} True if sender is valid
- */
-function isValidExtensionSender(sender) {
-  if (!sender || !sender.id) {
-    console.warn("OriginalUI: Rejected message - no sender ID");
-    return false;
-  }
-
-  if (sender.id !== chrome.runtime.id) {
-    console.warn("OriginalUI: Rejected message - sender ID mismatch:", sender.id);
-    return false;
-  }
-
-  return true;
-}
-
-/**
- * Validate that sender is from popup or settings page
- * @param {object} sender - Message sender object
- * @returns {boolean} True if sender is from trusted UI page
- */
-function isTrustedUISender(sender) {
-  if (!isValidExtensionSender(sender)) {
-    return false;
-  }
-
-  const url = sender.url || "";
-  const trustedPages = [
-    chrome.runtime.getURL("popup.html"),
-    chrome.runtime.getURL("settings.html"),
-    chrome.runtime.getURL("settings-beta.html"),
-  ];
-
-  const isTrusted = trustedPages.some((page) => url.startsWith(page));
-
-  if (!isTrusted) {
-    console.warn("OriginalUI: Rejected message - sender not from trusted UI:", url);
-  }
-
-  return isTrusted;
-}
-
-/**
- * Validate domain string format
- * @param {string} domain - Domain to validate
- * @returns {boolean} True if domain is valid
- */
-function isValidDomain(domain) {
-  if (typeof domain !== "string" || !domain || domain.length > 253) {
-    return false;
-  }
-
-  // Basic domain pattern (allows wildcards)
-  const domainPattern =
-    /^(\*\.)?([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
-
-  return domainPattern.test(domain);
-}
-
-/**
- * Rate limiting for expensive operations
- */
-const rateLimiter = (() => {
-  const limits = new Map();
-  const MAX_CALLS_PER_MINUTE = 30;
-  const WINDOW_MS = 60000;
-
-  return {
-    checkLimit(action, sender) {
-      const key = `${action}-${sender.id}-${sender.url}`;
-      const now = Date.now();
-
-      if (!limits.has(key)) {
-        limits.set(key, []);
-      }
-
-      const calls = limits.get(key);
-      const recentCalls = calls.filter((time) => now - time < WINDOW_MS);
-
-      if (recentCalls.length >= MAX_CALLS_PER_MINUTE) {
-        console.warn(
-          `OriginalUI: Rate limit exceeded for ${action} from ${sender.url}`
-        );
-        return false;
-      }
-
-      recentCalls.push(now);
-      limits.set(key, recentCalls);
-
-      // Cleanup old entries
-      if (limits.size > 100) {
-        const oldestKey = limits.keys().next().value;
-        limits.delete(oldestKey);
-      }
-
-      return true;
-    },
-  };
-})();
-
 // Handle messages from popup and content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // ============================================================================
@@ -552,6 +472,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.action === "getCurrentDomain") {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (chrome.runtime.lastError) {
+        console.error(
+          "OriginalUI: Failed to query active tab:",
+          chrome.runtime.lastError
+        );
+        sendResponse({
+          domain: null,
+          error: chrome.runtime.lastError.message || "Failed to query active tab",
+        });
+        return;
+      }
       if (tabs[0]) {
         try {
           const domain = new URL(tabs[0].url).hostname;
@@ -651,6 +582,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true, whitelist });
         // Notify content script of whitelist change
         chrome.tabs.query({}, (tabs) => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              "OriginalUI: Failed to query tabs for whitelist update:",
+              chrome.runtime.lastError
+            );
+            return;
+          }
           tabs.forEach((tab) => {
             if (tab.url && tab.url.startsWith("http")) {
               chrome.tabs
@@ -857,8 +795,8 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     }
   }
 
-  // Handle networkBlockPatterns changes (stored in sync)
-  if (namespace === "sync" && changes.networkBlockPatterns) {
+  // Handle networkBlockPatterns changes (stored in local)
+  if (namespace === "local" && changes.networkBlockPatterns) {
     console.log('🔄 Custom patterns updated, refreshing rules...');
     (async () => {
       try {
@@ -873,6 +811,13 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   // Notify all content scripts of storage changes (for local changes)
   if (namespace === "local") {
     chrome.tabs.query({}, (tabs) => {
+      if (chrome.runtime.lastError) {
+        console.error(
+          "OriginalUI: Failed to query tabs for storage changes:",
+          chrome.runtime.lastError
+        );
+        return;
+      }
       tabs.forEach((tab) => {
         if (tab.url && tab.url.startsWith("http")) {
           chrome.tabs

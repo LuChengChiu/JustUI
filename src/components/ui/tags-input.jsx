@@ -140,85 +140,112 @@ const TagsInputRoot = ({
     [currentTags, allowDuplicates, validate, removeTag, updateTags]
   );
 
-  const handleInputKeyDown = (e) => {
-    if (disabled || readOnly) return;
-
-    switch (e.key) {
-      case "Enter":
-      case delimiter:
-        e.preventDefault();
-        const trimmedValue = inputValue.trim();
-        if (trimmedValue) {
-          const success = addTag(trimmedValue);
-          if (success) {
-            setInputValue("");
-          }
-        }
-        break;
-
-      case "Backspace":
-        if (!inputValue && currentTags.length > 0) {
-          if (focusedIndex >= 0) {
-            removeTag(focusedIndex);
-            setFocusedIndex(Math.min(focusedIndex, currentTags.length - 2));
-          } else {
-            setFocusedIndex(currentTags.length - 1);
-          }
-        }
-        break;
-
-      case "ArrowLeft":
-        if (!inputValue || e.target.selectionStart === 0) {
-          e.preventDefault();
-          setFocusedIndex((prev) =>
-            prev >= 0 ? Math.max(0, prev - 1) : currentTags.length - 1
-          );
-        }
-        break;
-
-      case "ArrowRight":
-        if (!inputValue || e.target.selectionStart === inputValue.length) {
-          e.preventDefault();
-          if (focusedIndex >= 0) {
-            if (focusedIndex < currentTags.length - 1) {
-              setFocusedIndex((prev) => prev + 1);
-            } else {
-              setFocusedIndex(-1);
-              inputRef.current?.focus();
-            }
-          }
-        }
-        break;
-
-      case "Escape":
-        setFocusedIndex(-1);
-        setEditingIndex(-1);
-        break;
+  // Key handler helpers
+  const handleEnterKey = (e) => {
+    e.preventDefault();
+    const trimmedValue = inputValue.trim();
+    if (trimmedValue) {
+      const success = addTag(trimmedValue);
+      if (success) {
+        setInputValue("");
+      }
     }
   };
 
-  const handleInputBlur = () => {
+  const handleBackspaceKey = () => {
+    if (!inputValue && currentTags.length > 0) {
+      if (focusedIndex >= 0) {
+        removeTag(focusedIndex);
+        setFocusedIndex(Math.min(focusedIndex, currentTags.length - 2));
+      } else {
+        setFocusedIndex(currentTags.length - 1);
+      }
+    }
+  };
+
+  const handleArrowLeftKey = (e) => {
+    if (!inputValue || e.target.selectionStart === 0) {
+      e.preventDefault();
+      setFocusedIndex((prev) =>
+        prev >= 0 ? Math.max(0, prev - 1) : currentTags.length - 1
+      );
+    }
+  };
+
+  const handleArrowRightKey = (e) => {
+    if (!inputValue || e.target.selectionStart === inputValue.length) {
+      e.preventDefault();
+      if (focusedIndex >= 0) {
+        if (focusedIndex < currentTags.length - 1) {
+          setFocusedIndex((prev) => prev + 1);
+        } else {
+          setFocusedIndex(-1);
+          inputRef.current?.focus();
+        }
+      }
+    }
+  };
+
+  const handleEscapeKey = () => {
+    setFocusedIndex(-1);
+    setEditingIndex(-1);
+  };
+
+  const handleInputKeyDown = useCallback(
+    (e) => {
+      if (disabled || readOnly) return;
+
+      switch (e.key) {
+        case "Enter":
+        case delimiter:
+          handleEnterKey(e);
+          break;
+
+        case "Backspace":
+          handleBackspaceKey();
+          break;
+
+        case "ArrowLeft":
+          handleArrowLeftKey(e);
+          break;
+
+        case "ArrowRight":
+          handleArrowRightKey(e);
+          break;
+
+        case "Escape":
+          handleEscapeKey();
+          break;
+      }
+    },
+    [disabled, readOnly, delimiter, inputValue, addTag, currentTags, focusedIndex, removeTag]
+  );
+
+  const handleInputBlur = useCallback(() => {
     if (blurBehavior === "add" && inputValue && addTag(inputValue)) {
       setInputValue("");
     }
     setFocusedIndex(-1);
-  };
+  }, [blurBehavior, inputValue, addTag]);
 
-  const handlePaste = (e) => {
-    if (!addOnPaste) return;
+  const handlePaste = useCallback(
+    (e) => {
+      if (!addOnPaste) return;
 
-    const paste = e.clipboardData.getData("text");
-    const tags = paste
-      .split(new RegExp(delimiter, "g"))
-      .map((tag) => tag.trim())
-      .filter(Boolean);
+      const paste = e.clipboardData.getData("text");
+      const tags = paste
+        .split(new RegExp(delimiter, "g"))
+        .map((tag) => tag.trim())
+        .filter(Boolean);
 
-    if (tags.length > 0) {
-      e.preventDefault();
-      tags.forEach((tag) => addTag(tag));
-      setInputValue("");
-    }
-  };
+      if (tags.length > 0) {
+        e.preventDefault();
+        tags.forEach((tag) => addTag(tag));
+        setInputValue("");
+      }
+    },
+    [addOnPaste, delimiter, addTag]
+  );
 
   const sizeStyles = {
     xs: "text-xs px-2 py-1 min-h-[24px]",

@@ -174,39 +174,39 @@ export default function ExternalLinkModal({
 export const useExternalLinkModal = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [config, setConfig] = React.useState({});
-  const [resolvePromise, setResolvePromise] = React.useState(null);
+  const resolvePromiseRef = React.useRef(null);
 
   const showModal = React.useCallback((modalConfig) => {
     return new Promise((resolve) => {
       setConfig(modalConfig);
       setIsOpen(true);
-      setResolvePromise(() => resolve);
+      resolvePromiseRef.current = resolve;
     });
   }, []);
 
   const handleAllow = React.useCallback(() => {
-    if (resolvePromise) {
-      resolvePromise(true);
-      setResolvePromise(null);
+    if (resolvePromiseRef.current) {
+      resolvePromiseRef.current(true);
+      resolvePromiseRef.current = null;
     }
     setIsOpen(false);
-  }, [resolvePromise]);
+  }, []);
 
   const handleDeny = React.useCallback(() => {
-    if (resolvePromise) {
-      resolvePromise(false);
-      setResolvePromise(null);
+    if (resolvePromiseRef.current) {
+      resolvePromiseRef.current(false);
+      resolvePromiseRef.current = null;
     }
     setIsOpen(false);
-  }, [resolvePromise]);
+  }, []);
 
   const handleClose = React.useCallback(() => {
-    if (resolvePromise) {
-      resolvePromise(false); // Default to deny when closed
-      setResolvePromise(null);
+    if (resolvePromiseRef.current) {
+      resolvePromiseRef.current(false); // Default to deny when closed
+      resolvePromiseRef.current = null;
     }
     setIsOpen(false);
-  }, [resolvePromise]);
+  }, []);
 
   return {
     isOpen,
@@ -225,59 +225,63 @@ export const useExternalLinkModal = () => {
  * Used by ModalManager for content script integration
  */
 export const showExternalLinkModal = async (config) => {
-  return new Promise(async (resolve) => {
+  return new Promise((resolve) => {
     let shadowDOMSetup = null;
 
-    try {
-      // Step 1: Create Shadow DOM container with portal target
-      shadowDOMSetup = createShadowDOMContainer();
-      const { container, shadowRoot, portalTarget } = shadowDOMSetup;
+    const setupModal = async () => {
+      try {
+        // Step 1: Create Shadow DOM container with portal target
+        shadowDOMSetup = createShadowDOMContainer();
+        const { container, shadowRoot, portalTarget } = shadowDOMSetup;
 
-      // Step 2: Fetch CSS content
-      const cssContent = await fetchCSSContent();
+        // Step 2: Fetch CSS content
+        const cssContent = await fetchCSSContent();
 
-      // Step 3: Inject CSS and fonts in parallel into Shadow DOM
-      await Promise.all([
-        injectCSSIntoShadow(shadowRoot, cssContent),
-        injectGoogleFontsIntoShadow(shadowRoot)
-      ]);
+        // Step 3: Inject CSS and fonts in parallel into Shadow DOM
+        await Promise.all([
+          injectCSSIntoShadow(shadowRoot, cssContent),
+          injectGoogleFontsIntoShadow(shadowRoot)
+        ]);
 
-      // Step 4: Create React root (on light DOM container for React internals)
-      const root = createRoot(container);
+        // Step 4: Create React root (on light DOM container for React internals)
+        const root = createRoot(container);
 
-      const cleanup = () => {
-        root.unmount();
-        if (container.parentNode) {
-          container.parentNode.removeChild(container);
+        const cleanup = () => {
+          root.unmount();
+          if (container.parentNode) {
+            container.parentNode.removeChild(container);
+          }
+        };
+
+        const handleResult = (allowed) => {
+          cleanup();
+          resolve(allowed);
+        };
+
+        // Step 5: Render modal with Shadow DOM portal target
+        root.render(
+          React.createElement(ExternalLinkModal, {
+            isOpen: true,
+            config: config,
+            portalTarget: portalTarget, // NEW: Pass Shadow DOM target
+            onAllow: () => handleResult(true),
+            onDeny: () => handleResult(false),
+            onClose: () => handleResult(false),
+          })
+        );
+
+      } catch (error) {
+        console.error("OriginalUI: Failed to render React modal with Shadow DOM:", error);
+
+        // Cleanup on error
+        if (shadowDOMSetup?.container?.parentNode) {
+          shadowDOMSetup.container.parentNode.removeChild(shadowDOMSetup.container);
         }
-      };
 
-      const handleResult = (allowed) => {
-        cleanup();
-        resolve(allowed);
-      };
-
-      // Step 5: Render modal with Shadow DOM portal target
-      root.render(
-        React.createElement(ExternalLinkModal, {
-          isOpen: true,
-          config: config,
-          portalTarget: portalTarget, // NEW: Pass Shadow DOM target
-          onAllow: () => handleResult(true),
-          onDeny: () => handleResult(false),
-          onClose: () => handleResult(false),
-        })
-      );
-
-    } catch (error) {
-      console.error("OriginalUI: Failed to render React modal with Shadow DOM:", error);
-
-      // Cleanup on error
-      if (shadowDOMSetup?.container?.parentNode) {
-        shadowDOMSetup.container.parentNode.removeChild(shadowDOMSetup.container);
+        resolve(false); // Default to deny on error
       }
+    };
 
-      resolve(false); // Default to deny on error
-    }
+    setupModal();
   });
 };

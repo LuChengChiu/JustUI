@@ -13,12 +13,16 @@ export default function IconExpandButton({
   children,
   onClick,
   containerClassName,
+  ariaLabel,
 }) {
   const iconComponent = iconVariants[icon];
+  const resolvedAriaLabel =
+    ariaLabel || (typeof children === "string" ? children : undefined);
 
   return (
     <button
       onClick={onClick}
+      aria-label={resolvedAriaLabel}
       className={`group flex items-center justify-start w-6 h-6 border-none rounded-full cursor-pointer relative overflow-hidden transition-all duration-300 shadow-[2px_2px_10px_rgba(0,0,0,0.199)] bg-primary hover:w-32 hover:rounded-[40px] active:translate-x-0.5 active:translate-y-0.5 ${containerClassName}`}
     >
       <div className="w-full transition-all duration-100 flex items-center justify-center group-hover:w-[20%] group-hover:pl-1">

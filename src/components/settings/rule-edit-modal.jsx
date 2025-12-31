@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import Modal from "../ui/modal";
+import Dialog from "../ui/dialog";
 import Input from "../ui/input";
 import Button from "../ui/button";
 import TagsInput from "../ui/tags-input";
@@ -114,16 +114,26 @@ const RuleEditModal = ({
     onClose();
   };
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <Modal.Header>
-        <Modal.Title>
-          {isEditMode ? "Edit Custom Rule" : "Add New Custom Rule"}
-        </Modal.Title>
-        <Modal.CloseButton />
-      </Modal.Header>
+  const portalTarget =
+    document.getElementById("settings-root") || document.body;
 
-      <Modal.Content className="space-y-4">
+  return (
+    <Dialog
+      open={isOpen}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onClose();
+        }
+      }}
+    >
+      <Dialog.Content portalTarget={portalTarget}>
+        <Dialog.Header>
+          <Dialog.Title>
+          {isEditMode ? "Edit Custom Rule" : "Add New Custom Rule"}
+          </Dialog.Title>
+        </Dialog.Header>
+
+        <Dialog.Main className="space-y-4">
         {/* Rule ID */}
         <div className="space-y-1">
           <Label color="primary">Rule ID (optional)</Label>
@@ -197,9 +207,9 @@ const RuleEditModal = ({
             Use * for all domains, or specify patterns like *.example.com
           </Text>
         </div>
-      </Modal.Content>
+        </Dialog.Main>
 
-      <Modal.Footer>
+        <Dialog.Footer>
         <Button variant="outline" onClick={handleCancel}>
           Cancel
         </Button>
@@ -210,8 +220,9 @@ const RuleEditModal = ({
         >
           {isEditMode ? "Save Changes" : "Add Rule"}
         </Button>
-      </Modal.Footer>
-    </Modal>
+        </Dialog.Footer>
+      </Dialog.Content>
+    </Dialog>
   );
 };
 

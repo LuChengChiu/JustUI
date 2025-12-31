@@ -56,11 +56,9 @@ export class CleanupRegistry {
 
   /**
    * Clean up all registered modules with priority ordering and timeout protection
-   * @returns {Array} Array of cleanup results
+   * @returns {Promise<Array>} Promise resolving to array of cleanup results
    */
-  cleanupAll() {
-    const results = [];
-
+  async cleanupAll() {
     // Sort by priority (high > normal > low)
     const priorityOrder = { 'high': 3, 'normal': 2, 'low': 1 };
     const moduleArray = Array.from(this.modules.entries())
@@ -70,35 +68,53 @@ export class CleanupRegistry {
         return bPriority - aPriority; // High priority first
       });
 
-    // Process cleanup with timeout protection (CRITICAL SAFETY FEATURE)
-    for (const [name, { module }] of moduleArray) {
+    // Create all cleanup promises with timeout protection (CRITICAL SAFETY FEATURE)
+    const cleanupPromises = moduleArray.map(([name, { module }]) => {
       const startTime = Date.now();
+      let timeoutId;
 
       try {
         const cleanupPromise = Promise.resolve(module.cleanup());
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Cleanup timeout')), 5000);
+          timeoutId = setTimeout(() => reject(new Error('Cleanup timeout')), 5000);
         });
 
-        Promise.race([cleanupPromise, timeoutPromise])
+        // Race cleanup against timeout - returns settled promise
+        return Promise.race([cleanupPromise, timeoutPromise])
           .then(() => {
+            clearTimeout(timeoutId); // FIX: Clear timer on success
             const duration = Date.now() - startTime;
             console.log(`OriginalUI: ✓ Cleaned up ${name} (${duration}ms)`);
-            results.push({ name, success: true, duration });
+            return { name, success: true, duration };
           })
           .catch((error) => {
+            clearTimeout(timeoutId); // FIX: Clear timer on error
             const duration = Date.now() - startTime;
             console.warn(`OriginalUI: ✗ Error cleaning up ${name}:`, error);
-            results.push({ name, success: false, error: error.message, duration });
+            return { name, success: false, error: error.message, duration };
           });
       } catch (error) {
+        // Synchronous errors - clear timer and return error result
+        if (timeoutId) clearTimeout(timeoutId);
         const duration = Date.now() - startTime;
         console.warn(`OriginalUI: ✗ Synchronous error cleaning up ${name}:`, error);
-        results.push({ name, success: false, error: error.message, duration });
+        return Promise.resolve({ name, success: false, error: error.message, duration });
       }
-    }
+    });
 
-    // Clear all modules after cleanup
+    // FIX: Use Promise.allSettled() to ensure ALL cleanups complete even if some fail
+    const settledResults = await Promise.allSettled(cleanupPromises);
+
+    // Extract results from settled promises
+    const results = settledResults.map(result =>
+      result.status === 'fulfilled' ? result.value : {
+        name: 'unknown',
+        success: false,
+        error: result.reason?.message || 'Unknown error'
+      }
+    );
+
+    // Clear all modules ONLY after all cleanups complete
     this.modules.clear();
 
     // Log summary
@@ -127,11 +143,11 @@ export class CleanupRegistry {
 
   /**
    * Clean up the registry itself
-   * @returns {Array} Array of cleanup results
+   * @returns {Promise<Array>} Promise resolving to array of cleanup results
    */
-  cleanup() {
+  async cleanup() {
     console.log('OriginalUI: Starting CleanupRegistry cleanup...');
-    const results = this.cleanupAll();
+    const results = await this.cleanupAll();
     console.log('OriginalUI: CleanupRegistry cleanup completed');
     return results;
   }

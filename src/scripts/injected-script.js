@@ -12,8 +12,40 @@ import { MaliciousPatternDetector } from "./utils/malicious-pattern-detector.js"
   }
   window.navigationGuardianInjected = true;
 
+  // Configuration constants for optimal performance and maintainability
+  const CONFIG = {
+    // Permission check timeout (30 seconds to allow user interaction)
+    PERMISSION_CHECK_TIMEOUT_MS: 30000,
+    // Retry delay between permission check attempts
+    RETRY_DELAY_MS: 50,
+    // Maximum retry attempts for transient errors
+    MAX_PERMISSION_RETRIES: 1,
+    // Click window for pop-under detection (1 second)
+    CLICK_WINDOW_MS: 1000,
+    // Window open tracking window (1 minute)
+    WINDOW_OPEN_TRACKING_WINDOW_MS: 60000,
+    // Maximum error history size
+    MAX_ERROR_HISTORY: 10,
+    // Maximum URL length in error logs (prevent memory leaks)
+    MAX_URL_LENGTH_IN_LOGS: 200,
+    // Pop-under detection threshold score
+    POP_UNDER_THRESHOLD_SCORE: 4
+  };
+
   // Statistics tracking
   let blockedScriptsCount = 0;
+
+  // Error statistics tracking for telemetry/debugging
+  const errorStats = {
+    checkPermissionErrors: 0,
+    lastErrors: [],
+    errorsByType: {
+      'window.open': 0,
+      'location.assign': 0,
+      'location.replace': 0,
+      'location.href': 0
+    }
+  };
 
   // Report stats to content script via postMessage
   function reportStats() {
@@ -26,6 +58,52 @@ import { MaliciousPatternDetector } from "./utils/malicious-pattern-detector.js"
       },
       "*"
     );
+  }
+
+  // Report permission check errors for debugging/telemetry
+  function reportPermissionError(error, url, navType, isHighRisk) {
+    errorStats.checkPermissionErrors++;
+    errorStats.errorsByType[navType]++;
+
+    // Truncate URL to prevent memory leaks from massive URLs
+    const truncatedUrl = url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS) || '';
+    const urlWasTruncated = url && url.length > CONFIG.MAX_URL_LENGTH_IN_LOGS;
+
+    // Keep last N errors for debugging (configurable via CONFIG.MAX_ERROR_HISTORY)
+    errorStats.lastErrors.push({
+      timestamp: Date.now(),
+      error: error?.message || String(error),
+      url: truncatedUrl + (urlWasTruncated ? '...' : ''),
+      navType: navType,
+      isHighRisk: isHighRisk
+    });
+
+    if (errorStats.lastErrors.length > CONFIG.MAX_ERROR_HISTORY) {
+      errorStats.lastErrors.shift();
+    }
+
+    // Report to content script for analytics (use window.location.origin for security)
+    window.postMessage(
+      {
+        type: "NAV_GUARDIAN_ERROR",
+        error: {
+          message: error?.message || String(error),
+          url: truncatedUrl + (urlWasTruncated ? '...' : ''),
+          navType: navType,
+          isHighRisk: isHighRisk
+        },
+        stats: errorStats
+      },
+      window.location.origin
+    );
+
+    console.error('Navigation Guardian: Permission error details:', {
+      navType: navType,
+      url: truncatedUrl + (urlWasTruncated ? '... [truncated]' : ''),
+      isHighRisk: isHighRisk,
+      totalErrors: errorStats.checkPermissionErrors,
+      errorMessage: error?.message || String(error)
+    });
   }
 
   // Feature detection and safe override utilities
@@ -140,7 +218,11 @@ import { MaliciousPatternDetector } from "./utils/malicious-pattern-detector.js"
 
     try {
       const targetUrl = new URL(url, window.location.href);
-      return targetUrl.hostname !== window.location.hostname;
+      // Use origin comparison instead of hostname to catch:
+      // - Different protocols (http vs https)
+      // - Different ports (example.com:8080 vs example.com:3000)
+      // - Different subdomains (api.example.com vs www.example.com)
+      return targetUrl.origin !== window.location.origin;
     } catch (error) {
       return false;
     }
@@ -158,68 +240,171 @@ import { MaliciousPatternDetector } from "./utils/malicious-pattern-detector.js"
 
   // Send message to content script and wait for response
   function checkNavigationPermission(url) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const messageId = generateMessageId();
       let hasResolved = false;
 
-      // Longer timeout to allow for user interaction (30 seconds)
+      // Cleanup helper to prevent memory leaks
+      const cleanup = () => {
+        if (timeout) clearTimeout(timeout);
+        try {
+          window.removeEventListener("message", handleResponse);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      };
+
+      // Timeout with configurable duration (allow user interaction time)
       const timeout = setTimeout(() => {
         if (!hasResolved) {
           hasResolved = true;
+          cleanup();
           console.warn(
             "Navigation Guardian: Permission check timed out for:",
-            url
+            url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS)
           );
+          // Timeout is not an error - just deny navigation
           resolve(false);
         }
-      }, 30000);
+      }, CONFIG.PERMISSION_CHECK_TIMEOUT_MS);
 
       // Listen for response
       function handleResponse(event) {
-        if (event.source !== window || hasResolved) return;
+        try {
+          if (event.source !== window || hasResolved) return;
 
-        if (
-          event.data?.type === "NAV_GUARDIAN_RESPONSE" &&
-          event.data?.messageId === messageId
-        ) {
-          hasResolved = true;
-          clearTimeout(timeout);
-          window.removeEventListener("message", handleResponse);
+          if (
+            event.data?.type === "NAV_GUARDIAN_RESPONSE" &&
+            event.data?.messageId === messageId
+          ) {
+            hasResolved = true;
+            cleanup();
 
-          const allowed = event.data.allowed || false;
-          console.log(
-            `Navigation Guardian: Permission ${
-              allowed ? "granted" : "denied"
-            } for:`,
-            url
-          );
-          resolve(allowed);
+            const allowed = event.data.allowed || false;
+            console.log(
+              `Navigation Guardian: Permission ${
+                allowed ? "granted" : "denied"
+              } for:`,
+              url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS)
+            );
+            resolve(allowed);
+          }
+        } catch (error) {
+          // Error in message handler - reject the promise
+          if (!hasResolved) {
+            hasResolved = true;
+            cleanup();
+            reject(new Error(`Message handler error: ${error.message}`));
+          }
         }
       }
 
-      window.addEventListener("message", handleResponse);
+      // Register message listener with error handling
+      try {
+        window.addEventListener("message", handleResponse);
+      } catch (error) {
+        hasResolved = true;
+        cleanup();
+        reject(new Error(`Failed to add message listener: ${error.message}`));
+        return;
+      }
 
       // Send request to content script with pop-under analysis
-      console.log("Navigation Guardian: Requesting permission for:", url);
-      window.postMessage(
-        {
-          type: "NAV_GUARDIAN_CHECK",
-          url: url,
-          messageId: messageId,
-          popUnderAnalysis: {
-            isPopUnder: true, // This function is only called for suspected pop-unders
-            score: 7, // Base score for detected pop-under attempt
-            threats: [
-              {
-                type: "Window.open() pop-under attempt detected",
-                score: 7,
-              },
-            ],
+      try {
+        console.log("Navigation Guardian: Requesting permission for:", url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS));
+        window.postMessage(
+          {
+            type: "NAV_GUARDIAN_CHECK",
+            url: url,
+            messageId: messageId,
+            popUnderAnalysis: {
+              isPopUnder: true, // This function is only called for suspected pop-unders
+              score: 7, // Base score for detected pop-under attempt
+              threats: [
+                {
+                  type: "Window.open() pop-under attempt detected",
+                  score: 7,
+                },
+              ],
+            },
           },
-        },
-        "*"
-      );
+          window.location.origin
+        );
+      } catch (error) {
+        // Error sending message - reject the promise
+        hasResolved = true;
+        cleanup();
+        reject(new Error(`Failed to send permission request: ${error.message}`));
+      }
     });
+  }
+
+  // Enhanced permission check with retry logic and context-aware error handling
+  async function safeCheckNavigationPermission(url, navType) {
+    const truncatedUrl = url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS) || '';
+
+    for (let attempt = 0; attempt <= CONFIG.MAX_PERMISSION_RETRIES; attempt++) {
+      try {
+        return await checkNavigationPermission(url);
+      } catch (error) {
+        // Log error with URL context for debugging
+        console.warn(
+          `Navigation Guardian: ${navType} check failed for URL "${truncatedUrl}" (attempt ${attempt + 1}/${CONFIG.MAX_PERMISSION_RETRIES + 1}):`,
+          error
+        );
+
+        // Last attempt failed - decide based on risk level
+        if (attempt === CONFIG.MAX_PERMISSION_RETRIES) {
+          // Assess risk level for context-aware fallback
+          const isHighRisk = assessNavigationRisk(navType, url);
+
+          // Report error for telemetry
+          reportPermissionError(error, url, navType, isHighRisk);
+
+          // Return safe default based on risk:
+          // - High risk (window.open, malicious URLs) -> deny (false)
+          // - Low risk (location.href, safe URLs) -> allow (true)
+          const shouldAllowOnError = !isHighRisk;
+
+          console.warn(
+            `Navigation Guardian: Using ${isHighRisk ? 'DENY' : 'ALLOW'} fallback for ${navType} on URL "${truncatedUrl}" (risk: ${isHighRisk ? 'HIGH' : 'LOW'})`
+          );
+
+          return shouldAllowOnError;
+        }
+
+        // Brief delay before retry to allow transient errors to resolve
+        await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY_MS));
+      }
+    }
+
+    // Should never reach here, but fail-secure just in case
+    return false;
+  }
+
+  // Assess navigation risk level for context-aware error handling
+  function assessNavigationRisk(navType, url) {
+    // window.open is high risk (often used for pop-ups/ads)
+    if (navType === 'window.open') {
+      return true; // HIGH RISK
+    }
+
+    // Check if URL matches malicious patterns
+    try {
+      if (MaliciousPatternDetector.isUrlMalicious(url || '')) {
+        return true; // HIGH RISK - malicious URL pattern detected
+      }
+    } catch (error) {
+      console.warn('Navigation Guardian: Error checking URL maliciousness:', error);
+      // If malicious check fails, assume low-medium risk for location methods
+      // window.open would have already returned true above
+      return false;
+    }
+
+    // location.href, location.assign, location.replace are LOW-MEDIUM risk
+    // These are standard navigation methods used by legitimate SPAs (React Router, Vue Router, etc.)
+    // Only deny on error if URL is actually malicious (checked above)
+    return false; // LOW-MEDIUM RISK (allow on error for better UX)
   }
 
   // Track which overrides were successful
@@ -331,20 +516,22 @@ import { MaliciousPatternDetector } from "./utils/malicious-pattern-detector.js"
   function isPopUnderBehavior(url, name, features) {
     const now = Date.now();
 
-    // Check if this window.open() is triggered within 1 second of a document click
-    const isClickTriggered = now - lastDocumentClick < 1000;
+    // Check if this window.open() is triggered within click window
+    const isClickTriggered = now - lastDocumentClick < CONFIG.CLICK_WINDOW_MS;
 
     // Check for pop-under URL patterns using MaliciousPatternDetector
-    const hasPopUnderURL = MaliciousPatternDetector.isUrlMalicious(url || "");
+    const hasPopUnderURL = MaliciousPatternDetector.isUrlMalicious(url || '');
 
     // Check for _blank target with immediate focus (pop-under characteristic)
-    const isBlankTarget = name === "_blank" || name === "";
+    const isBlankTarget = name === '_blank' || name === '';
 
     // Track recent window.open() calls to detect rate limiting behavior
     recentWindowOpens.push(now);
-    recentWindowOpens = recentWindowOpens.filter((time) => now - time < 60000); // Keep last minute
+    recentWindowOpens = recentWindowOpens.filter(
+      (time) => now - time < CONFIG.WINDOW_OPEN_TRACKING_WINDOW_MS
+    );
 
-    const tooFrequent = recentWindowOpens.length > 3; // More than 3 opens per minute
+    const tooFrequent = recentWindowOpens.length > 3; // More than 3 opens per tracking window
 
     // Combine factors to determine pop-under likelihood
     const popUnderScore =
@@ -354,7 +541,7 @@ import { MaliciousPatternDetector } from "./utils/malicious-pattern-detector.js"
       (tooFrequent ? 2 : 0);
 
     return {
-      isPopUnder: popUnderScore >= 4,
+      isPopUnder: popUnderScore >= CONFIG.POP_UNDER_THRESHOLD_SCORE,
       score: popUnderScore,
       factors: {
         clickTriggered: isClickTriggered,
@@ -392,11 +579,19 @@ import { MaliciousPatternDetector } from "./utils/malicious-pattern-detector.js"
       }
 
       // For cross-origin URLs that aren't obvious pop-unders, check permission
-      checkNavigationPermission(url).then((allowed) => {
-        if (allowed) {
-          originalWindowOpen.call(window, url, name, features);
-        }
-      });
+      safeCheckNavigationPermission(url, 'window.open')
+        .then((allowed) => {
+          if (allowed) {
+            originalWindowOpen.call(window, url, name, features);
+          }
+        })
+        .catch((error) => {
+          // This should never happen since safeCheckNavigationPermission handles all errors,
+          // but add defensive catch just in case
+          console.error('Navigation Guardian: Unexpected error in window.open:', error);
+          reportPermissionError(error, url, 'window.open', true);
+          // Fail-secure: deny navigation
+        });
 
       // Return null for blocked navigation
       return null;
@@ -414,11 +609,17 @@ import { MaliciousPatternDetector } from "./utils/malicious-pattern-detector.js"
           return originalLocationAssign.call(this, url);
         }
 
-        checkNavigationPermission(url).then((allowed) => {
-          if (allowed) {
-            originalLocationAssign.call(window.location, url);
-          }
-        });
+        safeCheckNavigationPermission(url, 'location.assign')
+          .then((allowed) => {
+            if (allowed) {
+              originalLocationAssign.call(window.location, url);
+            }
+          })
+          .catch((error) => {
+            console.error('Navigation Guardian: Unexpected error in location.assign:', error);
+            reportPermissionError(error, url, 'location.assign', true);
+            // Fail-secure: deny navigation
+          });
       },
       "method"
     );
@@ -434,11 +635,17 @@ import { MaliciousPatternDetector } from "./utils/malicious-pattern-detector.js"
           return originalLocationReplace.call(this, url);
         }
 
-        checkNavigationPermission(url).then((allowed) => {
-          if (allowed) {
-            originalLocationReplace.call(window.location, url);
-          }
-        });
+        safeCheckNavigationPermission(url, 'location.replace')
+          .then((allowed) => {
+            if (allowed) {
+              originalLocationReplace.call(window.location, url);
+            }
+          })
+          .catch((error) => {
+            console.error('Navigation Guardian: Unexpected error in location.replace:', error);
+            reportPermissionError(error, url, 'location.replace', true);
+            // Fail-secure: deny navigation
+          });
       },
       "method"
     );
@@ -456,11 +663,24 @@ import { MaliciousPatternDetector } from "./utils/malicious-pattern-detector.js"
             return originalHrefDescriptor.set.call(this, url);
           }
 
-          checkNavigationPermission(url).then((allowed) => {
-            if (allowed) {
-              originalHrefDescriptor.set.call(window.location, url);
-            }
-          });
+          safeCheckNavigationPermission(url, 'location.href')
+            .then((allowed) => {
+              if (allowed) {
+                originalHrefDescriptor.set.call(window.location, url);
+              }
+            })
+            .catch((error) => {
+              console.error('Navigation Guardian: Unexpected error in location.href:', error);
+              reportPermissionError(error, url, 'location.href', false);
+              // Fail-open for location.href (low-risk, often user-initiated)
+              // This is a safety net - risk assessment should handle this, but if something
+              // unexpected happens, allow the navigation anyway for better UX
+              try {
+                originalHrefDescriptor.set.call(window.location, url);
+              } catch (navError) {
+                console.error('Navigation Guardian: Failed to execute fail-open navigation:', navError);
+              }
+            });
         },
         enumerable: originalHrefDescriptor.enumerable,
         configurable: originalHrefDescriptor.configurable,

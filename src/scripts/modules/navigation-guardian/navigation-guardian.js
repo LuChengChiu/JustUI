@@ -280,6 +280,94 @@ export class NavigationGuardian {
   }
 
   /**
+   * Sanitize form action URL to prevent protocol handler XSS
+   * @param {string} action - Form action URL
+   * @returns {string|null} Sanitized URL or null if invalid
+   * @security Prevents javascript:, data:, blob: protocol attacks
+   */
+  sanitizeFormAction(action) {
+    try {
+      const url = new URL(action, window.location.href);
+      // Only allow http/https protocols
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        console.error('NavigationGuardian: Blocked non-HTTP protocol:', url.protocol);
+        return null;
+      }
+      return url.href;
+    } catch (error) {
+      console.error('NavigationGuardian: Invalid form action URL:', action, error);
+      return null;
+    }
+  }
+
+  /**
+   * Create sanitized form without event handlers
+   * @param {HTMLFormElement} originalForm - Original form element
+   * @returns {HTMLFormElement|null} Sanitized form or null if validation fails
+   * @security Prevents XSS via cloneNode, handles files, multiple values, protocol attacks
+   */
+  createSanitizedForm(originalForm) {
+    try {
+      const safeForm = document.createElement('form');
+
+      // Sanitize and validate action URL
+      const safeAction = this.sanitizeFormAction(
+        originalForm.getAttribute('action') || window.location.href
+      );
+      if (!safeAction) {
+        console.warn('NavigationGuardian: Blocked form with malicious action');
+        return null;
+      }
+
+      safeForm.action = safeAction;
+      safeForm.method = ['get', 'post'].includes(originalForm.method.toLowerCase())
+        ? originalForm.method.toLowerCase()
+        : 'get';
+      safeForm.enctype = originalForm.enctype || 'application/x-www-form-urlencoded';
+      safeForm.target = originalForm.target || '_self';
+
+      // Extract form data safely
+      const formData = new FormData(originalForm);
+
+      // Get all unique field names
+      const fieldNames = new Set();
+      for (const name of formData.keys()) {
+        fieldNames.add(name);
+      }
+
+      // Handle multiple values per field name
+      for (const name of fieldNames) {
+        const values = formData.getAll(name);
+
+        for (const value of values) {
+          const input = document.createElement('input');
+          input.name = name;
+
+          // Handle file uploads correctly
+          if (value instanceof File) {
+            input.type = 'file';
+            // Use DataTransfer API to attach File object
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(value);
+            input.files = dataTransfer.files;
+          } else {
+            // Regular text input (browser auto-escapes)
+            input.type = 'hidden';
+            input.value = value;
+          }
+
+          safeForm.appendChild(input);
+        }
+      }
+
+      return safeForm;
+    } catch (error) {
+      console.error('NavigationGuardian: Form sanitization failed:', error);
+      return null;
+    }
+  }
+
+  /**
    * Handle form submissions and check for cross-origin actions
    * @param {Event} event - Submit event
    */
@@ -302,15 +390,18 @@ export class NavigationGuardian {
 
     this.showNavigationModal(action, (allowed) => {
       if (allowed) {
-        if (form.target === "_blank") {
-          const newForm = form.cloneNode(true);
-          newForm.target = "_blank";
-          document.body.appendChild(newForm);
-          newForm.submit();
-          document.body.removeChild(newForm);
-        } else {
-          form.submit();
+        // Create sanitized form for ALL submissions (consistent security)
+        const safeForm = this.createSanitizedForm(form);
+
+        if (!safeForm) {
+          console.error('NavigationGuardian: Failed to sanitize form, blocking submission');
+          return;
         }
+
+        // Submit sanitized form (prevents XSS via event handlers for all forms)
+        document.body.appendChild(safeForm);
+        safeForm.submit();
+        document.body.removeChild(safeForm);
       }
     });
   }
