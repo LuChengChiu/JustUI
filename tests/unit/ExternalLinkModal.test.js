@@ -3,8 +3,8 @@
  * Tests the React-based Navigation Guardian modal component
  */
 
+import { domTestUtils } from "@test/setup-react.js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { domTestUtils } from "../../test/setup-react.js";
 
 // Mock the Dialog component
 const mockDialog = {

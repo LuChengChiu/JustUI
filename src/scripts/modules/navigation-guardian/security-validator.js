@@ -5,7 +5,7 @@ import {
   THREAT_SCORES,
   getAdNetworkScore,
   findTrackingParams,
-} from "../../utils/threat-patterns.js";
+} from "@script-utils/threat-patterns.js";
 
 /**
  * SecurityValidator Module - URL and threat validation for NavigationGuardian
@@ -56,6 +56,8 @@ export class SecurityValidator {
       /[\u0370-\u03FF]/, // Greek
       /[\u0590-\u05FF]/, // Hebrew
       /[\u0600-\u06FF]/, // Arabic
+      /[\uFB50-\uFDFF]/, // Arabic Presentation Forms-A
+      /[\uFE70-\uFEFF]/, // Arabic Presentation Forms-B
       /[\u4E00-\u9FFF]/, // CJK Unified Ideographs
       /[\u3040-\u309F]/, // Hiragana
       /[\u30A0-\u30FF]/, // Katakana
@@ -142,7 +144,7 @@ export class SecurityValidator {
       }
 
       // Check for suspicious unicode characters (homograph attacks)
-      if (this.containsSuspiciousUnicode(urlObj.hostname)) {
+      if (this.isHostnameSuspicious(urlObj.hostname)) {
         result.displayURL = "Blocked: Suspicious characters in domain";
         result.warnings.push("Potential homograph attack detected");
         return result;
@@ -187,6 +189,19 @@ export class SecurityValidator {
   }
 
   /**
+   * Check if hostname is suspicious (unicode or IDN/punycode).
+   * @param {string} hostname - Parsed hostname.
+   * @returns {boolean} True if suspicious.
+   */
+  isHostnameSuspicious(hostname) {
+    if (!hostname || typeof hostname !== "string") {
+      return false;
+    }
+
+    return this.containsSuspiciousUnicode(hostname) || hostname.includes("xn--");
+  }
+
+  /**
    * Analyze URLs for malicious patterns and calculate risk score
    * @param {string} url - URL to analyze
    * @returns {Object} Analysis results with risk score and threats
@@ -220,6 +235,15 @@ export class SecurityValidator {
       try {
         const urlObj = new URL(url);
 
+        // Check for unsafe protocols
+        if (!this.allowedProtocols.includes(urlObj.protocol)) {
+          analysis.riskScore += 10;
+          analysis.threats.push({
+            type: `Unsafe protocol: ${urlObj.protocol}`,
+            score: 10,
+          });
+        }
+
         // Check for suspicious query parameters using shared helper
         const foundParams = findTrackingParams(urlObj);
         foundParams.forEach((param) => {
@@ -240,7 +264,7 @@ export class SecurityValidator {
         }
 
         // Check for suspicious unicode in hostname
-        if (this.containsSuspiciousUnicode(urlObj.hostname)) {
+        if (this.isHostnameSuspicious(urlObj.hostname)) {
           analysis.riskScore += 4;
           analysis.threats.push({
             type: "Suspicious unicode characters (homograph attack)",

@@ -10,7 +10,7 @@ import {
   fetchCSSContent,
   injectCSSIntoShadow,
   injectGoogleFontsIntoShadow
-} from "../utils/shadowDOM.js";
+} from "@utils/shadowDOM.js";
 
 // Ensure React is available globally for JSX components in content script
 if (typeof window !== "undefined" && !window.React) {

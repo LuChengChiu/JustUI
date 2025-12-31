@@ -1,6 +1,6 @@
-import SettingsCheckbox from "../ui/checkbox/settings-checkbox";
-import TagsInput from "../ui/tags-input";
-import { H1, H3, Text } from "../ui/typography";
+import SettingsCheckbox from "@/components/ui/checkbox/settings-checkbox";
+import TagsInput from "@/components/ui/tags-input";
+import { H1, H3, Text } from "@/components/ui/typography";
 
 const DEFAULT_BLOCK_URL =
   "https://github.com/LuChengChiu/OriginalUI/blob/main/src/data/defaultBlockRequests.json";

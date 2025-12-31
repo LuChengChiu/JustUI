@@ -3,7 +3,7 @@
  * Tests orchestration of SecurityValidator, ModalManager, and core functionality
  */
 
-import { NavigationGuardian } from '../../src/scripts/modules/NavigationGuardian.js';
+import { NavigationGuardian } from '@/scripts/modules/NavigationGuardian.js';
 
 // Mock Chrome API
 global.chrome = {

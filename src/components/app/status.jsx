@@ -1,5 +1,5 @@
-import Toggle from "../ui/toggle";
-import { H2, H4 } from "../ui/typography";
+import Toggle from "@/components/ui/toggle";
+import { H2, H4 } from "@/components/ui/typography";
 
 export default function Status({ isActive, onChange }) {
   return (

@@ -1,5 +1,5 @@
-import { Text } from "../ui/typography";
-import { getVersion } from "../../utils/manifest";
+import { Text } from "@/components/ui/typography";
+import { getVersion } from "@utils/manifest";
 
 export default function Footer() {
   const currentVersion = getVersion();

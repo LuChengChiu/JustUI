@@ -29,11 +29,11 @@
  * @author OriginalUI Team
  */
 
-import { domainMatches } from "../../../utils/domainMatch.js";
+import { domainMatches, safeParseUrl } from "@utils/url-utils.js";
 import {
   isExtensionContextValid,
   safeStorageSet,
-} from "../../utils/chromeApiSafe.js";
+} from "@script-utils/chromeApiSafe.js";
 import { ModalManager } from "./modal-manager.js";
 import { SecurityValidator } from "./security-validator.js";
 
@@ -649,12 +649,13 @@ export class NavigationGuardian {
       return false;
     }
 
-    try {
-      const targetUrl = new URL(url, window.location.href);
-      return targetUrl.hostname !== window.location.hostname;
-    } catch (error) {
-      return false;
-    }
+    const targetUrl = safeParseUrl(url, window.location.href, {
+      context: "cross-origin check",
+      level: "debug",
+      prefix: "OriginalUI: NavigationGuardian",
+    });
+    if (!targetUrl) return false;
+    return targetUrl.hostname !== window.location.hostname;
   }
 
   /**
@@ -665,12 +666,13 @@ export class NavigationGuardian {
   isNavigationTrusted(url) {
     if (!url) return false;
 
-    try {
-      const targetUrl = new URL(url, window.location.href);
-      return this.isDomainWhitelisted(targetUrl.hostname);
-    } catch (error) {
-      return false;
-    }
+    const targetUrl = safeParseUrl(url, window.location.href, {
+      context: "trusted navigation check",
+      level: "debug",
+      prefix: "OriginalUI: NavigationGuardian",
+    });
+    if (!targetUrl) return false;
+    return this.isDomainWhitelisted(targetUrl.hostname);
   }
 
   /**
@@ -695,11 +697,12 @@ export class NavigationGuardian {
    * @returns {string} Current domain
    */
   getCurrentDomain() {
-    try {
-      return new URL(window.location.href).hostname;
-    } catch (error) {
-      return "";
-    }
+    const currentUrl = safeParseUrl(window.location.href, null, {
+      context: "current domain lookup",
+      level: "debug",
+      prefix: "OriginalUI: NavigationGuardian",
+    });
+    return currentUrl ? currentUrl.hostname : "";
   }
 
   /**

@@ -4,7 +4,7 @@
  */
 
 import { vi } from 'vitest';
-import { PerformanceCoordinator } from '../../../../src/scripts/modules/rule-execution/core/performance-coordinator.js';
+import { PerformanceCoordinator } from '@/scripts/modules/rule-execution/core/performance-coordinator.js';
 
 describe('PerformanceCoordinator', () => {
   let coordinator;

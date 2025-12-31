@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import TagsInput from "../ui/tags-input";
-import { H1, Text } from "../ui/typography";
+import TagsInput from "@/components/ui/tags-input";
+import { H1, Text } from "@/components/ui/typography";
 
 /**
  * Domain validation patterns and constants

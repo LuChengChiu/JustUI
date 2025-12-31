@@ -1,6 +1,6 @@
-import Minus from "../../icons/Minus";
-import Plus from "../../icons/Plus";
-import IconResetSetting from "../../icons/reset-settings";
+import Minus from "@/components/icons/Minus";
+import Plus from "@/components/icons/Plus";
+import IconResetSetting from "@/components/icons/reset-settings";
 
 const iconVariants = {
   plus: <Plus className="w-4 h-4 text-white" />,

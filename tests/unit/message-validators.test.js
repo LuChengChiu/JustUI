@@ -10,7 +10,7 @@ import {
   isValidDomain,
   isValidURL,
   isValidRequestStructure
-} from '../../src/scripts/utils/background/message-validators.js';
+} from '@script-utils/background/message-validators.js';
 
 describe('Message Validators', () => {
   beforeEach(() => {

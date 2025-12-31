@@ -8,7 +8,7 @@
  */
 
 import { IDomRuleSource } from './IDomRuleSource.js';
-import { safeStorageGet } from '../../../utils/chromeApiSafe.js';
+import { safeStorageGet } from '@script-utils/chromeApiSafe.js';
 
 /**
  * Source for user-defined custom CSS selector rules

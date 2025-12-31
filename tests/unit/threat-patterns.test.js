@@ -12,7 +12,7 @@ import {
   THREAT_SCORES,
   getAdNetworkScore,
   findTrackingParams,
-} from '../../src/scripts/utils/threat-patterns.js';
+} from '@script-utils/threat-patterns.js';
 
 describe('ThreatPatterns - Exports', () => {
   describe('AD_NETWORK_DOMAINS', () => {

@@ -1,6 +1,6 @@
-import ShieldLink from "../icons/shield-link";
-import { H3 } from "../ui/typography";
-import PopupToggle from "../ui/checkbox/popup-toggle";
+import ShieldLink from "@/components/icons/shield-link";
+import { H3 } from "@/components/ui/typography";
+import PopupToggle from "@/components/ui/checkbox/popup-toggle";
 
 const navigationLabel = (
   <>

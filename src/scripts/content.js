@@ -4,7 +4,7 @@
  */
 
 // Import modules
-import { domainMatches } from "../utils/domainMatch.js";
+import { domainMatches } from "@utils/url-utils.js";
 import { ClickHijackingProtector } from "./modules/ClickHijackingProtector.js";
 import { ElementRemover } from "./modules/ElementRemover.js";
 import { CleanupRegistry } from "./modules/cleanup-registry.js";

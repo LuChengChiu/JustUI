@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import SettingsCheckbox from '../../src/components/ui/checkbox/settings-checkbox';
+import SettingsCheckbox from '@/components/ui/checkbox/settings-checkbox';
 
 describe('SettingsCheckbox', () => {
   it('renders with label', () => {

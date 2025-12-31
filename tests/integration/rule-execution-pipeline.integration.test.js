@@ -6,8 +6,8 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { DomScanner } from '../../src/scripts/modules/rule-execution/executors/hybrid-executor/dom-scanner.js';
-import { TokenIndexer } from '../../src/scripts/modules/rule-execution/executors/hybrid-executor/token-indexer.js';
+import { DomScanner } from '@/scripts/modules/rule-execution/executors/hybrid-executor/dom-scanner.js';
+import { TokenIndexer } from '@/scripts/modules/rule-execution/executors/hybrid-executor/token-indexer.js';
 import {
   simpleRules,
   complexRules,

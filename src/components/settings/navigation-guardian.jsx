@@ -1,5 +1,5 @@
-import SettingsCheckbox from "../ui/checkbox/settings-checkbox";
-import { H1, Text } from "../ui/typography";
+import SettingsCheckbox from "@/components/ui/checkbox/settings-checkbox";
+import { H1, Text } from "@/components/ui/typography";
 
 export default function NavigationGuardian({
   enabled,

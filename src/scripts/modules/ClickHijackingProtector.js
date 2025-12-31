@@ -3,7 +3,7 @@
  * Prevents malicious overlays from intercepting user clicks
  */
 
-import { MAX_Z_INDEX } from "../constants.js";
+import { MAX_Z_INDEX } from "@/scripts/constants.js";
 export class ClickHijackingProtector {
   constructor() {
     this.isActive = false;

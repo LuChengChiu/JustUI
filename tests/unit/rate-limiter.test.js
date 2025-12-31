@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { RateLimiter, rateLimiter } from '../../src/scripts/utils/background/rate-limiter.js';
+import { RateLimiter, rateLimiter } from '@script-utils/background/rate-limiter.js';
 
 describe('RateLimiter', () => {
   let limiter;

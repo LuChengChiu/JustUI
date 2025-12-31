@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import PopupToggle from '../../src/components/ui/checkbox/popup-toggle';
+import PopupToggle from '@/components/ui/checkbox/popup-toggle';
 
 describe('PopupToggle', () => {
   it('renders with label', () => {

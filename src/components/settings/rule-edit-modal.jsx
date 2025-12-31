@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import Dialog from "../ui/dialog";
-import Input from "../ui/input";
-import Button from "../ui/button";
-import TagsInput from "../ui/tags-input";
-import { Text, Label } from "../ui/typography";
+import Dialog from "@/components/ui/dialog";
+import Input from "@/components/ui/input";
+import Button from "@/components/ui/button";
+import TagsInput from "@/components/ui/tags-input";
+import { Text, Label } from "@/components/ui/typography";
 
 const RuleEditModal = ({
   isOpen,

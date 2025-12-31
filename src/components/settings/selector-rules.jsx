@@ -1,5 +1,5 @@
-import SettingsCheckbox from "../ui/checkbox/settings-checkbox";
-import { H1, Text } from "../ui/typography";
+import SettingsCheckbox from "@/components/ui/checkbox/settings-checkbox";
+import { H1, Text } from "@/components/ui/typography";
 
 const URL =
   "https://github.com/LuChengChiu/OriginalUI/blob/main/src/data/defaultRules.json";

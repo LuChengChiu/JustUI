@@ -191,7 +191,7 @@ export class RuleExecutionManager {
 
     try {
       // Import safeStorageGet dynamically to avoid circular deps
-      const { safeStorageGet } = await import('../../../utils/chromeApiSafe.js');
+      const { safeStorageGet } = await import('@script-utils/chromeApiSafe.js');
       const result = await safeStorageGet([storageKey]);
       return result[storageKey] !== false; // Default to true if not set
     } catch (error) {

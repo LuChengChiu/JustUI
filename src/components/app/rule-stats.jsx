@@ -1,5 +1,5 @@
-import IconExpandButton from "../ui/button/icon-expand";
-import { H3, H4, Text } from "../ui/typography";
+import IconExpandButton from "@/components/ui/button/icon-expand";
+import { H3, H4, Text } from "@/components/ui/typography";
 
 const renderRuleCount = (label, count) => {
   return (

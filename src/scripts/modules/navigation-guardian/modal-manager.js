@@ -26,7 +26,7 @@
  * @author OriginalUI Team
  */
 
-import { showExternalLinkModal } from "../../../components/external-link-modal.jsx";
+import { showExternalLinkModal } from "@/components/external-link-modal.jsx";
 
 /**
  * ModalManager class providing modal UI creation and lifecycle management

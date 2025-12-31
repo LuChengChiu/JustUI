@@ -1,4 +1,4 @@
-import { H3, H4 } from "../ui/typography";
+import { H3, H4 } from "@/components/ui/typography";
 
 export default function NavigationStats({ state }) {
   return (

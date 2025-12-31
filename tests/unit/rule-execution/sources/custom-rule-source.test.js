@@ -4,8 +4,8 @@
  */
 
 import { vi } from 'vitest';
-import { CustomRuleSource } from '../../../../src/scripts/modules/rule-execution/sources/custom-rule-source.js';
-import { safeStorageGet } from '../../../../src/scripts/utils/chromeApiSafe.js';
+import { CustomRuleSource } from '@/scripts/modules/rule-execution/sources/custom-rule-source.js';
+import { safeStorageGet } from '@script-utils/chromeApiSafe.js';
 
 vi.mock('../../../../src/scripts/utils/chromeApiSafe.js');
 

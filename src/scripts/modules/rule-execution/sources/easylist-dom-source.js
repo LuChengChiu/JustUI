@@ -9,7 +9,7 @@
  */
 
 import { IDomRuleSource } from './IDomRuleSource.js';
-import { safeStorageGet, safeStorageSet } from '../../../utils/chromeApiSafe.js';
+import { safeStorageGet, safeStorageSet } from '@script-utils/chromeApiSafe.js';
 
 /**
  * EasyList URL for cosmetic (DOM hiding) rules

@@ -9,7 +9,7 @@ import {
   fetchDefaultRules,
   fetchDefaultWhitelist,
   fetchAllDefaults
-} from '../../src/scripts/utils/background/remote-data-fetcher.js';
+} from '@script-utils/background/remote-data-fetcher.js';
 
 describe('Remote Data Fetcher', () => {
   let originalFetch;

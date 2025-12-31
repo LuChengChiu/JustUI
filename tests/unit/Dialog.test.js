@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
-import { reactTestUtils, domTestUtils } from '../../test/setup-react.js'
+import { reactTestUtils, domTestUtils } from '@test/setup-react.js'
 
 // Mock the Dialog component
 const mockDialog = {

@@ -9,26 +9,29 @@ import {
 } from "./utils/chromeApiSafe.js";
 
 // Background Utility Imports
-import { rateLimiter } from './utils/background/rate-limiter.js';
+import { EasyListDomSource } from "./modules/rule-execution/sources/easylist-dom-source.js";
 import {
-  isValidExtensionSender,
   isTrustedUISender,
   isValidDomain,
-} from './utils/background/message-validators.js';
+  isValidExtensionSender,
+} from "./utils/background/message-validators.js";
+import { rateLimiter } from "./utils/background/rate-limiter.js";
 import {
   fetchDefaultRules,
   fetchDefaultWhitelist,
-} from './utils/background/remote-data-fetcher.js';
-import { EasyListDomSource } from './modules/rule-execution/sources/easylist-dom-source.js';
+} from "./utils/background/remote-data-fetcher.js";
 
 // Network Blocking System Imports
-import { NetworkBlockManager } from './modules/network-blocking/core/network-block-manager.js';
-import { DefaultBlockSource, CustomPatternSource } from './modules/network-blocking/sources/index.js';
-import { DynamicRuleUpdater } from './modules/network-blocking/updaters/dynamic-rule-updater.js';
-import { JsonRuleParser } from './modules/network-blocking/parsers/json-rule-parser.js';
-import { JsonRuleConverter } from './modules/network-blocking/core/json-rule-converter.js';
-import { BudgetCoordinator } from './modules/network-blocking/core/budget-coordinator.js';
-import { RULE_SOURCES_CONFIG } from './modules/network-blocking/config/sources.config.js';
+import { RULE_SOURCES_CONFIG } from "./modules/network-blocking/config/sources.config.js";
+import { BudgetCoordinator } from "./modules/network-blocking/core/budget-coordinator.js";
+import { JsonRuleConverter } from "./modules/network-blocking/core/json-rule-converter.js";
+import { NetworkBlockManager } from "./modules/network-blocking/core/network-block-manager.js";
+import { JsonRuleParser } from "./modules/network-blocking/parsers/json-rule-parser.js";
+import {
+  CustomPatternSource,
+  DefaultBlockSource,
+} from "./modules/network-blocking/sources/index.js";
+import { DynamicRuleUpdater } from "./modules/network-blocking/updaters/dynamic-rule-updater.js";
 
 // ============================================================================
 // NETWORK BLOCKING SYSTEM
@@ -57,7 +60,15 @@ const defaultBlockSource = new DefaultBlockSource(
 );
 
 // Create budget coordinator (30,000 dynamic rule limit)
-const budgetCoordinator = new BudgetCoordinator(30000);
+const DYNAMIC_RULE_LIMIT = 30000;
+
+// Time intervals in minutes for scheduled updates
+const UPDATE_INTERVAL = {
+  DAILY: 24 * 60, // 1440 minutes
+  WEEKLY: 7 * 24 * 60, // 10080 minutes
+};
+
+const budgetCoordinator = new BudgetCoordinator(DYNAMIC_RULE_LIMIT);
 
 // Create manager with priority-ordered sources and budget coordination
 const defaultBlockManager = new NetworkBlockManager(
@@ -74,27 +85,30 @@ const defaultBlockManager = new NetworkBlockManager(
  * Only defaultBlockRequests use dynamic runtime updates
  */
 async function updateRulesetStates(enabled) {
-  const staticRulesetIds = ['easylist-adservers'];
+  const staticRulesetIds = ["easylist-adservers"];
 
   try {
     if (enabled) {
       // Enable static rulesets (EasyList adservers)
       await chrome.declarativeNetRequest.updateEnabledRulesets({
-        enableRulesetIds: staticRulesetIds
+        enableRulesetIds: staticRulesetIds,
       });
-      console.log('✅ Static rulesets enabled:', staticRulesetIds);
+      console.log("✅ Static rulesets enabled:", staticRulesetIds);
 
       // NEW: Trigger dynamic rule updates from NetworkBlockManager (JSON rules only)
       try {
         await defaultBlockManager.updateAll();
-        console.log('✅ Dynamic NetworkBlockManager rules updated');
+        console.log("✅ Dynamic NetworkBlockManager rules updated");
       } catch (error) {
-        console.error('Failed to update dynamic rules via NetworkBlockManager:', error);
+        console.error(
+          "Failed to update dynamic rules via NetworkBlockManager:",
+          error
+        );
       }
     } else {
       // Disable static rulesets
       await chrome.declarativeNetRequest.updateEnabledRulesets({
-        disableRulesetIds: staticRulesetIds
+        disableRulesetIds: staticRulesetIds,
       });
 
       // Clear all dynamic rules (IDs 10000-64999 - expanded for custom patterns)
@@ -103,13 +117,13 @@ async function updateRulesetStates(enabled) {
         allDynamicIds.push(id);
       }
       await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: allDynamicIds
+        removeRuleIds: allDynamicIds,
       });
 
-      console.log('🚫 All network blocking disabled');
+      console.log("🚫 All network blocking disabled");
     }
   } catch (error) {
-    console.error('Failed to update ruleset states:', error);
+    console.error("Failed to update ruleset states:", error);
   }
 }
 
@@ -134,9 +148,9 @@ async function ensureAlarm(name, options) {
 // ============================================================================
 
 const INSTALLATION_STATE = {
-  NOT_STARTED: 'not_started',
-  IN_PROGRESS: 'in_progress',
-  COMPLETED: 'completed'
+  NOT_STARTED: "not_started",
+  IN_PROGRESS: "in_progress",
+  COMPLETED: "completed",
 };
 
 // Simple in-memory mutex to prevent concurrent installations
@@ -164,24 +178,26 @@ async function performInstallation() {
 async function _performInstallationImpl() {
   // Check installation state + backward compatibility
   const stateCheck = await safeStorageGet([
-    'installationState',
-    'isActive',
-    'defaultRules'
+    "installationState",
+    "isActive",
+    "defaultRules",
   ]);
 
   // BACKWARD COMPATIBILITY: Detect legacy installations (no installationState field)
-  if (!stateCheck.installationState &&
-      (stateCheck.isActive !== undefined || stateCheck.defaultRules)) {
-    console.log('OriginalUI: Legacy installation detected, marking complete');
+  if (
+    !stateCheck.installationState &&
+    (stateCheck.isActive !== undefined || stateCheck.defaultRules)
+  ) {
+    console.log("OriginalUI: Legacy installation detected, marking complete");
     await chrome.storage.local.set({
       installationState: INSTALLATION_STATE.COMPLETED,
-      installationCompleteTime: Date.now()
+      installationCompleteTime: Date.now(),
     });
     return;
   }
 
   if (stateCheck.installationState === INSTALLATION_STATE.COMPLETED) {
-    console.log('OriginalUI: Installation already completed, skipping');
+    console.log("OriginalUI: Installation already completed, skipping");
     return;
   }
 
@@ -189,7 +205,7 @@ async function _performInstallationImpl() {
     // CHECKPOINT 1: Mark installation as in progress
     await chrome.storage.local.set({
       installationState: INSTALLATION_STATE.IN_PROGRESS,
-      installationStartTime: Date.now()
+      installationStartTime: Date.now(),
     });
 
     // STEP 1: Fetch remote data (can be retried - idempotent)
@@ -253,8 +269,7 @@ async function _performInstallationImpl() {
 
     if (!result.navigationStats)
       updates.navigationStats = { blockedCount: 0, allowedCount: 0 };
-    if (!result.networkBlockPatterns)
-      updates.networkBlockPatterns = [];
+    if (!result.networkBlockPatterns) updates.networkBlockPatterns = [];
 
     // Always update default rules from remote
     updates.defaultRules = defaultRules;
@@ -278,36 +293,35 @@ async function _performInstallationImpl() {
 
     // STEP 6: Setup alarms (idempotent - creating existing alarms is safe)
     await ensureAlarm("updateDefaults", {
-      delayInMinutes: 1440,
-      periodInMinutes: 1440,
+      delayInMinutes: UPDATE_INTERVAL.DAILY,
+      periodInMinutes: UPDATE_INTERVAL.DAILY,
     });
 
     await ensureAlarm("updateDefaultBlocksDaily", {
-      delayInMinutes: 1440,
-      periodInMinutes: 1440
+      delayInMinutes: UPDATE_INTERVAL.DAILY,
+      periodInMinutes: UPDATE_INTERVAL.DAILY,
     });
 
     await ensureAlarm("updateEasyListDomRules", {
-      delayInMinutes: 10080,
-      periodInMinutes: 10080
+      delayInMinutes: UPDATE_INTERVAL.WEEKLY,
+      periodInMinutes: UPDATE_INTERVAL.WEEKLY,
     });
 
     // CHECKPOINT 2: Mark installation as completed (COMMIT POINT)
     await chrome.storage.local.set({
       installationState: INSTALLATION_STATE.COMPLETED,
-      installationCompleteTime: Date.now()
+      installationCompleteTime: Date.now(),
     });
 
-    console.log('OriginalUI: Installation completed successfully');
-
+    console.log("OriginalUI: Installation completed successfully");
   } catch (error) {
-    console.error('OriginalUI: Installation failed:', error);
+    console.error("OriginalUI: Installation failed:", error);
 
     // Reset installation state to allow retry on next startup
     await chrome.storage.local.set({
       installationState: INSTALLATION_STATE.NOT_STARTED,
       lastInstallationError: error.message,
-      lastInstallationErrorTime: Date.now()
+      lastInstallationErrorTime: Date.now(),
     });
 
     throw error; // Re-throw to allow caller to handle
@@ -327,7 +341,7 @@ chrome.runtime.onInstalled.addListener(async () => {
   try {
     await performInstallation();
   } catch (error) {
-    console.error('OriginalUI: Installation handler caught error:', error);
+    console.error("OriginalUI: Installation handler caught error:", error);
     // Error already logged in performInstallation, state already reset
   }
 });
@@ -338,14 +352,14 @@ chrome.runtime.onStartup.addListener(async () => {
     return;
   }
 
-  const stateCheck = await safeStorageGet(['installationState']);
+  const stateCheck = await safeStorageGet(["installationState"]);
 
   if (stateCheck.installationState === INSTALLATION_STATE.IN_PROGRESS) {
-    console.warn('OriginalUI: Detected incomplete installation, resuming...');
+    console.warn("OriginalUI: Detected incomplete installation, resuming...");
     try {
       await performInstallation();
     } catch (error) {
-      console.error('OriginalUI: Installation resume failed:', error);
+      console.error("OriginalUI: Installation resume failed:", error);
     }
   }
 });
@@ -361,11 +375,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
   if (alarm.name === "updateDefaults") {
     try {
-      const [defaultRules, defaultWhitelist] =
-        await Promise.all([
-          fetchDefaultRules(),
-          fetchDefaultWhitelist(),
-        ]);
+      const [defaultRules, defaultWhitelist] = await Promise.all([
+        fetchDefaultRules(),
+        fetchDefaultWhitelist(),
+      ]);
 
       // Update rules but preserve user's whitelist additions
       const storageResult = await safeStorageGet(["whitelist"]);
@@ -404,22 +417,22 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   // NEW: Daily default blocks updates (JSON-based)
   if (alarm.name === "updateDefaultBlocksDaily") {
     try {
-      console.log('🔄 Running daily default blocks update...');
+      console.log("🔄 Running daily default blocks update...");
       await defaultBlockManager.updateAll();
     } catch (error) {
-      console.error('OriginalUI: Failed to update default blocks:', error);
+      console.error("OriginalUI: Failed to update default blocks:", error);
     }
   }
 
   // NEW: Weekly EasyList DOM rules cache refresh
   if (alarm.name === "updateEasyListDomRules") {
     try {
-      console.log('🔄 Running weekly EasyList DOM rules update...');
+      console.log("🔄 Running weekly EasyList DOM rules update...");
       const source = new EasyListDomSource();
       await source.fetchRules(); // Force refresh from network
-      console.log('✅ EasyList DOM rules cache refreshed');
+      console.log("✅ EasyList DOM rules cache refreshed");
     } catch (error) {
-      console.error('OriginalUI: Failed to update EasyList DOM rules:', error);
+      console.error("OriginalUI: Failed to update EasyList DOM rules:", error);
     }
   }
 });
@@ -494,7 +507,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         );
         sendResponse({
           domain: null,
-          error: chrome.runtime.lastError.message || "Failed to query active tab",
+          error:
+            chrome.runtime.lastError.message || "Failed to query active tab",
         });
         return;
       }
@@ -517,7 +531,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // VALIDATE INPUT
     if (!isValidDomain(domain)) {
-      console.warn("OriginalUI: Invalid domain in checkDomainWhitelist:", domain);
+      console.warn(
+        "OriginalUI: Invalid domain in checkDomainWhitelist:",
+        domain
+      );
       sendResponse({
         success: false,
         error: "Invalid domain format",
@@ -671,7 +688,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-
   if (request.action === "recordBlockedRequest") {
     const { data } = request;
 
@@ -689,7 +705,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     try {
       new URL(data.url);
     } catch (e) {
-      console.warn("OriginalUI: Invalid URL in recordBlockedRequest:", data.url);
+      console.warn(
+        "OriginalUI: Invalid URL in recordBlockedRequest:",
+        data.url
+      );
       sendResponse({
         success: false,
         error: "Invalid URL format",
@@ -750,7 +769,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  * Internal marker to identify storage updates triggered by dependency enforcement
  * This prevents infinite loops in the onChanged listener
  */
-const INTERNAL_UPDATE_MARKER = '__internal_dependency_update__';
+const INTERNAL_UPDATE_MARKER = "__internal_dependency_update__";
 
 /**
  * Wrapper for safeStorageSet that marks updates as internal
@@ -763,7 +782,7 @@ async function setStorageWithMarker(updates) {
   // Mark this as an internal update with timestamp
   const markedUpdates = {
     ...updates,
-    [INTERNAL_UPDATE_MARKER]: Date.now()
+    [INTERNAL_UPDATE_MARKER]: Date.now(),
   };
 
   // Write to storage (will trigger onChanged listener)
@@ -842,7 +861,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
         try {
           await updateRulesetStates(enabled);
         } catch (error) {
-          console.error('Failed to update ruleset states on toggle:', error);
+          console.error("Failed to update ruleset states on toggle:", error);
         }
       })();
     }
@@ -850,13 +869,13 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 
   // Handle networkBlockPatterns changes (stored in local)
   if (namespace === "local" && changes.networkBlockPatterns) {
-    console.log('🔄 Custom patterns updated, refreshing rules...');
+    console.log("🔄 Custom patterns updated, refreshing rules...");
     (async () => {
       try {
         await defaultBlockManager.updateSource(customPatternSource);
-        console.log('✅ Custom patterns updated successfully');
+        console.log("✅ Custom patterns updated successfully");
       } catch (error) {
-        console.error('Failed to update custom patterns:', error);
+        console.error("Failed to update custom patterns:", error);
       }
     })();
   }

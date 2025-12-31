@@ -3,7 +3,7 @@
  * Tests modal creation, user interaction handling, and cleanup lifecycle
  */
 
-import { ModalManager } from '../../src/scripts/modules/navigation-guardian/ModalManager.js';
+import { ModalManager } from '@/scripts/modules/navigation-guardian/ModalManager.js';
 
 // Mock DOM environment
 const mockDOM = {

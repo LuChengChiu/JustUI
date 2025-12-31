@@ -4,6 +4,14 @@ import { copyFileSync, cpSync, mkdirSync } from "fs";
 import { resolve } from "path";
 import { build } from "vite";
 
+const alias = {
+  "@": resolve(__dirname, "src"),
+  "@test": resolve(__dirname, "test"),
+  "@modules": resolve(__dirname, "src/scripts/modules"),
+  "@utils": resolve(__dirname, "src/utils"),
+  "@script-utils": resolve(__dirname, "src/scripts/utils"),
+};
+
 // Plugin to bundle content scripts separately
 const bundleContentScripts = (mode) => ({
   name: "bundle-content-scripts",
@@ -21,6 +29,9 @@ const bundleContentScripts = (mode) => ({
       esbuild: {
         jsxFactory: 'React.createElement',
         jsxFragment: 'React.Fragment',
+      },
+      resolve: {
+        alias,
       },
       build: {
         emptyOutDir: false,
@@ -57,6 +68,9 @@ const bundleContentScripts = (mode) => ({
         'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
         'process.env': JSON.stringify({ NODE_ENV: process.env.NODE_ENV || 'production' }),
         'global': 'globalThis'
+      },
+      resolve: {
+        alias,
       },
       build: {
         emptyOutDir: false,
@@ -101,6 +115,9 @@ const bundleContentScripts = (mode) => ({
         'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
         'process.env': JSON.stringify({ NODE_ENV: process.env.NODE_ENV || 'production' }),
         'global': 'globalThis'
+      },
+      resolve: {
+        alias,
       },
       build: {
         emptyOutDir: false,
@@ -153,6 +170,9 @@ export default defineConfig(({ mode }) => ({
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
     'process.env': JSON.stringify({ NODE_ENV: process.env.NODE_ENV || 'production' }),
     'global': 'globalThis'
+  },
+  resolve: {
+    alias,
   },
   esbuild: {
     jsxFactory: 'React.createElement',

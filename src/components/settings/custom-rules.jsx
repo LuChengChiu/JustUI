@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
-import Button from "../ui/button";
-import SettingsCheckbox from "../ui/checkbox/settings-checkbox";
-import TagsInput from "../ui/tags-input";
-import { H3, Text } from "../ui/typography";
+import Button from "@/components/ui/button";
+import SettingsCheckbox from "@/components/ui/checkbox/settings-checkbox";
+import TagsInput from "@/components/ui/tags-input";
+import { H3, Text } from "@/components/ui/typography";
 import RuleEditModal from "./rule-edit-modal";
 
 const emptyRule = (

@@ -115,7 +115,8 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
       '@test': resolve(__dirname, 'test'),
       '@modules': resolve(__dirname, 'src/scripts/modules'),
-      '@utils': resolve(__dirname, 'src/scripts/utils')
+      '@utils': resolve(__dirname, 'src/utils'),
+      '@script-utils': resolve(__dirname, 'src/scripts/utils')
     }
   },
   

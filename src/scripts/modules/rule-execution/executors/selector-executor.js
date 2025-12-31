@@ -7,8 +7,8 @@
  * @module selector-executor
  */
 
-import { domainMatches } from "../../../../utils/domainMatch.js";
-import { ElementRemover } from "../../ElementRemover.js";
+import { domainMatches } from "@utils/url-utils.js";
+import { ElementRemover } from "@/scripts/modules/ElementRemover.js";
 /**
  * Executor for CSS selector-based rules
  */

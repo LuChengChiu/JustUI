@@ -4,7 +4,7 @@
  */
 
 import { vi } from 'vitest';
-import { EasyListDomParser } from '../../../../src/scripts/modules/rule-execution/parsers/easylist-dom-parser.js';
+import { EasyListDomParser } from '@/scripts/modules/rule-execution/parsers/easylist-dom-parser.js';
 
 describe('EasyListDomParser', () => {
   let parser;
