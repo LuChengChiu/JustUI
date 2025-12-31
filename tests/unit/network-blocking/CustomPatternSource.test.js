@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { CustomPatternSource } from '@/scripts/modules/network-blocking/sources/custom-pattern-source.js';
+import { CustomPatternSource } from '@modules/network-blocking/sources/custom-pattern-source.js';
 
 // Mock chrome.storage and runtime API
 global.chrome = {

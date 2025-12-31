@@ -20,6 +20,8 @@ export default function DefaultSelectorRuleManager({ checked, onChange }) {
           </Text>
           <a
             href={URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-[10px] text-accent cursor-pointer underline italic"
           >
             Github OriginalUI Selector Rules

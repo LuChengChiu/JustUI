@@ -4,7 +4,7 @@
  */
 
 import { vi } from 'vitest';
-import { EasyListDomSource } from '@/scripts/modules/rule-execution/sources/easylist-dom-source.js';
+import { EasyListDomSource } from '@modules/rule-execution/sources/easylist-dom-source.js';
 
 // Mock chromeApiSafe
 vi.mock('../../../../src/scripts/utils/chromeApiSafe.js', () => ({

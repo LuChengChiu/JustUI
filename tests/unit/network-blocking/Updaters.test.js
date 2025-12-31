@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { DynamicRuleUpdater } from '@/scripts/modules/network-blocking/updaters/dynamic-rule-updater.js';
+import { DynamicRuleUpdater } from '@modules/network-blocking/updaters/dynamic-rule-updater.js';
 
 // Mock Chrome API
 global.chrome = {
@@ -39,7 +39,7 @@ vi.mock('path', () => ({
 }));
 
 // Import StaticRuleBuilder after mocks are set up
-import { StaticRuleBuilder } from '@/scripts/modules/network-blocking/updaters/static-rule-builder.js';
+import { StaticRuleBuilder } from '@modules/network-blocking/updaters/static-rule-builder.js';
 
 // Get references to mocked functions for assertions
 import fs from 'fs/promises';

@@ -4,7 +4,7 @@
  */
 
 import { vi } from 'vitest';
-import { MutationWatcher } from '../../../../../src/scripts/modules/rule-execution/executors/hybrid-executor/mutation-watcher.js';
+import { MutationWatcher } from '@modules/rule-execution/executors/hybrid-executor/mutation-watcher.js';
 
 describe('MutationWatcher', () => {
   let watcher;

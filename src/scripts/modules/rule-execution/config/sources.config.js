@@ -7,15 +7,15 @@
  * @module sources.config
  */
 
-import { RuleExecutionManager } from "@/scripts/modules/rule-execution/core/rule-execution-manager.js";
-import { PerformanceCoordinator } from "@/scripts/modules/rule-execution/core/performance-coordinator.js";
-import { DefaultRuleSource } from "@/scripts/modules/rule-execution/sources/default-rule-source.js";
-import { CustomRuleSource } from "@/scripts/modules/rule-execution/sources/custom-rule-source.js";
-import { EasyListDomSource } from "@/scripts/modules/rule-execution/sources/easylist-dom-source.js";
-import { SelectorParser } from "@/scripts/modules/rule-execution/parsers/selector-parser.js";
-import { EasyListDomParser } from "@/scripts/modules/rule-execution/parsers/easylist-dom-parser.js";
-import { SelectorExecutor } from "@/scripts/modules/rule-execution/executors/selector-executor.js";
-import { HybridExecutor } from "@/scripts/modules/rule-execution/executors/hybrid-executor/index.js";
+import { RuleExecutionManager } from "@modules/rule-execution/core/rule-execution-manager.js";
+import { PerformanceCoordinator } from "@modules/rule-execution/core/performance-coordinator.js";
+import { DefaultRuleSource } from "@modules/rule-execution/sources/default-rule-source.js";
+import { CustomRuleSource } from "@modules/rule-execution/sources/custom-rule-source.js";
+import { EasyListDomSource } from "@modules/rule-execution/sources/easylist-dom-source.js";
+import { SelectorParser } from "@modules/rule-execution/parsers/selector-parser.js";
+import { EasyListDomParser } from "@modules/rule-execution/parsers/easylist-dom-parser.js";
+import { SelectorExecutor } from "@modules/rule-execution/executors/selector-executor.js";
+import { HybridExecutor } from "@modules/rule-execution/executors/hybrid-executor/index.js";
 
 /**
  * Create configured RuleExecutionManager

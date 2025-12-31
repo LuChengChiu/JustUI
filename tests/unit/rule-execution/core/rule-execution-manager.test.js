@@ -4,7 +4,7 @@
  */
 
 import { vi } from 'vitest';
-import { RuleExecutionManager } from '@/scripts/modules/rule-execution/core/rule-execution-manager.js';
+import { RuleExecutionManager } from '@modules/rule-execution/core/rule-execution-manager.js';
 
 // Mock chromeApiSafe
 vi.mock('../../../../src/scripts/utils/chromeApiSafe.js', () => ({

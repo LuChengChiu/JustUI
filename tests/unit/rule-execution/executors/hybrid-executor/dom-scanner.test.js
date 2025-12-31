@@ -4,7 +4,7 @@
  */
 
 import { vi } from 'vitest';
-import { DomScanner } from '../../../../../src/scripts/modules/rule-execution/executors/hybrid-executor/dom-scanner.js';
+import { DomScanner } from '@modules/rule-execution/executors/hybrid-executor/dom-scanner.js';
 
 describe('DomScanner', () => {
   let scanner;

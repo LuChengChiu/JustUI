@@ -4,7 +4,7 @@
  */
 
 import { vi } from 'vitest';
-import { TokenIndexer } from '../../../../../src/scripts/modules/rule-execution/executors/hybrid-executor/token-indexer.js';
+import { TokenIndexer } from '@modules/rule-execution/executors/hybrid-executor/token-indexer.js';
 
 describe('TokenIndexer', () => {
   let indexer;

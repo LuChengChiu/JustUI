@@ -4,7 +4,7 @@
  */
 
 import { vi } from 'vitest';
-import { SelectorParser } from '@/scripts/modules/rule-execution/parsers/selector-parser.js';
+import { SelectorParser } from '@modules/rule-execution/parsers/selector-parser.js';
 
 describe('SelectorParser', () => {
   let parser;

@@ -4,12 +4,12 @@
  */
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { NetworkBlockManager } from '@/scripts/modules/network-blocking/core/network-block-manager.js';
-import { EasyListSource, DefaultBlockSource } from '@/scripts/modules/network-blocking/sources/index.js';
-import { DynamicRuleUpdater } from '@/scripts/modules/network-blocking/updaters/dynamic-rule-updater.js';
-import { EasyListParser } from '@/scripts/modules/network-blocking/parsers/easylist-parser.js';
-import { JsonRuleParser } from '@/scripts/modules/network-blocking/parsers/json-rule-parser.js';
-import { RuleConverter } from '@/scripts/modules/network-blocking/core/rule-converter.js';
+import { NetworkBlockManager } from '@modules/network-blocking/core/network-block-manager.js';
+import { EasyListSource, DefaultBlockSource } from '@modules/network-blocking/sources/index.js';
+import { DynamicRuleUpdater } from '@modules/network-blocking/updaters/dynamic-rule-updater.js';
+import { EasyListParser } from '@modules/network-blocking/parsers/easylist-parser.js';
+import { JsonRuleParser } from '@modules/network-blocking/parsers/json-rule-parser.js';
+import { RuleConverter } from '@modules/network-blocking/core/rule-converter.js';
 
 // Mock Chrome API
 global.chrome = {

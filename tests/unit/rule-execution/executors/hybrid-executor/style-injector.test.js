@@ -4,7 +4,7 @@
  */
 
 import { vi } from 'vitest';
-import { StyleInjector } from '../../../../../src/scripts/modules/rule-execution/executors/hybrid-executor/style-injector.js';
+import { StyleInjector } from '@modules/rule-execution/executors/hybrid-executor/style-injector.js';
 
 describe('StyleInjector', () => {
   let injector;

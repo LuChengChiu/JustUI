@@ -3,13 +3,13 @@
  * Tests factory function and system initialization
  */
 
-import { createRuleExecutionSystem } from '@/scripts/modules/rule-execution/config/sources.config.js';
-import { RuleExecutionManager } from '@/scripts/modules/rule-execution/core/rule-execution-manager.js';
-import { DefaultRuleSource } from '@/scripts/modules/rule-execution/sources/default-rule-source.js';
-import { CustomRuleSource } from '@/scripts/modules/rule-execution/sources/custom-rule-source.js';
-import { SelectorParser } from '@/scripts/modules/rule-execution/parsers/selector-parser.js';
-import { SelectorExecutor } from '@/scripts/modules/rule-execution/executors/selector-executor.js';
-import { PerformanceCoordinator } from '@/scripts/modules/rule-execution/core/performance-coordinator.js';
+import { createRuleExecutionSystem } from '@modules/rule-execution/config/sources.config.js';
+import { RuleExecutionManager } from '@modules/rule-execution/core/rule-execution-manager.js';
+import { DefaultRuleSource } from '@modules/rule-execution/sources/default-rule-source.js';
+import { CustomRuleSource } from '@modules/rule-execution/sources/custom-rule-source.js';
+import { SelectorParser } from '@modules/rule-execution/parsers/selector-parser.js';
+import { SelectorExecutor } from '@modules/rule-execution/executors/selector-executor.js';
+import { PerformanceCoordinator } from '@modules/rule-execution/core/performance-coordinator.js';
 
 describe('sources.config', () => {
   describe('createRuleExecutionSystem()', () => {

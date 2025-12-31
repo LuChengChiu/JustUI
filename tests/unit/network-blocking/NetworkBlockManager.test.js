@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { NetworkBlockManager } from '@/scripts/modules/network-blocking/core/network-block-manager.js';
+import { NetworkBlockManager } from '@modules/network-blocking/core/network-block-manager.js';
 
 describe('NetworkBlockManager', () => {
   let manager;

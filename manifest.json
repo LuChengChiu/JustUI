@@ -37,7 +37,7 @@
       "resources": [
         "data/defaultRules.json",
         "data/defaultWhitelist.json",
-        "data/defaultBlockRequests.json",
+        "network-blocking/data/default-block-requests.json",
         "scripts/injected-script.js",
         "index.css"
       ],

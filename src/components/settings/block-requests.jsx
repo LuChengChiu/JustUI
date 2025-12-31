@@ -26,6 +26,8 @@ export default function BlockRequestsManager({
           </Text>
           <a
             href={DEFAULT_BLOCK_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-[10px] text-accent cursor-pointer underline italic"
           >
             Github OriginalUI Block Domains

@@ -53,7 +53,7 @@ vi.mock('../../../../../src/scripts/modules/rule-execution/executors/hybrid-exec
 }));
 
 // Import HybridExecutor - mocks are already hoisted
-import { HybridExecutor } from '../../../../../src/scripts/modules/rule-execution/executors/hybrid-executor/index.js';
+import { HybridExecutor } from '@modules/rule-execution/executors/hybrid-executor/index.js';
 
 describe('HybridExecutor', () => {
   let executor;

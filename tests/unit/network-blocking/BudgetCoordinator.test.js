@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { BudgetCoordinator } from '@/scripts/modules/network-blocking/core/budget-coordinator.js';
+import { BudgetCoordinator } from '@modules/network-blocking/core/budget-coordinator.js';
 
 // Mock source helper
 const createMockSource = (name, idStart, idEnd) => ({

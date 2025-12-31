@@ -6,16 +6,16 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { DomScanner } from '@/scripts/modules/rule-execution/executors/hybrid-executor/dom-scanner.js';
-import { TokenIndexer } from '@/scripts/modules/rule-execution/executors/hybrid-executor/token-indexer.js';
+import { DomScanner } from '@modules/rule-execution/executors/hybrid-executor/dom-scanner.js';
+import { TokenIndexer } from '@modules/rule-execution/executors/hybrid-executor/token-indexer.js';
 import {
   simpleRules,
   complexRules,
   falsePositiveRules,
   scriptAndLinkRules,
   filterRulesByDomain
-} from '../fixtures/mock-rules.js';
-import { adHTMLSamples } from '../fixtures/ad-html-samples.js';
+} from '@test/fixtures/mock-rules.js';
+import { adHTMLSamples } from '@test/fixtures/ad-html-samples.js';
 
 describe('Rule Execution Pipeline Integration', () => {
   beforeEach(() => {

@@ -4,8 +4,8 @@
  */
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { EasyListSource } from '@/scripts/modules/network-blocking/sources/easylist-source.js';
-import { DefaultBlockSource } from '@/scripts/modules/network-blocking/sources/default-block-source.js';
+import { EasyListSource } from '@modules/network-blocking/sources/easylist-source.js';
+import { DefaultBlockSource } from '@modules/network-blocking/sources/default-block-source.js';
 
 // Mock global fetch
 global.fetch = vi.fn();

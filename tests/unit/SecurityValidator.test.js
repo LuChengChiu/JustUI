@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { SecurityValidator } from '@/scripts/modules/navigation-guardian/security-validator.js';
+import { SecurityValidator } from '@modules/navigation-guardian/security-validator.js';
 
 // Mock console to capture error messages
 const mockConsole = {

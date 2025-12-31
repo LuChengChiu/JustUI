@@ -4,8 +4,8 @@
  */
 
 import { describe, test, expect, beforeEach } from 'vitest';
-import { EasyListParser } from '@/scripts/modules/network-blocking/parsers/easylist-parser.js';
-import { JsonRuleParser } from '@/scripts/modules/network-blocking/parsers/json-rule-parser.js';
+import { EasyListParser } from '@modules/network-blocking/parsers/easylist-parser.js';
+import { JsonRuleParser } from '@modules/network-blocking/parsers/json-rule-parser.js';
 
 describe('EasyListParser', () => {
   let parser;

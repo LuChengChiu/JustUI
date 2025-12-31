@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { RuleConverter } from '@/scripts/modules/network-blocking/core/rule-converter.js';
+import { RuleConverter } from '@modules/network-blocking/core/rule-converter.js';
 
 // Mock @eyeo/abp2dnr
 vi.mock('@eyeo/abp2dnr', () => ({

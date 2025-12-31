@@ -3,7 +3,7 @@
  * Tests URL validation and threat analysis without unicode regex issues
  */
 
-import { SecurityValidator } from '@/scripts/modules/navigation-guardian/SecurityValidator.simple.js';
+import { SecurityValidator } from '@modules/navigation-guardian/SecurityValidator.simple.js';
 
 describe('Simplified SecurityValidator', () => {
   let validator;

@@ -4,7 +4,7 @@
  */
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { JsonRuleConverter } from '@/scripts/modules/network-blocking/core/json-rule-converter.js';
+import { JsonRuleConverter } from '@modules/network-blocking/core/json-rule-converter.js';
 
 describe('JsonRuleConverter', () => {
   let converter;
