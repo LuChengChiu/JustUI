@@ -12,6 +12,8 @@
  * @module dom-scanner
  */
 
+import { isSpecialUrlExact } from "@script-utils/threat-patterns.js";
+
 /**
  * DOM Scanner with tiered removal strategy
  */
@@ -227,7 +229,7 @@ export class DomScanner {
     // Skip special cases - hide instead of remove
     if (!src ||
         src === '' ||
-        src === 'about:blank' ||
+        isSpecialUrlExact(src) ||
         src.startsWith('data:') ||
         src.startsWith('blob:') ||
         src.startsWith('javascript:')) {

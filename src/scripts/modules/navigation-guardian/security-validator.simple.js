@@ -3,6 +3,12 @@
  * URL and threat validation for NavigationGuardian with unicode-safe patterns
  */
 
+import {
+  SPECIAL_URLS_PATTERN,
+  TRACKING_PARAMETERS,
+  THREAT_SCORES,
+} from "@script-utils/threat-patterns.js";
+
 export class SecurityValidator {
   constructor() {
     this.allowedProtocols = ['http:', 'https:', 'ftp:', 'ftps:'];
@@ -19,16 +25,17 @@ export class SecurityValidator {
     ];
     
     this.urlThreatPatterns = [
-      { pattern: /adexchangeclear\.com/i, score: 8, threat: 'Known malicious ad network' },
-      { pattern: /\.php\?.*param_[45]/i, score: 6, threat: 'Ad tracking parameters' },
-      { pattern: /about:blank/i, score: 5, threat: 'Blank page (common pop-under technique)' },
+      { pattern: /adexchangeclear\.com/i, score: THREAT_SCORES.adexchangeclear, threat: 'Known malicious ad network' },
+      { pattern: /\.php\?.*param_[45]/i, score: THREAT_SCORES.phpTracking, threat: 'Ad tracking parameters' },
+      { pattern: SPECIAL_URLS_PATTERN, score: THREAT_SCORES.aboutBlank, threat: 'Special URL (common pop-under technique)' },
       { pattern: /doubleclick\.net/i, score: 4, threat: 'Ad network domain' },
       { pattern: /googlesyndication\.com/i, score: 3, threat: 'Google ad network' },
       { pattern: /\.tk$|\.ml$|\.ga$/i, score: 4, threat: 'Suspicious TLD' },
       { pattern: /redirect|popup|popunder/i, score: 5, threat: 'Redirect/popup indicators' }
     ];
-    
-    this.suspiciousParams = ['param_4', 'param_5', 'clickid', 'adclick', 'redirect'];
+
+    // Use shared tracking parameters from threat-patterns.js
+    this.suspiciousParams = TRACKING_PARAMETERS;
   }
 
   /**

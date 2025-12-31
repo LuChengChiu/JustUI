@@ -8,10 +8,13 @@ import {
   AD_NETWORK_DOMAINS,
   TRACKING_PARAMETERS,
   SPECIAL_URLS,
+  SPECIAL_URLS_PATTERN,
   URL_THREAT_PATTERNS,
   THREAT_SCORES,
   getAdNetworkScore,
   findTrackingParams,
+  isSpecialUrl,
+  isSpecialUrlExact,
 } from '@script-utils/threat-patterns.js';
 
 describe('ThreatPatterns - Exports', () => {
@@ -56,6 +59,27 @@ describe('ThreatPatterns - Exports', () => {
 
     test('should include about:blank', () => {
       expect(SPECIAL_URLS).toContain('about:blank');
+    });
+  });
+
+  describe('SPECIAL_URLS_PATTERN', () => {
+    test('should export compiled regex pattern', () => {
+      expect(SPECIAL_URLS_PATTERN).toBeDefined();
+      expect(SPECIAL_URLS_PATTERN).toBeInstanceOf(RegExp);
+    });
+
+    test('should match about:blank', () => {
+      expect(SPECIAL_URLS_PATTERN.test('about:blank')).toBe(true);
+    });
+
+    test('should be case-insensitive', () => {
+      expect(SPECIAL_URLS_PATTERN.test('ABOUT:BLANK')).toBe(true);
+      expect(SPECIAL_URLS_PATTERN.test('About:Blank')).toBe(true);
+    });
+
+    test('should NOT match non-special URLs', () => {
+      expect(SPECIAL_URLS_PATTERN.test('https://example.com')).toBe(false);
+      expect(SPECIAL_URLS_PATTERN.test('https://about:blank.com')).toBe(false);
     });
   });
 
@@ -263,6 +287,85 @@ describe('Integration Tests', () => {
     const totalScore = adNetworkScore + phpTrackingScore + trackingParamScore;
 
     expect(totalScore).toBe(5 + 6 + 6); // 17 total
+  });
+});
+
+describe('isSpecialUrl() - Helper Function', () => {
+  test('should return true for about:blank', () => {
+    expect(isSpecialUrl('about:blank')).toBe(true);
+  });
+
+  test('should be case-insensitive', () => {
+    expect(isSpecialUrl('ABOUT:BLANK')).toBe(true);
+    expect(isSpecialUrl('About:Blank')).toBe(true);
+    expect(isSpecialUrl('aBOUT:bLANK')).toBe(true);
+  });
+
+  test('should return false for regular URLs', () => {
+    expect(isSpecialUrl('https://example.com')).toBe(false);
+    expect(isSpecialUrl('https://google.com')).toBe(false);
+    expect(isSpecialUrl('http://localhost:3000')).toBe(false);
+  });
+
+  test('should return false for URLs containing about:blank as substring', () => {
+    expect(isSpecialUrl('https://about:blank.com')).toBe(false);
+    expect(isSpecialUrl('https://example.com/about:blank')).toBe(false);
+  });
+
+  test('should handle edge cases', () => {
+    expect(isSpecialUrl('')).toBe(false);
+    expect(isSpecialUrl(null)).toBe(false);
+    expect(isSpecialUrl(undefined)).toBe(false);
+    expect(isSpecialUrl(123)).toBe(false);
+    expect(isSpecialUrl({})).toBe(false);
+  });
+
+  test('should return false for whitespace-padded inputs', () => {
+    expect(isSpecialUrl('  about:blank')).toBe(false);
+    expect(isSpecialUrl('about:blank  ')).toBe(false);
+    expect(isSpecialUrl('  about:blank  ')).toBe(false);
+    expect(isSpecialUrl('\tabout:blank')).toBe(false);
+    expect(isSpecialUrl('about:blank\n')).toBe(false);
+    expect(isSpecialUrl('\nabout:blank\n')).toBe(false);
+  });
+});
+
+describe('isSpecialUrlExact() - Helper Function', () => {
+  test('should return true for exact about:blank match', () => {
+    expect(isSpecialUrlExact('about:blank')).toBe(true);
+  });
+
+  test('should be case-sensitive (exact match)', () => {
+    // Exact match requires exact case
+    expect(isSpecialUrlExact('ABOUT:BLANK')).toBe(false);
+    expect(isSpecialUrlExact('About:Blank')).toBe(false);
+  });
+
+  test('should return false for regular URLs', () => {
+    expect(isSpecialUrlExact('https://example.com')).toBe(false);
+    expect(isSpecialUrlExact('https://google.com')).toBe(false);
+  });
+
+  test('should return false for partial matches', () => {
+    expect(isSpecialUrlExact('about:blank?foo=bar')).toBe(false);
+    expect(isSpecialUrlExact('about:blank#hash')).toBe(false);
+  });
+
+  test('should handle edge cases', () => {
+    expect(isSpecialUrlExact('')).toBe(false);
+    expect(isSpecialUrlExact(null)).toBe(false);
+    expect(isSpecialUrlExact(undefined)).toBe(false);
+    expect(isSpecialUrlExact(123)).toBe(false);
+    expect(isSpecialUrlExact({})).toBe(false);
+  });
+
+  test('should return false for whitespace-padded inputs', () => {
+    expect(isSpecialUrlExact('  about:blank')).toBe(false);
+    expect(isSpecialUrlExact('about:blank  ')).toBe(false);
+    expect(isSpecialUrlExact('  about:blank  ')).toBe(false);
+    expect(isSpecialUrlExact('\tabout:blank')).toBe(false);
+    expect(isSpecialUrlExact('about:blank\n')).toBe(false);
+    expect(isSpecialUrlExact('\nabout:blank\n')).toBe(false);
   });
 });
 

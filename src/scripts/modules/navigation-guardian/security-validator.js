@@ -3,6 +3,7 @@ import {
   TRACKING_PARAMETERS,
   URL_THREAT_PATTERNS,
   THREAT_SCORES,
+  SPECIAL_URLS_PATTERN,
   getAdNetworkScore,
   findTrackingParams,
 } from "@script-utils/threat-patterns.js";
@@ -83,9 +84,9 @@ export class SecurityValidator {
         threat: "Ad tracking parameters",
       },
       {
-        pattern: /about:blank/i,
+        pattern: SPECIAL_URLS_PATTERN,
         score: THREAT_SCORES.aboutBlank,
-        threat: "Blank page (common pop-under technique)",
+        threat: "Special URL (common pop-under technique)",
       },
       // Generic ad network pattern (after specific patterns)
       {

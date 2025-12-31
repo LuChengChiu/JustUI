@@ -1,7 +1,7 @@
 import {
   URL_THREAT_PATTERNS,
   THREAT_SCORES,
-  getAdNetworkScore,
+  isSpecialUrl,
 } from "./threat-patterns.js";
 
 /**
@@ -148,7 +148,7 @@ export const MaliciousPatternDetector = {
         URL_THREAT_PATTERNS.adNetworks.test(url) ||
         URL_THREAT_PATTERNS.phpTracking.test(url) ||
         URL_THREAT_PATTERNS.popUnderKeyword.test(url) ||
-        /about:blank/i.test(url)
+        isSpecialUrl(url)
       );
     } catch {
       return false;
