@@ -76,7 +76,9 @@ export default defineConfig({
     ],
     exclude: [
       'node_modules/**',
-      'dist/**'
+      'dist/**',
+      'tests/e2e/**',
+      'tests/visual/**'
     ],
     
     // Test timeout
@@ -114,6 +116,7 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, 'src'),
       '@test': resolve(__dirname, 'test'),
+      '@tests': resolve(__dirname, 'tests'),
       '@modules': resolve(__dirname, 'src/scripts/modules'),
       '@utils': resolve(__dirname, 'src/utils'),
       '@script-utils': resolve(__dirname, 'src/scripts/utils')

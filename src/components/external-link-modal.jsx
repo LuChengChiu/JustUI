@@ -1,3 +1,9 @@
+import {
+  createShadowDOMContainer,
+  fetchCSSContent,
+  injectCSSIntoShadow,
+  injectGoogleFontsIntoShadow,
+} from "@utils/shadowDOM.js";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import AlertOctagon from "./icons/alert-octagon.jsx";
@@ -5,12 +11,6 @@ import ShieldLink from "./icons/shield-link.jsx";
 import Button from "./ui/button/index.jsx";
 import Dialog from "./ui/dialog.jsx";
 import { H3, Text } from "./ui/typography.jsx";
-import {
-  createShadowDOMContainer,
-  fetchCSSContent,
-  injectCSSIntoShadow,
-  injectGoogleFontsIntoShadow
-} from "@utils/shadowDOM.js";
 
 // Ensure React is available globally for JSX components in content script
 if (typeof window !== "undefined" && !window.React) {
@@ -84,7 +84,7 @@ const getThreatLevel = (score) => {
  * ExternalLinkModal Component - Navigation Guardian confirmation modal
  */
 export default function ExternalLinkModal({
-  isOpen = false,
+  isOpen,
   onClose,
   config = {},
   onAllow,
@@ -260,7 +260,7 @@ export const showExternalLinkModal = async (config) => {
         // Step 3: Inject CSS and fonts in parallel into Shadow DOM
         await Promise.all([
           injectCSSIntoShadow(shadowRoot, cssContent),
-          injectGoogleFontsIntoShadow(shadowRoot)
+          injectGoogleFontsIntoShadow(shadowRoot),
         ]);
 
         // Step 4: Create React root (on light DOM container for React internals)
@@ -289,13 +289,17 @@ export const showExternalLinkModal = async (config) => {
             onClose: () => handleResult(false, false),
           })
         );
-
       } catch (error) {
-        console.error("OriginalUI: Failed to render React modal with Shadow DOM:", error);
+        console.error(
+          "OriginalUI: Failed to render React modal with Shadow DOM:",
+          error
+        );
 
         // Cleanup on error
         if (shadowDOMSetup?.container?.parentNode) {
-          shadowDOMSetup.container.parentNode.removeChild(shadowDOMSetup.container);
+          shadowDOMSetup.container.parentNode.removeChild(
+            shadowDOMSetup.container
+          );
         }
 
         resolve({ allowed: false, remember: false }); // Default to deny on error

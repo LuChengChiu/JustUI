@@ -4,6 +4,7 @@
 import { MaliciousPatternDetector } from "./utils/malicious-pattern-detector.js";
 import { PermissionCache } from "./utils/permission-cache.js";
 import { showBlockedToast } from "./ui/toast-notification.js";
+import { safeParseUrl } from "../utils/url-utils.js";
 
 (function () {
   "use strict";
@@ -53,24 +54,22 @@ import { showBlockedToast } from "./ui/toast-notification.js";
   // Permission Cache System - Fast-Path Decision Layer
   // ============================================================================
 
-  // In-memory permission cache instance (initialized from chrome.storage)
-  let inMemoryPermissionCache = null;
+  // In-memory permission cache instance (initialized synchronously, hydrated from storage)
+  // ✅ FIX: Initialize immediately with empty cache to prevent race condition
+  let inMemoryPermissionCache = new PermissionCache();
 
-  /**
-   * Initialize permission cache from chrome.storage
-   * Called asynchronously on script load - cache starts empty and populates in background
-   */
-  async function initializePermissionCache() {
+  // Background hydration from chrome.storage (non-blocking)
+  // Populates cache with persisted decisions without blocking initial navigations
+  (async function hydrateCacheFromStorage() {
     try {
-      inMemoryPermissionCache = new PermissionCache();
       await inMemoryPermissionCache.syncFromStorage();
-      console.log('Navigation Guardian: Permission cache initialized');
+      const stats = inMemoryPermissionCache.getStats();
+      console.log(`Navigation Guardian: Cache hydrated with ${stats.cacheSize} entries (hit rate: ${stats.hitRate})`);
     } catch (error) {
-      console.error('Navigation Guardian: Failed to initialize permission cache:', error);
-      // Graceful degradation - continue without cache
-      inMemoryPermissionCache = new PermissionCache(); // Empty cache
+      console.warn('Navigation Guardian: Cache hydration failed, starting with empty cache:', error);
+      // Continue with empty cache - still functional
     }
-  }
+  })();
 
   /**
    * Fast synchronous decision layer for navigation attempts
@@ -82,17 +81,31 @@ import { showBlockedToast } from "./ui/toast-notification.js";
    * @param {string} features - Window features (for window.open only)
    * @returns {Object} Decision object: { decision: 'ALLOW'|'BLOCK'|'NEEDS_MODAL', reason, metadata }
    */
-  function quickNavigationDecision(url, navType, name, features) {
+  function quickNavigationDecision(url, navType, name, features, parsedUrl = null) {
     // 1. Same-origin → ALLOW immediately (0ms check)
-    if (!isCrossOrigin(url)) {
+    if (!url || /^(javascript|mailto|tel|data|blob|about):|^#/.test(url)) {
+      return { decision: 'ALLOW', reason: 'same-origin' };
+    }
+
+    const urlObj = parsedUrl || safeParseUrl(url, window.location.href, {
+      context: "Navigation decision",
+      level: "silent",
+      prefix: "Navigation Guardian"
+    });
+    if (!urlObj) {
+      return { decision: 'ALLOW', reason: 'same-origin' };
+    }
+
+    if (!isCrossOrigin(url, urlObj)) {
       return { decision: 'ALLOW', reason: 'same-origin' };
     }
 
     // 2. Check permission cache (1ms lookup)
+    // ✅ FIX: No optional chaining needed - cache always initialized
     const sourceOrigin = window.location.origin;
     try {
-      const targetOrigin = new URL(url, window.location.href).origin;
-      const cached = inMemoryPermissionCache?.getSync(sourceOrigin, targetOrigin);
+      const targetOrigin = urlObj.origin;
+      const cached = inMemoryPermissionCache.getSync(sourceOrigin, targetOrigin);
       if (cached && !cached.isExpired) {
         return {
           decision: cached.decision === 'ALLOW' ? 'ALLOW' : 'BLOCK',
@@ -123,7 +136,7 @@ import { showBlockedToast } from "./ui/toast-notification.js";
 
     // 5. Risk-based for location.* methods (location.href less risky than window.open)
     if (navType.startsWith('location.')) {
-      const riskLevel = assessLocationRisk(url);
+      const riskLevel = assessLocationRisk(url, urlObj);
       if (riskLevel === 'LOW') {
         return { decision: 'ALLOW', reason: 'low-risk-spa-navigation' };
       }
@@ -141,11 +154,14 @@ import { showBlockedToast } from "./ui/toast-notification.js";
    * Helps distinguish legitimate SPA navigation from malicious redirects
    *
    * @param {string} url - Target navigation URL
+   * @param {URL|null} urlObj - Parsed URL, if already available
    * @returns {string} Risk level: 'LOW', 'MEDIUM', or 'HIGH'
    */
-  function assessLocationRisk(url) {
+  function assessLocationRisk(url, urlObj = null) {
     try {
-      const urlObj = new URL(url, window.location.href);
+      if (!urlObj) {
+        urlObj = new URL(url, window.location.href);
+      }
 
       // HIGH risk indicators
       if (MaliciousPatternDetector.isUrlMalicious(url)) {
@@ -188,22 +204,18 @@ import { showBlockedToast } from "./ui/toast-notification.js";
     if (event.data?.type === 'NAV_CACHE_UPDATE') {
       const { sourceOrigin, targetOrigin, decision, persistent } = event.data;
 
-      if (inMemoryPermissionCache) {
-        inMemoryPermissionCache.setSync(
-          sourceOrigin,
-          targetOrigin,
-          decision,
-          { persist: persistent }
-        );
+      // Cache always exists (initialized synchronously above)
+      inMemoryPermissionCache.setSync(
+        sourceOrigin,
+        targetOrigin,
+        decision,
+        { persist: persistent }
+      );
 
-        // Debounced sync to chrome.storage happens automatically
-        console.log(`Navigation Guardian: Permission cached (${decision}) for ${targetOrigin}`);
-      }
+      // Debounced sync to chrome.storage happens automatically
+      console.log(`Navigation Guardian: Permission cached (${decision}) for ${targetOrigin}`);
     }
   });
-
-  // Initialize cache asynchronously (non-blocking)
-  initializePermissionCache().catch(console.error);
 
   // Report stats to content script via postMessage
   function reportStats() {
@@ -366,7 +378,7 @@ import { showBlockedToast } from "./ui/toast-notification.js";
   }
 
   // Utility function to check if URL is cross-origin
-  function isCrossOrigin(url) {
+  function isCrossOrigin(url, urlObj = null) {
     if (!url) return false;
 
     // Ignore special protocols
@@ -375,7 +387,7 @@ import { showBlockedToast } from "./ui/toast-notification.js";
     }
 
     try {
-      const targetUrl = new URL(url, window.location.href);
+      const targetUrl = urlObj || new URL(url, window.location.href);
       // Use origin comparison instead of hostname to catch:
       // - Different protocols (http vs https)
       // - Different ports (example.com:8080 vs example.com:3000)
@@ -397,34 +409,58 @@ import { showBlockedToast } from "./ui/toast-notification.js";
   }
 
   // Send message to content script and wait for response
-  function checkNavigationPermission(url) {
+  function checkNavigationPermission(url, signal) {
     return new Promise((resolve, reject) => {
       const messageId = generateMessageId();
       let hasResolved = false;
+      let abortHandler = null;
 
       // Cleanup helper to prevent memory leaks
       const cleanup = () => {
-        if (timeout) clearTimeout(timeout);
         try {
           window.removeEventListener("message", handleResponse);
         } catch (e) {
           // Ignore cleanup errors
         }
+        if (abortHandler && signal) {
+          try {
+            signal.removeEventListener("abort", abortHandler);
+          } catch (e) {
+            // Ignore cleanup errors
+          }
+        }
       };
 
-      // Timeout with configurable duration (allow user interaction time)
-      const timeout = setTimeout(() => {
-        if (!hasResolved) {
+      // Handle abort signal (timeout or external cancel)
+      if (signal) {
+        if (signal.aborted) {
           hasResolved = true;
           cleanup();
-          console.warn(
-            "Navigation Guardian: Permission check timed out for:",
-            url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS)
-          );
-          // Timeout is not an error - just deny navigation
           resolve(false);
+          return;
         }
-      }, CONFIG.PERMISSION_CHECK_TIMEOUT_MS);
+
+        abortHandler = () => {
+          if (!hasResolved) {
+            hasResolved = true;
+            cleanup();
+            console.warn(
+              "Navigation Guardian: Permission check timed out for:",
+              url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS)
+            );
+            resolve(false);
+          }
+        };
+
+        try {
+          signal.addEventListener("abort", abortHandler, { once: true });
+        } catch (error) {
+          hasResolved = true;
+          cleanup();
+          reject(new Error(`Failed to add abort listener: ${error.message}`));
+          return;
+        }
+      }
 
       // Listen for response
       function handleResponse(event) {
@@ -498,41 +534,57 @@ import { showBlockedToast } from "./ui/toast-notification.js";
   }
 
   // Enhanced permission check with retry logic and context-aware error handling
-  async function safeCheckNavigationPermission(url, navType) {
+  async function safeCheckNavigationPermission(url, navType, signal) {
     const truncatedUrl = url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS) || '';
+    let controller = null;
+    let timeoutId = null;
+    const activeSignal = signal || (() => {
+      controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), CONFIG.PERMISSION_CHECK_TIMEOUT_MS);
+      return controller.signal;
+    })();
 
-    for (let attempt = 0; attempt <= CONFIG.MAX_PERMISSION_RETRIES; attempt++) {
-      try {
-        return await checkNavigationPermission(url);
-      } catch (error) {
-        // Log error with URL context for debugging
-        console.warn(
-          `Navigation Guardian: ${navType} check failed for URL "${truncatedUrl}" (attempt ${attempt + 1}/${CONFIG.MAX_PERMISSION_RETRIES + 1}):`,
-          error
-        );
-
-        // Last attempt failed - decide based on risk level
-        if (attempt === CONFIG.MAX_PERMISSION_RETRIES) {
-          // Assess risk level for context-aware fallback
-          const isHighRisk = assessNavigationRisk(navType, url);
-
-          // Report error for telemetry
-          reportPermissionError(error, url, navType, isHighRisk);
-
-          // Return safe default based on risk:
-          // - High risk (window.open, malicious URLs) -> deny (false)
-          // - Low risk (location.href, safe URLs) -> allow (true)
-          const shouldAllowOnError = !isHighRisk;
-
+    try {
+      for (let attempt = 0; attempt <= CONFIG.MAX_PERMISSION_RETRIES; attempt++) {
+        try {
+          return await checkNavigationPermission(url, activeSignal);
+        } catch (error) {
+          // Log error with URL context for debugging
           console.warn(
-            `Navigation Guardian: Using ${isHighRisk ? 'DENY' : 'ALLOW'} fallback for ${navType} on URL "${truncatedUrl}" (risk: ${isHighRisk ? 'HIGH' : 'LOW'})`
+            `Navigation Guardian: ${navType} check failed for URL "${truncatedUrl}" (attempt ${attempt + 1}/${CONFIG.MAX_PERMISSION_RETRIES + 1}):`,
+            error
           );
 
-          return shouldAllowOnError;
-        }
+          // Last attempt failed - decide based on risk level
+          if (attempt === CONFIG.MAX_PERMISSION_RETRIES) {
+            // Assess risk level for context-aware fallback
+            const isHighRisk = assessNavigationRisk(navType, url);
 
-        // Brief delay before retry to allow transient errors to resolve
-        await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY_MS));
+            // Report error for telemetry
+            reportPermissionError(error, url, navType, isHighRisk);
+
+            // Return safe default based on risk:
+            // - High risk (window.open, malicious URLs) -> deny (false)
+            // - Low risk (location.href, safe URLs) -> allow (true)
+            const shouldAllowOnError = !isHighRisk;
+
+            console.warn(
+              `Navigation Guardian: Using ${isHighRisk ? 'DENY' : 'ALLOW'} fallback for ${navType} on URL "${truncatedUrl}" (risk: ${isHighRisk ? 'HIGH' : 'LOW'})`
+            );
+
+            return shouldAllowOnError;
+          }
+
+          // Brief delay before retry to allow transient errors to resolve
+          await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY_MS));
+        }
+      }
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (controller) {
+        controller.abort();
       }
     }
 
@@ -713,6 +765,35 @@ import { showBlockedToast } from "./ui/toast-notification.js";
   // ============================================================================
   // Pending Window Proxy - Solves OAuth/Payment/Pop-up Window Reference Issues
   // ============================================================================
+  const activeProxyRegistry = new Set();
+
+  const cleanupPendingProxies = (reason) => {
+    for (const proxy of Array.from(activeProxyRegistry)) {
+      if (proxy && !proxy.resolved) {
+        proxy.finalize(false, reason);
+      }
+    }
+  };
+
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('pagehide', () => cleanupPendingProxies('pagehide'), { capture: true });
+  }
+  if (typeof document !== 'undefined' && document.addEventListener) {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        cleanupPendingProxies('visibilitychange');
+      }
+    }, { capture: true });
+  }
+
+  if (window.__NAV_GUARDIAN_DEBUG__ && typeof window.__NAV_GUARDIAN_DEBUG__ === 'object') {
+    if (!Object.prototype.hasOwnProperty.call(window.__NAV_GUARDIAN_DEBUG__, 'getPendingCount')) {
+      Object.defineProperty(window.__NAV_GUARDIAN_DEBUG__, 'getPendingCount', {
+        value: () => activeProxyRegistry.size,
+        enumerable: false
+      });
+    }
+  }
 
   /**
    * Pending Window Proxy Class
@@ -733,6 +814,19 @@ import { showBlockedToast } from "./ui/toast-notification.js";
       this.pendingOps = [];
       this.resolved = false;
       this.allowed = false;
+      this.abortController = new AbortController();
+      this.abortTimer = setTimeout(() => {
+        this.abortController.abort();
+      }, CONFIG.PERMISSION_CHECK_TIMEOUT_MS);
+      this.abortHandler = () => this.finalize(false, 'timeout');
+
+      try {
+        this.abortController.signal.addEventListener('abort', this.abortHandler, { once: true });
+      } catch (e) {
+        console.warn('PendingWindowProxy: Failed to add abort listener:', e);
+      }
+
+      activeProxyRegistry.add(this);
 
       // Start async permission check in background
       this.permissionPromise = this.checkPermission();
@@ -740,30 +834,54 @@ import { showBlockedToast } from "./ui/toast-notification.js";
 
     async checkPermission() {
       try {
-        const allowed = await safeCheckNavigationPermission(this.url, 'window.open');
-        this.resolved = true;
-        this.allowed = allowed;
-
-        if (allowed) {
-          // Open real window and replay queued operations
-          this.realWindow = originalWindowOpen.call(window, this.url, this.name, this.features);
-
-          if (this.realWindow) {
-            this.replayQueuedOps();
-          } else {
-            console.warn('PendingWindowProxy: Failed to open real window (popup blocked?)');
-          }
-        } else {
-          // Denied - clear pending ops (proxy becomes no-op)
-          console.log('PendingWindowProxy: Navigation denied by user');
-          this.pendingOps = [];
+        const allowed = await safeCheckNavigationPermission(this.url, 'window.open', this.abortController.signal);
+        if (this.resolved) {
+          return;
         }
+        this.finalize(allowed, allowed ? 'allowed' : 'denied');
       } catch (error) {
         console.error('PendingWindowProxy: Permission check failed:', error);
-        this.resolved = true;
-        this.allowed = false;
-        this.pendingOps = [];
+        this.finalize(false, 'error');
       }
+    }
+
+    finalize(allowed, reason) {
+      if (this.resolved) {
+        return;
+      }
+
+      this.resolved = true;
+      this.allowed = allowed;
+
+      if (this.abortTimer) {
+        clearTimeout(this.abortTimer);
+        this.abortTimer = null;
+      }
+
+      if (this.abortController?.signal && this.abortHandler) {
+        try {
+          this.abortController.signal.removeEventListener('abort', this.abortHandler);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+
+      if (allowed) {
+        this.realWindow = originalWindowOpen.call(window, this.url, this.name, this.features);
+        if (this.realWindow) {
+          this.replayQueuedOps();
+        } else {
+          console.warn('PendingWindowProxy: Failed to open real window (popup blocked?)');
+        }
+      } else if (reason === 'timeout') {
+        console.warn('PendingWindowProxy: Permission check timed out');
+      } else if (reason === 'denied') {
+        console.log('PendingWindowProxy: Navigation denied by user');
+      }
+
+      this.pendingOps = [];
+      this.permissionPromise = null;
+      activeProxyRegistry.delete(this);
     }
 
     replayQueuedOps() {
@@ -790,6 +908,12 @@ import { showBlockedToast } from "./ui/toast-notification.js";
 
       return new Proxy(this, {
         get(target, prop) {
+          if (target.resolved && !target.realWindow) {
+            if (prop === 'closed') {
+              return true;
+            }
+            return undefined;
+          }
           // Handle common property checks
           if (prop === 'closed') {
             if (!target.resolved) return false; // Pending = not closed
@@ -844,6 +968,9 @@ import { showBlockedToast } from "./ui/toast-notification.js";
         },
 
         set(target, prop, value) {
+          if (target.resolved && !target.realWindow) {
+            return true;
+          }
           if (!target.resolved) {
             // Queue property set
             target.pendingOps.push(win => {
@@ -877,7 +1004,12 @@ import { showBlockedToast } from "./ui/toast-notification.js";
     "open",
     function (url, name, features) {
       // Fast-path decision layer (<3ms average)
-      const decision = quickNavigationDecision(url, 'window.open', name, features);
+      const parsedUrl = safeParseUrl(url, window.location.href, {
+        context: "Navigation decision",
+        level: "silent",
+        prefix: "Navigation Guardian"
+      });
+      const decision = quickNavigationDecision(url, 'window.open', name, features, parsedUrl);
 
       if (decision.decision === 'ALLOW') {
         // ✅ Allowed - return real window immediately
@@ -909,8 +1041,13 @@ import { showBlockedToast } from "./ui/toast-notification.js";
       window.location,
       "assign",
       function (url) {
+        const parsedUrl = safeParseUrl(url, window.location.href, {
+          context: "Navigation decision",
+          level: "silent",
+          prefix: "Navigation Guardian"
+        });
         // Fast-path decision layer
-        const decision = quickNavigationDecision(url, 'location.assign');
+        const decision = quickNavigationDecision(url, 'location.assign', null, null, parsedUrl);
 
         if (decision.decision === 'ALLOW') {
           // ✅ Allowed - navigate immediately
@@ -933,11 +1070,9 @@ import { showBlockedToast } from "./ui/toast-notification.js";
 
               // Cache decision for future navigations
               const sourceOrigin = window.location.origin;
-              try {
-                const targetOrigin = new URL(url, window.location.href).origin;
+              const targetOrigin = parsedUrl?.origin;
+              if (targetOrigin) {
                 inMemoryPermissionCache?.setSync(sourceOrigin, targetOrigin, 'ALLOW', { persist: false });
-              } catch (e) {
-                // Invalid URL - ignore cache
               }
             }
           })
@@ -957,8 +1092,13 @@ import { showBlockedToast } from "./ui/toast-notification.js";
       window.location,
       "replace",
       function (url) {
+        const parsedUrl = safeParseUrl(url, window.location.href, {
+          context: "Navigation decision",
+          level: "silent",
+          prefix: "Navigation Guardian"
+        });
         // Fast-path decision layer
-        const decision = quickNavigationDecision(url, 'location.replace');
+        const decision = quickNavigationDecision(url, 'location.replace', null, null, parsedUrl);
 
         if (decision.decision === 'ALLOW') {
           // ✅ Allowed - navigate immediately
@@ -981,11 +1121,9 @@ import { showBlockedToast } from "./ui/toast-notification.js";
 
               // Cache decision for future navigations
               const sourceOrigin = window.location.origin;
-              try {
-                const targetOrigin = new URL(url, window.location.href).origin;
+              const targetOrigin = parsedUrl?.origin;
+              if (targetOrigin) {
                 inMemoryPermissionCache?.setSync(sourceOrigin, targetOrigin, 'ALLOW', { persist: false });
-              } catch (e) {
-                // Invalid URL - ignore cache
               }
             }
           })
@@ -1007,8 +1145,13 @@ import { showBlockedToast } from "./ui/toast-notification.js";
       {
         get: originalHrefDescriptor.get,
         set: function (url) {
+          const parsedUrl = safeParseUrl(url, window.location.href, {
+            context: "Navigation decision",
+            level: "silent",
+            prefix: "Navigation Guardian"
+          });
           // Fast-path decision layer
-          const decision = quickNavigationDecision(url, 'location.href');
+          const decision = quickNavigationDecision(url, 'location.href', null, null, parsedUrl);
 
           if (decision.decision === 'ALLOW') {
             // ✅ Allowed - navigate immediately
@@ -1031,11 +1174,9 @@ import { showBlockedToast } from "./ui/toast-notification.js";
 
                 // Cache decision for future navigations
                 const sourceOrigin = window.location.origin;
-                try {
-                  const targetOrigin = new URL(url, window.location.href).origin;
+                const targetOrigin = parsedUrl?.origin;
+                if (targetOrigin) {
                   inMemoryPermissionCache?.setSync(sourceOrigin, targetOrigin, 'ALLOW', { persist: false });
-                } catch (e) {
-                  // Invalid URL - ignore cache
                 }
               }
             })

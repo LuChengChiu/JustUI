@@ -12,10 +12,13 @@
  * - Statistics tracking for cache performance
  */
 
-import { safeStorageGet, safeStorageSet } from './chromeApiSafe.js';
+import { isExtensionContextValid, safeStorageGet, safeStorageSet } from './chromeApiSafe.js';
+import { normalizeOrigin } from '../../utils/url-utils.js';
 
 // Storage key for permission cache
 const STORAGE_KEY = 'permissionCacheV1';
+const CACHE_KEY_PREFIX = 'origin:';
+const CACHE_KEY_SEPARATOR = '->';
 
 // Default configuration
 const CONFIG = {
@@ -64,8 +67,14 @@ export class PermissionCache {
     // Auto-cleanup timer
     this.cleanupTimer = null;
 
+    // Unload handler for cleanup
+    this.unloadHandler = this.handleUnload.bind(this);
+
     // Initialize auto-cleanup
     this.startAutoCleanup();
+
+    // Stop timers on page unload
+    this.setupUnloadCleanup();
   }
 
   /**
@@ -77,7 +86,47 @@ export class PermissionCache {
    * @returns {string} Cache key
    */
   static getCacheKey(sourceOrigin, targetOrigin) {
-    return `origin:${sourceOrigin}->${targetOrigin}`;
+    const normalizedSource = normalizeOrigin(sourceOrigin);
+    const normalizedTarget = normalizeOrigin(targetOrigin);
+
+    if (!normalizedSource || !normalizedTarget) {
+      return null;
+    }
+
+    return `${CACHE_KEY_PREFIX}${normalizedSource}${CACHE_KEY_SEPARATOR}${normalizedTarget}`;
+  }
+
+  /**
+   * Normalize a stored cache key to canonical format.
+   *
+   * @param {string} key
+   * @returns {string|null}
+   */
+  static normalizeCacheKey(key) {
+    if (typeof key !== 'string' || !key.startsWith(CACHE_KEY_PREFIX)) {
+      return null;
+    }
+
+    const raw = key.slice(CACHE_KEY_PREFIX.length);
+    const separatorIndex = raw.indexOf(CACHE_KEY_SEPARATOR);
+    if (separatorIndex <= 0) {
+      return null;
+    }
+
+    const sourcePart = raw.slice(0, separatorIndex);
+    const targetPart = raw.slice(separatorIndex + CACHE_KEY_SEPARATOR.length);
+    if (!sourcePart || !targetPart) {
+      return null;
+    }
+
+    const normalizedSource = normalizeOrigin(sourcePart);
+    const normalizedTarget = normalizeOrigin(targetPart);
+
+    if (!normalizedSource || !normalizedTarget) {
+      return null;
+    }
+
+    return `${CACHE_KEY_PREFIX}${normalizedSource}${CACHE_KEY_SEPARATOR}${normalizedTarget}`;
   }
 
   /**
@@ -90,6 +139,10 @@ export class PermissionCache {
    */
   getSync(sourceOrigin, targetOrigin) {
     const key = PermissionCache.getCacheKey(sourceOrigin, targetOrigin);
+    if (!key) {
+      this.stats.cacheMisses++;
+      return null;
+    }
     const entry = this.cache.get(key);
 
     if (!entry) {
@@ -149,6 +202,13 @@ export class PermissionCache {
    */
   setSync(sourceOrigin, targetOrigin, decision, options = {}) {
     const key = PermissionCache.getCacheKey(sourceOrigin, targetOrigin);
+    if (!key) {
+      console.warn('PermissionCache: Skipping cache write due to invalid origin(s)', {
+        sourceOrigin,
+        targetOrigin
+      });
+      return;
+    }
     const { persist = false, metadata = {} } = options;
 
     const ttl = persist ? CONFIG.PERSISTENT_TTL_MS : CONFIG.DEFAULT_TTL_MS;
@@ -255,6 +315,11 @@ export class PermissionCache {
    * @private
    */
   scheduleStorageSync() {
+    if (!isExtensionContextValid()) {
+      this.syncPending = false;
+      return;
+    }
+
     // Clear existing timer
     if (this.syncTimer) {
       clearTimeout(this.syncTimer);
@@ -282,6 +347,11 @@ export class PermissionCache {
    * @returns {Promise<void>}
    */
   async syncToStorage() {
+    if (!isExtensionContextValid()) {
+      this.syncPending = false;
+      return; // No extension context available for storage access
+    }
+
     if (!this.syncPending && !this.syncTimer) {
       return; // No changes to sync
     }
@@ -331,6 +401,10 @@ export class PermissionCache {
    */
   async syncFromStorage() {
     try {
+      if (!isExtensionContextValid()) {
+        return; // No extension context available for storage access
+      }
+
       const result = await safeStorageGet([STORAGE_KEY], null, {
         maxRetries: 3,
         useCircuitBreaker: true
@@ -348,15 +422,32 @@ export class PermissionCache {
       const now = Date.now();
       let loaded = 0;
       let expired = 0;
+      let invalid = 0;
+      let normalized = 0;
 
       for (const [key, entry] of Object.entries(entries)) {
+        const normalizedKey = PermissionCache.normalizeCacheKey(key);
+        if (!normalizedKey) {
+          invalid++;
+          continue;
+        }
+
+        if (!entry || typeof entry.expiresAt !== 'number') {
+          invalid++;
+          continue;
+        }
+
         // Skip expired entries
         if (now > entry.expiresAt) {
           expired++;
           continue;
         }
 
-        this.cache.set(key, entry);
+        if (normalizedKey !== key) {
+          normalized++;
+        }
+
+        this.cache.set(normalizedKey, entry);
         loaded++;
       }
 
@@ -367,7 +458,9 @@ export class PermissionCache {
 
       this.stats.totalEntries = this.cache.size;
 
-      console.log(`PermissionCache: Loaded ${loaded} entries from storage (${expired} expired, skipped)`);
+      console.log(
+        `PermissionCache: Loaded ${loaded} entries from storage (${expired} expired, ${invalid} invalid, ${normalized} normalized)`
+      );
     } catch (error) {
       console.error('PermissionCache: Failed to load from storage:', error);
       // Don't throw - start with empty cache
@@ -395,6 +488,47 @@ export class PermissionCache {
   }
 
   /**
+   * Register page unload cleanup
+   *
+   * @private
+   */
+  setupUnloadCleanup() {
+    if (typeof window === 'undefined' || !window.addEventListener) {
+      return;
+    }
+
+    window.addEventListener('pagehide', this.unloadHandler);
+    window.addEventListener('beforeunload', this.unloadHandler);
+  }
+
+  /**
+   * Remove page unload cleanup handler
+   *
+   * @private
+   */
+  removeUnloadCleanup() {
+    if (typeof window === 'undefined' || !window.removeEventListener) {
+      return;
+    }
+
+    window.removeEventListener('pagehide', this.unloadHandler);
+    window.removeEventListener('beforeunload', this.unloadHandler);
+  }
+
+  /**
+   * Stop timers and handlers on unload
+   *
+   * @private
+   */
+  handleUnload() {
+    // Best-effort final sync before teardown (pagehide/beforeunload).
+    this.syncToStorage().catch(error => {
+      console.error('PermissionCache: Final sync failed on unload:', error);
+    });
+    this.cleanup();
+  }
+
+  /**
    * Stop automatic cleanup timer
    * Called when cache is no longer needed
    */
@@ -404,6 +538,20 @@ export class PermissionCache {
       this.cleanupTimer = null;
       console.log('PermissionCache: Auto-cleanup disabled');
     }
+  }
+
+  /**
+   * Cleanup timers and event handlers
+   */
+  cleanup() {
+    this.stopAutoCleanup();
+
+    if (this.syncTimer) {
+      clearTimeout(this.syncTimer);
+      this.syncTimer = null;
+    }
+
+    this.removeUnloadCleanup();
   }
 
   /**
@@ -448,12 +596,7 @@ export class PermissionCache {
    * Call when cache is no longer needed
    */
   destroy() {
-    this.stopAutoCleanup();
-
-    if (this.syncTimer) {
-      clearTimeout(this.syncTimer);
-      this.syncTimer = null;
-    }
+    this.cleanup();
 
     // Final sync before destruction
     this.syncToStorage().catch(error => {

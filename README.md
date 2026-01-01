@@ -29,6 +29,7 @@ OriginalUI is a powerful Chrome extension built with modern web technologies (Re
   - [Testing](#testing)
 - [API](#api)
   - [Storage Schema](#storage-schema)
+  - [Migration Guide](#migration-guide)
   - [Rule Schema](#rule-schema)
 - [Contributing](#contributing)
 - [License](#license)
@@ -316,6 +317,14 @@ OriginalUI uses Chrome's Storage API with the following schema:
   }
 }
 ```
+
+Additional internal storage (managed by modules, not user-facing):
+
+- `permissionCacheV1` - Navigation permission cache. See `MIGRATIONS.md` for schema details and versioning policy.
+
+### Migration Guide
+
+See `MIGRATIONS.md` for storage schema versioning, migration steps, and the permission cache upgrade path.
 
 ### Rule Schema
 

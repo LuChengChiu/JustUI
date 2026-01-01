@@ -4,6 +4,7 @@
     "paths": {
       "@/*": ["src/*"],
       "@test/*": ["test/*"],
+      "@tests/*": ["tests/*"],
       "@modules/*": ["src/scripts/modules/*"],
       "@utils/*": ["src/utils/*"],
       "@script-utils/*": ["src/scripts/utils/*"]
