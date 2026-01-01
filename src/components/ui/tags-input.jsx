@@ -7,9 +7,111 @@ import {
   forwardRef,
   useCallback,
   useMemo,
+  useReducer,
 } from "react";
 
 const TagsInputContext = createContext(null);
+
+// Action types for reducer
+const ACTIONS = {
+  SET_INPUT_VALUE: 'SET_INPUT_VALUE',
+  ADD_TAG: 'ADD_TAG',
+  REMOVE_TAG: 'REMOVE_TAG',
+  UPDATE_TAG: 'UPDATE_TAG',
+  SET_FOCUSED_INDEX: 'SET_FOCUSED_INDEX',
+  SET_EDITING_INDEX: 'SET_EDITING_INDEX',
+  SET_VALIDATION_ERROR: 'SET_VALIDATION_ERROR',
+  CLEAR_VALIDATION_ERROR: 'CLEAR_VALIDATION_ERROR',
+  CLEAR_INPUT: 'CLEAR_INPUT',
+  UPDATE_TAGS: 'UPDATE_TAGS',
+  RESET_FOCUS: 'RESET_FOCUS',
+};
+
+// Validation helper
+const getValidationErrorMessage = (domain) => {
+  if (/^\d+$/.test(domain)) {
+    return 'Pure numbers are not valid domains. Try adding a TLD like ".com"';
+  }
+
+  if (!domain.includes(".")) {
+    return "Domain must include a TLD (e.g., example.com)";
+  }
+
+  if (!/^[a-zA-Z0-9.*:-]+$/.test(domain)) {
+    return "Domain contains invalid characters";
+  }
+
+  return "Invalid domain format. Use format like: example.com, *.example.com, or localhost:3000";
+};
+
+// Reducer function - pure, testable, no closures
+function tagsInputReducer(state, action) {
+  switch (action.type) {
+    case ACTIONS.SET_INPUT_VALUE:
+      return {
+        ...state,
+        inputValue: action.payload,
+        validationError: state.validationError ? '' : state.validationError,
+      };
+
+    case ACTIONS.ADD_TAG: {
+      const { value, currentTags, max, allowDuplicates, validate } = action.payload;
+      const trimmedValue = value.trim();
+
+      if (!trimmedValue) {
+        return { ...state, validationError: "Domain cannot be empty" };
+      }
+
+      if (currentTags.length >= max) {
+        return { ...state, validationError: `Maximum ${max} domains allowed` };
+      }
+
+      if (!allowDuplicates && currentTags.includes(trimmedValue)) {
+        return { ...state, validationError: "Domain already exists in the list" };
+      }
+
+      if (validate && !validate(trimmedValue)) {
+        return { ...state, validationError: getValidationErrorMessage(trimmedValue) };
+      }
+
+      return { ...state, validationError: '' };
+    }
+
+    case ACTIONS.REMOVE_TAG: {
+      const { index, currentTagsLength } = action.payload;
+      return {
+        ...state,
+        focusedIndex: state.focusedIndex >= 0
+          ? Math.min(state.focusedIndex, currentTagsLength - 2)
+          : state.focusedIndex,
+      };
+    }
+
+    case ACTIONS.UPDATE_TAG:
+      return state;
+
+    case ACTIONS.SET_FOCUSED_INDEX:
+      return { ...state, focusedIndex: action.payload };
+
+    case ACTIONS.SET_EDITING_INDEX:
+      return { ...state, editingIndex: action.payload };
+
+    case ACTIONS.SET_VALIDATION_ERROR:
+      return { ...state, validationError: action.payload };
+
+    case ACTIONS.CLEAR_VALIDATION_ERROR:
+      return { ...state, validationError: '' };
+
+    case ACTIONS.CLEAR_INPUT:
+      return { ...state, inputValue: '' };
+
+    case ACTIONS.RESET_FOCUS:
+      return { ...state, focusedIndex: -1, editingIndex: -1 };
+
+    default:
+      return state;
+  }
+}
 
 const useTagsInputContext = () => {
   const context = useContext(TagsInputContext);
@@ -41,11 +143,15 @@ const TagsInputRoot = ({
   ...props
 }) => {
   const [tags, setTags] = useState(value || defaultValue);
-  const [inputValue, setInputValue] = useState("");
-  const [focusedIndex, setFocusedIndex] = useState(-1);
-  const [editingIndex, setEditingIndex] = useState(-1);
-  const [validationError, setValidationError] = useState("");
   const inputRef = useRef(null);
+
+  // Use reducer for UI state (eliminates stale closures)
+  const [state, dispatch] = useReducer(tagsInputReducer, {
+    inputValue: "",
+    focusedIndex: -1,
+    editingIndex: -1,
+    validationError: "",
+  });
 
   // Handle controlled vs uncontrolled
   const isControlled = value !== undefined;
@@ -63,55 +169,31 @@ const TagsInputRoot = ({
 
   const addTag = useCallback(
     (tagValue) => {
+      // Dispatch validation action
+      dispatch({
+        type: ACTIONS.ADD_TAG,
+        payload: { value: tagValue, currentTags, max, allowDuplicates, validate },
+      });
+
+      // Check if validation passed
       const trimmedValue = tagValue.trim();
-      setValidationError("");
+      if (!trimmedValue) return false;
+      if (currentTags.length >= max) return false;
+      if (!allowDuplicates && currentTags.includes(trimmedValue)) return false;
+      if (validate && !validate(trimmedValue)) return false;
 
-      if (!trimmedValue) {
-        setValidationError("Domain cannot be empty");
-        return false;
-      }
-
-      if (currentTags.length >= max) {
-        setValidationError(`Maximum ${max} domains allowed`);
-        return false;
-      }
-
-      if (!allowDuplicates && currentTags.includes(trimmedValue)) {
-        setValidationError("Domain already exists in the list");
-        return false;
-      }
-
-      if (validate && !validate(trimmedValue)) {
-        setValidationError(getValidationErrorMessage(trimmedValue));
-        return false;
-      }
-
+      // Update tags if validation passed
       updateTags([...currentTags, trimmedValue]);
-      setValidationError("");
       return true;
     },
     [currentTags, max, allowDuplicates, validate, updateTags]
   );
 
-  const getValidationErrorMessage = (domain) => {
-    if (/^\d+$/.test(domain)) {
-      return 'Pure numbers are not valid domains. Try adding a TLD like ".com"';
-    }
-
-    if (!domain.includes(".")) {
-      return "Domain must include a TLD (e.g., example.com)";
-    }
-
-    if (!/^[a-zA-Z0-9.*:-]+$/.test(domain)) {
-      return "Domain contains invalid characters";
-    }
-
-    return "Invalid domain format. Use format like: example.com, *.example.com, or localhost:3000";
-  };
-
   const removeTag = useCallback(
     (index) => {
-      updateTags(currentTags.filter((_, i) => i !== index));
+      const newTags = currentTags.filter((_, i) => i !== index);
+      updateTags(newTags);
+      dispatch({ type: ACTIONS.REMOVE_TAG, payload: { index, currentTagsLength: currentTags.length } });
     },
     [currentTags, updateTags]
   );
@@ -140,93 +222,83 @@ const TagsInputRoot = ({
     [currentTags, allowDuplicates, validate, removeTag, updateTags]
   );
 
-  // Key handler helpers
-  const handleEnterKey = (e) => {
-    e.preventDefault();
-    const trimmedValue = inputValue.trim();
-    if (trimmedValue) {
-      const success = addTag(trimmedValue);
-      if (success) {
-        setInputValue("");
-      }
-    }
-  };
+  // Stable event handler with ref for current state - no recreations on keystroke!
+  const stateRef = useRef(state);
+  const currentTagsRef = useRef(currentTags);
 
-  const handleBackspaceKey = () => {
-    if (!inputValue && currentTags.length > 0) {
-      if (focusedIndex >= 0) {
-        removeTag(focusedIndex);
-        setFocusedIndex(Math.min(focusedIndex, currentTags.length - 2));
-      } else {
-        setFocusedIndex(currentTags.length - 1);
-      }
-    }
-  };
-
-  const handleArrowLeftKey = (e) => {
-    if (!inputValue || e.target.selectionStart === 0) {
-      e.preventDefault();
-      setFocusedIndex((prev) =>
-        prev >= 0 ? Math.max(0, prev - 1) : currentTags.length - 1
-      );
-    }
-  };
-
-  const handleArrowRightKey = (e) => {
-    if (!inputValue || e.target.selectionStart === inputValue.length) {
-      e.preventDefault();
-      if (focusedIndex >= 0) {
-        if (focusedIndex < currentTags.length - 1) {
-          setFocusedIndex((prev) => prev + 1);
-        } else {
-          setFocusedIndex(-1);
-          inputRef.current?.focus();
-        }
-      }
-    }
-  };
-
-  const handleEscapeKey = () => {
-    setFocusedIndex(-1);
-    setEditingIndex(-1);
-  };
+  useEffect(() => {
+    stateRef.current = state;
+    currentTagsRef.current = currentTags;
+  });
 
   const handleInputKeyDown = useCallback(
     (e) => {
       if (disabled || readOnly) return;
 
+      const currentState = stateRef.current;
+      const tags = currentTagsRef.current;
+
       switch (e.key) {
         case "Enter":
         case delimiter:
-          handleEnterKey(e);
+          e.preventDefault();
+          if (currentState.inputValue.trim()) {
+            const success = addTag(currentState.inputValue.trim());
+            if (success) {
+              dispatch({ type: ACTIONS.CLEAR_INPUT });
+            }
+          }
           break;
 
         case "Backspace":
-          handleBackspaceKey();
+          if (!currentState.inputValue && tags.length > 0) {
+            if (currentState.focusedIndex >= 0) {
+              removeTag(currentState.focusedIndex);
+            } else {
+              dispatch({ type: ACTIONS.SET_FOCUSED_INDEX, payload: tags.length - 1 });
+            }
+          }
           break;
 
         case "ArrowLeft":
-          handleArrowLeftKey(e);
+          if (!currentState.inputValue || e.target.selectionStart === 0) {
+            e.preventDefault();
+            const newIndex = currentState.focusedIndex >= 0
+              ? Math.max(0, currentState.focusedIndex - 1)
+              : tags.length - 1;
+            dispatch({ type: ACTIONS.SET_FOCUSED_INDEX, payload: newIndex });
+          }
           break;
 
         case "ArrowRight":
-          handleArrowRightKey(e);
+          if (!currentState.inputValue || e.target.selectionStart === currentState.inputValue.length) {
+            e.preventDefault();
+            if (currentState.focusedIndex >= 0) {
+              if (currentState.focusedIndex < tags.length - 1) {
+                dispatch({ type: ACTIONS.SET_FOCUSED_INDEX, payload: currentState.focusedIndex + 1 });
+              } else {
+                dispatch({ type: ACTIONS.SET_FOCUSED_INDEX, payload: -1 });
+                inputRef.current?.focus();
+              }
+            }
+          }
           break;
 
         case "Escape":
-          handleEscapeKey();
+          dispatch({ type: ACTIONS.RESET_FOCUS });
           break;
       }
     },
-    [disabled, readOnly, delimiter, inputValue, addTag, currentTags, focusedIndex, removeTag]
+    [disabled, readOnly, delimiter, addTag, removeTag]
   );
 
   const handleInputBlur = useCallback(() => {
-    if (blurBehavior === "add" && inputValue && addTag(inputValue)) {
-      setInputValue("");
+    const currentState = stateRef.current;
+    if (blurBehavior === "add" && currentState.inputValue && addTag(currentState.inputValue)) {
+      dispatch({ type: ACTIONS.CLEAR_INPUT });
     }
-    setFocusedIndex(-1);
-  }, [blurBehavior, inputValue, addTag]);
+    dispatch({ type: ACTIONS.SET_FOCUSED_INDEX, payload: -1 });
+  }, [blurBehavior, addTag]);
 
   const handlePaste = useCallback(
     (e) => {
@@ -241,7 +313,7 @@ const TagsInputRoot = ({
       if (tags.length > 0) {
         e.preventDefault();
         tags.forEach((tag) => addTag(tag));
-        setInputValue("");
+        dispatch({ type: ACTIONS.CLEAR_INPUT });
       }
     },
     [addOnPaste, delimiter, addTag]
@@ -257,31 +329,31 @@ const TagsInputRoot = ({
   const variantStyles = useMemo(
     () => ({
       outline: `border-2 ${
-        validationError
+        state.validationError
           ? "border-red-500 focus-within:border-red-600 focus-within:shadow-[0_0_0_1px_rgba(239,68,68,0.5)]"
           : "border-gray-300 focus-within:border-primary focus-within:shadow-[0_0_0_1px_rgba(59,130,246,0.5)]"
       } bg-white`,
       subtle: `border ${
-        validationError
+        state.validationError
           ? "border-red-300 bg-red-50"
           : "border-gray-200 bg-gray-50"
       } focus-within:bg-white focus-within:border-gray-300`,
       flushed: `border-0 border-b-2 ${
-        validationError ? "border-red-500" : "border-gray-300"
+        state.validationError ? "border-red-500" : "border-gray-300"
       } bg-transparent rounded-none focus-within:border-primary`,
     }),
-    [validationError]
+    [state.validationError]
   );
 
   const contextValue = useMemo(
     () => ({
       tags: currentTags,
-      inputValue,
-      setInputValue,
-      focusedIndex,
-      setFocusedIndex,
-      editingIndex,
-      setEditingIndex,
+      inputValue: state.inputValue,
+      setInputValue: (value) => dispatch({ type: ACTIONS.SET_INPUT_VALUE, payload: value }),
+      focusedIndex: state.focusedIndex,
+      setFocusedIndex: (index) => dispatch({ type: ACTIONS.SET_FOCUSED_INDEX, payload: index }),
+      editingIndex: state.editingIndex,
+      setEditingIndex: (index) => dispatch({ type: ACTIONS.SET_EDITING_INDEX, payload: index }),
       addTag,
       removeTag,
       updateTag,
@@ -293,16 +365,14 @@ const TagsInputRoot = ({
       readOnly,
       size,
       editable,
-      validationError,
-      setValidationError,
+      validationError: state.validationError,
+      setValidationError: (error) => dispatch({ type: ACTIONS.SET_VALIDATION_ERROR, payload: error }),
       onTagClick,
       maxLines,
     }),
     [
       currentTags,
-      inputValue,
-      focusedIndex,
-      editingIndex,
+      state,
       addTag,
       removeTag,
       updateTag,
@@ -313,7 +383,6 @@ const TagsInputRoot = ({
       readOnly,
       size,
       editable,
-      validationError,
       onTagClick,
       maxLines,
     ]
@@ -334,9 +403,9 @@ const TagsInputRoot = ({
         >
           {children}
         </div>
-        {validationError && (
+        {state.validationError && (
           <div className="mt-1 text-sm text-red-600 font-barlow">
-            {validationError}
+            {state.validationError}
           </div>
         )}
       </div>

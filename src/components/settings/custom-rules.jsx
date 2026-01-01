@@ -1,8 +1,8 @@
-import { useCallback, useState } from "react";
 import Button from "@/components/ui/button";
 import SettingsCheckbox from "@/components/ui/checkbox/settings-checkbox";
 import TagsInput from "@/components/ui/tags-input";
 import { H3, Text } from "@/components/ui/typography";
+import { useCallback, useState } from "react";
 import RuleEditModal from "./rule-edit-modal";
 
 const emptyRule = (
@@ -26,7 +26,7 @@ export default function CustomRulesManager({
   const [editingRule, setEditingRule] = useState(null);
 
   // Handle rule tag clicks to edit existing rules
-  const handleRuleTagClick = (ruleSelector, index) => {
+  const handleRuleTagClick = (ruleSelector) => {
     const rule = customRules.find((r) => r.selector === ruleSelector);
     if (rule) {
       setEditingRule(rule);
@@ -34,10 +34,10 @@ export default function CustomRulesManager({
     }
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsModalOpen(false);
     setEditingRule(null);
-  };
+  }, []);
 
   // Handle modal save (both add and edit)
   const handleModalSave = useCallback(

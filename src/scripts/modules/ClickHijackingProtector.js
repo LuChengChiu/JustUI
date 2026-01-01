@@ -69,7 +69,10 @@ export class ClickHijackingProtector {
       }
 
       const clickedElement = event.target;
-      const suspiciousOverlay = this.findSuspiciousOverlay(clickedElement, event);
+      const suspiciousOverlay = this.findSuspiciousOverlay(
+        clickedElement,
+        event
+      );
 
       if (suspiciousOverlay) {
         console.warn("OriginalUI: Blocked click on suspicious overlay", {
@@ -111,7 +114,6 @@ export class ClickHijackingProtector {
    */
   handleAdvancedClickProtection(event) {
     try {
-      const clickTime = Date.now();
       const element = event.target;
 
       // Whitelist: Allow clicks on Navigation Guardian modal
@@ -156,15 +158,18 @@ export class ClickHijackingProtector {
 
       // Check for suspicious positioning
       const coversFullScreen =
-        element.offsetWidth >= window.innerWidth * FULLSCREEN_COVERAGE_THRESHOLD &&
-        element.offsetHeight >= window.innerHeight * FULLSCREEN_COVERAGE_THRESHOLD;
+        element.offsetWidth >=
+          window.innerWidth * FULLSCREEN_COVERAGE_THRESHOLD &&
+        element.offsetHeight >=
+          window.innerHeight * FULLSCREEN_COVERAGE_THRESHOLD;
 
       if (position === "fixed" && coversFullScreen) {
         suspiciousFactors.push("fullscreen_overlay");
       }
 
       // If multiple suspicious factors, likely a malicious click
-      const isSuspiciousClick = suspiciousFactors.length >= SUSPICIOUS_THRESHOLD;
+      const isSuspiciousClick =
+        suspiciousFactors.length >= SUSPICIOUS_THRESHOLD;
 
       if (isSuspiciousClick) {
         console.log("OriginalUI: Blocked suspicious click event:", {

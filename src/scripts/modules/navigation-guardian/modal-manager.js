@@ -39,14 +39,13 @@ export class ModalManager {
    */
   constructor() {
     /**
-     * Currently active modal element (for preventing duplicates)
-     * @type {HTMLElement|null}
+     * Currently active modal configuration (for preventing duplicates)
+     * Stores the config object while a modal is being shown
+     * @type {Object|null}
      * @private
      */
     this.activeModal = null;
 
-    /**
-    
     /**
      * Statistics callback for tracking user decisions
      * @type {Function|null}
@@ -130,79 +129,76 @@ export class ModalManager {
    * @param {boolean} [config.threatDetails.isPopUnder] - True if pop-under detected
    * @returns {Promise<boolean>} Promise that resolves with user decision (true=allow, false=block)
    */
-  showConfirmationModal(config) {
+  async showConfirmationModal(config) {
     const { url: targetURL, threatDetails = null } = config;
 
-    return new Promise(async (resolve) => {
-      // Prevent multiple modals for the same URL
-      if (this.activeModal) {
-        console.warn(
-          "OriginalUI: Navigation modal already exists, ignoring duplicate"
-        );
-        resolve(false); // Default to deny for safety
-        return;
-      }
+    // Prevent multiple modals for the same URL
+    if (this.activeModal) {
+      console.warn(
+        "OriginalUI: Navigation modal already exists, ignoring duplicate"
+      );
+      return false; // Default to deny for safety
+    }
 
-      // Validate URL for security before display (with error handling)
-      let validatedURL = targetURL; // Default fallback
-      if (this.urlValidator) {
-        try {
-          validatedURL = this.urlValidator(targetURL);
-        } catch (validatorError) {
-          console.error(
-            "OriginalUI: Error in URL validator callback:",
-            validatorError
-          );
-          // Use original URL as fallback - validation errors shouldn't break modal display
-          validatedURL = targetURL;
-        }
-      }
-
-      // Prepare config for React modal
-      const modalConfig = {
-        url: validatedURL,
-        threatDetails: threatDetails,
-      };
-
+    // Validate URL for security before display (with error handling)
+    let validatedURL = targetURL; // Default fallback
+    if (this.urlValidator) {
       try {
-        // Set active modal flag
-        this.activeModal = true;
-
-        // Show React modal and await user decision
-        const userDecision = await showExternalLinkModal(modalConfig);
-
-        // Clear active modal flag
-        this.activeModal = null;
-
-        // Call statistics callback
-        if (this.statisticsCallback) {
-          try {
-            this.statisticsCallback(userDecision);
-          } catch (callbackError) {
-            console.error(
-              "OriginalUI: Error in statistics callback:",
-              callbackError
-            );
-          }
-        }
-
-        console.log(
-          "OriginalUI: Navigation Guardian modal result for",
-          targetURL,
-          ":",
-          userDecision
+        validatedURL = this.urlValidator(targetURL);
+      } catch (validatorError) {
+        console.error(
+          "OriginalUI: Error in URL validator callback:",
+          validatorError
         );
-        resolve(userDecision);
-      } catch (error) {
-        console.error("OriginalUI: Error showing React modal:", error);
-
-        // Clear active modal flag on error
-        this.activeModal = null;
-
-        // Resolve with false (deny) for safety instead of fallback
-        resolve(false);
+        // Use original URL as fallback - validation errors shouldn't break modal display
+        validatedURL = targetURL;
       }
-    });
+    }
+
+    // Prepare config for React modal
+    const modalConfig = {
+      url: validatedURL,
+      threatDetails: threatDetails,
+    };
+
+    try {
+      // Set active modal reference to config (for duplicate prevention)
+      this.activeModal = modalConfig;
+
+      // Show React modal and await user decision
+      const userDecision = await showExternalLinkModal(modalConfig);
+
+      // Clear active modal flag
+      this.activeModal = null;
+
+      // Call statistics callback
+      if (this.statisticsCallback) {
+        try {
+          this.statisticsCallback(userDecision);
+        } catch (callbackError) {
+          console.error(
+            "OriginalUI: Error in statistics callback:",
+            callbackError
+          );
+        }
+      }
+
+      console.log(
+        "OriginalUI: Navigation Guardian modal result for",
+        targetURL,
+        ":",
+        userDecision
+      );
+      return userDecision;
+    } catch (error) {
+      console.error("OriginalUI: Error showing React modal:", error);
+
+      // Clear active modal flag on error
+      this.activeModal = null;
+
+      // Return false (deny) for safety
+      return false;
+    }
   }
 
   /**

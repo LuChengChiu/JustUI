@@ -29,11 +29,11 @@
  * @author OriginalUI Team
  */
 
-import { domainMatches, safeParseUrl } from "@utils/url-utils.js";
 import {
   isExtensionContextValid,
   safeStorageSet,
 } from "@script-utils/chromeApiSafe.js";
+import { domainMatches, safeParseUrl } from "@utils/url-utils.js";
 import { ModalManager } from "./modal-manager.js";
 import { SecurityValidator } from "./security-validator.js";
 
@@ -76,13 +76,6 @@ export class NavigationGuardian {
      * @private
      */
     this.navigationStats = { blockedCount: 0, allowedCount: 0 };
-
-    /**
-     * WeakMap for automatic garbage collection of pending modals
-     * @type {WeakMap<Object, Object>}
-     * @private
-     */
-    this.pendingNavigationModals = new WeakMap(); // Use WeakMap for auto GC
 
     /**
      * Map for string-keyed modal tracking with size limits
