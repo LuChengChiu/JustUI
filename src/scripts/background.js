@@ -605,26 +605,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           );
         }
         sendResponse({ success: true, whitelist });
-        // Notify content script of whitelist change
-        chrome.tabs.query({}, (tabs) => {
-          if (chrome.runtime.lastError) {
-            console.error(
-              "OriginalUI: Failed to query tabs for whitelist update:",
-              chrome.runtime.lastError
-            );
-            return;
-          }
-          tabs.forEach((tab) => {
-            if (tab.url && tab.url.startsWith("http")) {
-              chrome.tabs
-                .sendMessage(tab.id, {
-                  action: "whitelistUpdated",
-                  whitelist,
-                })
-                .catch(() => {}); // Ignore errors for tabs without content script
-            }
-          });
-        });
+        // Whitelist changes now propagate via chrome.storage.onChanged event
+        // Content scripts listen directly to storage changes (no tabs permission needed)
       } catch (error) {
         console.error("Failed to update whitelist:", error);
         sendResponse({
@@ -873,26 +855,6 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
     })();
   }
 
-  // Notify all content scripts of storage changes (for local changes)
-  if (namespace === "local") {
-    chrome.tabs.query({}, (tabs) => {
-      if (chrome.runtime.lastError) {
-        console.error(
-          "OriginalUI: Failed to query tabs for storage changes:",
-          chrome.runtime.lastError
-        );
-        return;
-      }
-      tabs.forEach((tab) => {
-        if (tab.url && tab.url.startsWith("http")) {
-          chrome.tabs
-            .sendMessage(tab.id, {
-              action: "storageChanged",
-              changes,
-            })
-            .catch(() => {}); // Ignore errors for tabs without content script
-        }
-      });
-    });
-  }
+  // Storage changes now propagate via chrome.storage.onChanged event
+  // Content scripts listen directly to storage changes (no tabs permission needed)
 });

@@ -289,6 +289,15 @@ class OriginalUIController {
    * Setup message listeners for background script communication
    */
   setupMessageListeners() {
+    // Listen directly to Chrome storage changes (no tabs permission needed)
+    // This replaces the background script broadcast approach
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+      if (namespace === 'local') {
+        this.handleStorageChanges(changes);
+      }
+    });
+
+    // Keep message listener for direct action requests
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (!chrome?.runtime?.id) {
         return false;
@@ -298,13 +307,8 @@ class OriginalUIController {
         return false;
       }
 
-      if (request.action === "storageChanged") {
-        this.handleStorageChanges(request.changes);
-      } else if (request.action === "whitelistUpdated") {
-        this.whitelist = request.whitelist;
-        this.invalidateWhitelistCache();
-        this.executeRules();
-      } else if (request.action === "executeRules") {
+      // Direct action requests (not handled by storage events)
+      if (request.action === "executeRules") {
         this.executeRules();
         sendResponse({ success: true });
       }
@@ -313,7 +317,8 @@ class OriginalUIController {
   }
 
   /**
-   * Handle storage changes from background script
+   * Handle storage changes from Chrome's native storage API
+   * This method is called when any chrome.storage.local change occurs
    */
   handleStorageChanges(changes) {
     let shouldRestart = false;
@@ -342,6 +347,25 @@ class OriginalUIController {
 
     if (changes.navigationStats) {
       this.navigationStats = changes.navigationStats.newValue;
+    }
+
+    // Pop-under protection toggle
+    if (changes.popUnderProtectionEnabled) {
+      const enabled = changes.popUnderProtectionEnabled.newValue;
+      if (enabled) {
+        this.clickProtector.activate();
+      } else {
+        this.clickProtector.deactivate();
+      }
+    }
+
+    // Script analysis toggle (handled by injected-script.js)
+    // Note: injected-script.js loads early and doesn't dynamically toggle
+    // May require page reload for this setting to take effect
+    if (changes.scriptAnalysisEnabled) {
+      console.log('OriginalUI: scriptAnalysisEnabled changed to',
+        changes.scriptAnalysisEnabled.newValue,
+        '(may require page reload)');
     }
 
     // Handle other rule changes (EasyList is bundled with defaultRulesEnabled)
