@@ -6,7 +6,7 @@ import {
   safeStorageGet,
   safeStorageSet,
   safeStorageSetWithValidation,
-} from "./utils/chromeApiSafe.js";
+} from "./utils/chrome-api-safe.js";
 
 // Background Utility Imports
 import { EasyListDomSource } from "./modules/rule-execution/sources/easylist-dom-source.js";
@@ -19,6 +19,7 @@ import { rateLimiter } from "./utils/background/rate-limiter.js";
 import {
   fetchDefaultRules,
   fetchDefaultWhitelist,
+  REMOTE_URLS,
 } from "./utils/background/remote-data-fetcher.js";
 
 // Network Blocking System Imports
@@ -32,14 +33,6 @@ import {
   DefaultBlockSource,
 } from "./modules/network-blocking/sources/index.js";
 import { DynamicRuleUpdater } from "./modules/network-blocking/updaters/dynamic-rule-updater.js";
-
-// ============================================================================
-// NETWORK BLOCKING SYSTEM
-// ============================================================================
-
-// ============================================================================
-// NETWORK BLOCKING MANAGER INITIALIZATION
-// ============================================================================
 
 // Initialize custom pattern source (Priority 1 - Highest)
 const customPatternSource = new CustomPatternSource(
@@ -105,23 +98,23 @@ async function updateRulesetStates(enabled) {
           error
         );
       }
-    } else {
-      // Disable static rulesets
-      await chrome.declarativeNetRequest.updateEnabledRulesets({
-        disableRulesetIds: staticRulesetIds,
-      });
-
-      // Clear all dynamic rules (IDs 10000-64999 - expanded for custom patterns)
-      const allDynamicIds = [];
-      for (let id = 10000; id <= 64999; id++) {
-        allDynamicIds.push(id);
-      }
-      await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: allDynamicIds,
-      });
-
-      console.log("🚫 All network blocking disabled");
+      return;
     }
+    // Disable static rulesets
+    await chrome.declarativeNetRequest.updateEnabledRulesets({
+      disableRulesetIds: staticRulesetIds,
+    });
+
+    // Clear all dynamic rules (IDs 10000-64999 - expanded for custom patterns)
+    const allDynamicIds = [];
+    for (let id = 10000; id <= 64999; id++) {
+      allDynamicIds.push(id);
+    }
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: allDynamicIds,
+    });
+
+    console.log("🚫 All network blocking disabled");
   } catch (error) {
     console.error("Failed to update ruleset states:", error);
   }
@@ -756,7 +749,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "getRemoteRulesUrl") {
-    sendResponse({ url: REMOTE_RULES_URL });
+    sendResponse({ url: REMOTE_URLS.RULES });
     return false;
   }
 });

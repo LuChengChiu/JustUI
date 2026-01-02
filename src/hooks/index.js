@@ -1,2 +1,2 @@
-export { useChromeStorage } from './useChromeStorage';
-export { useBulkChromeStorage } from './useBulkChromeStorage';
+export { useChromeStorage } from './use-chrome-storage';
+export { useBulkChromeStorage } from './use-bulk-chrome-storage';

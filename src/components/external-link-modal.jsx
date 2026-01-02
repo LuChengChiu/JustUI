@@ -1,3 +1,11 @@
+import {
+  createShadowDOMContainer,
+  fetchCSSContent,
+  injectCSSIntoShadow,
+  injectBaseShadowStyles,
+  injectFontsIntoDocument,
+  injectGoogleFontsIntoShadow,
+} from "@utils/shadow-dom.js";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import AlertOctagon from "./icons/alert-octagon.jsx";
@@ -5,12 +13,6 @@ import ShieldLink from "./icons/shield-link.jsx";
 import Button from "./ui/button/index.jsx";
 import Dialog from "./ui/dialog.jsx";
 import { H3, Text } from "./ui/typography.jsx";
-import {
-  createShadowDOMContainer,
-  fetchCSSContent,
-  injectCSSIntoShadow,
-  injectGoogleFontsIntoShadow
-} from "@utils/shadowDOM.js";
 
 // Ensure React is available globally for JSX components in content script
 if (typeof window !== "undefined" && !window.React) {
@@ -84,7 +86,7 @@ const getThreatLevel = (score) => {
  * ExternalLinkModal Component - Navigation Guardian confirmation modal
  */
 export default function ExternalLinkModal({
-  isOpen = false,
+  isOpen,
   onClose,
   config = {},
   onAllow,
@@ -96,14 +98,17 @@ export default function ExternalLinkModal({
 
   const threatLevel = getThreatLevel(riskScore);
 
+  // Remember choice state
+  const [rememberChoice, setRememberChoice] = React.useState(false);
+
   // Handle user decisions
   const handleAllow = () => {
-    onAllow?.();
+    onAllow?.(rememberChoice); // Pass remember flag
     onClose?.();
   };
 
   const handleDeny = () => {
-    onDeny?.();
+    onDeny?.(rememberChoice); // Pass remember flag
     onClose?.();
   };
 
@@ -144,6 +149,23 @@ export default function ExternalLinkModal({
           />
 
           <URLDisplay url={targetURL} />
+
+          {/* Remember choice checkbox */}
+          <div className="flex items-center gap-2 mt-3 mb-1">
+            <input
+              type="checkbox"
+              id="remember-choice"
+              checked={rememberChoice}
+              onChange={(e) => setRememberChoice(e.target.checked)}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+            />
+            <label
+              htmlFor="remember-choice"
+              className="text-sm text-gray-600 cursor-pointer select-none"
+            >
+              Remember this choice for 30 days
+            </label>
+          </div>
         </Dialog.Main>
 
         <Dialog.Footer>
@@ -230,18 +252,21 @@ export const showExternalLinkModal = async (config) => {
 
     const setupModal = async () => {
       try {
-        // Step 1: Create Shadow DOM container with portal target
+        // Step 1: Inject fonts into main document <head> (global scope)
+        // CRITICAL: Shadow DOM blocks font loading from chrome-extension:// URLs
+        // Solution: Load fonts globally so Shadow DOM elements can use them
+        injectFontsIntoDocument();
+
+        // Step 2: Create Shadow DOM container with portal target
         shadowDOMSetup = createShadowDOMContainer();
         const { container, shadowRoot, portalTarget } = shadowDOMSetup;
 
-        // Step 2: Fetch CSS content
-        const cssContent = await fetchCSSContent();
+        // Step 3: Inject base Shadow DOM typography styles
+        // Sets font-family to use globally-loaded fonts
+        injectBaseShadowStyles(shadowRoot);
 
-        // Step 3: Inject CSS and fonts in parallel into Shadow DOM
-        await Promise.all([
-          injectCSSIntoShadow(shadowRoot, cssContent),
-          injectGoogleFontsIntoShadow(shadowRoot)
-        ]);
+        // Step 4: Inject CSS via <link> element and WAIT for it to load
+        await injectCSSIntoShadow(shadowRoot);
 
         // Step 4: Create React root (on light DOM container for React internals)
         const root = createRoot(container);
@@ -253,9 +278,9 @@ export const showExternalLinkModal = async (config) => {
           }
         };
 
-        const handleResult = (allowed) => {
+        const handleResult = (allowed, remember = false) => {
           cleanup();
-          resolve(allowed);
+          resolve({ allowed, remember }); // Return object with both values
         };
 
         // Step 5: Render modal with Shadow DOM portal target
@@ -264,21 +289,25 @@ export const showExternalLinkModal = async (config) => {
             isOpen: true,
             config: config,
             portalTarget: portalTarget, // NEW: Pass Shadow DOM target
-            onAllow: () => handleResult(true),
-            onDeny: () => handleResult(false),
-            onClose: () => handleResult(false),
+            onAllow: (remember) => handleResult(true, remember),
+            onDeny: (remember) => handleResult(false, remember),
+            onClose: () => handleResult(false, false),
           })
         );
-
       } catch (error) {
-        console.error("OriginalUI: Failed to render React modal with Shadow DOM:", error);
+        console.error(
+          "OriginalUI: Failed to render React modal with Shadow DOM:",
+          error
+        );
 
         // Cleanup on error
         if (shadowDOMSetup?.container?.parentNode) {
-          shadowDOMSetup.container.parentNode.removeChild(shadowDOMSetup.container);
+          shadowDOMSetup.container.parentNode.removeChild(
+            shadowDOMSetup.container
+          );
         }
 
-        resolve(false); // Default to deny on error
+        resolve({ allowed: false, remember: false }); // Default to deny on error
       }
     };
 

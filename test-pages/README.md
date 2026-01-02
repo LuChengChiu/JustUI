@@ -22,7 +22,7 @@ Comprehensive test pages for verifying the Navigation Guardian modal's Shadow DO
 - ✅ Buttons have normal font size and colors (NOT 8px green)
 - ✅ Modal has rounded corners
 - ✅ Backdrop blur effect visible
-- ✅ Google Fonts (Days One, Barlow) render correctly
+- ✅ Bundled fonts (Days One, Barlow) render correctly
 
 ---
 
@@ -147,8 +147,7 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
    - Look for `<div id="originalui-external-link-modal-root">`
    - Expand to find `#shadow-root`
    - Verify you see:
-     - `<style data-justui-style="tailwind">` (~43KB CSS)
-     - `<style data-justui-style="google-fonts">` (Google Fonts)
+     - `<style data-justui-style="tailwind">` (~43KB CSS with bundled @font-face rules)
      - `<div class="shadow-content">` (portal target)
 
 4. **Verify visual appearance**:
@@ -164,7 +163,7 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
    OriginalUI: Created Shadow DOM container with portal target
    OriginalUI: Fetched 43130 bytes of CSS in 12.45ms
    OriginalUI: Injected 43130 bytes of CSS into Shadow DOM in 1.87ms
-   OriginalUI: Loaded Google Fonts in 125.34ms
+   OriginalUI: Verified bundled fonts in 1.23ms
    ```
 
 ---
@@ -304,19 +303,20 @@ Press `F12` or `Cmd+Opt+I` (Mac) / `Ctrl+Shift+I` (Windows/Linux)
 
 ---
 
-### Fonts don't load
+### Fonts don't render correctly
 
 **Check**:
 
-- Network tab for Google Fonts request
-- CORS errors in console
-- Internet connection
+- Verify bundled font files exist in `dist/fonts/`
+- Check console for font verification logs
+- Inspect Shadow DOM for `@font-face` rules in CSS
 
 **Solution**:
 
-- Fonts will fallback to system fonts (acceptable)
-- Check `injectGoogleFontsIntoShadow()` logs
-- Verify Google Fonts URL is accessible
+- Rebuild extension with `npm run build` to copy fonts
+- Verify manifest.json includes fonts in web_accessible_resources
+- Check browser DevTools → Network tab for failed font requests
+- Fonts are bundled locally - no internet connection needed
 
 ---
 

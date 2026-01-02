@@ -3,7 +3,7 @@ import TagsInput from "@/components/ui/tags-input";
 import { H1, H3, Text } from "@/components/ui/typography";
 
 const DEFAULT_BLOCK_URL =
-  "https://github.com/LuChengChiu/OriginalUI/blob/main/src/data/defaultBlockRequests.json";
+  "https://github.com/LuChengChiu/OriginalUI/blob/main/src/scripts/modules/network-blocking/data/default-block-requests.json";
 
 export default function BlockRequestsManager({
   checked,

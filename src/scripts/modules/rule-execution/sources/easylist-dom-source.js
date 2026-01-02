@@ -8,8 +8,8 @@
  * @module easylist-dom-source
  */
 
-import { IDomRuleSource } from './IDomRuleSource.js';
-import { safeStorageGet, safeStorageSet } from '@script-utils/chromeApiSafe.js';
+import { IDomRuleSource } from './i-dom-rule-source.js';
+import { safeStorageGet, safeStorageSet } from '@script-utils/chrome-api-safe.js';
 
 /**
  * EasyList URL for cosmetic (DOM hiding) rules

@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 
-import { useBulkChromeStorage } from "@/hooks/useBulkChromeStorage";
 import { H1 } from "@/components/ui/typography";
+import { useBulkChromeStorage } from "@/hooks/use-bulk-chrome-storage";
 
 import BlockRequestsManager from "./block-requests";
 import CustomRulesManager from "./custom-rules";

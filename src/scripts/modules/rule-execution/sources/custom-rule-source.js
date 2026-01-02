@@ -7,8 +7,8 @@
  * @module custom-rule-source
  */
 
-import { IDomRuleSource } from './IDomRuleSource.js';
-import { safeStorageGet } from '@script-utils/chromeApiSafe.js';
+import { IDomRuleSource } from './i-dom-rule-source.js';
+import { safeStorageGet } from '@script-utils/chrome-api-safe.js';
 
 /**
  * Source for user-defined custom CSS selector rules

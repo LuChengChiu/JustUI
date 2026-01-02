@@ -14,8 +14,8 @@ Based on code analysis, the NavigationStats tracking should work as follows:
 
 ## Test Files Created
 
-- `navigationStats-test.html` - Interactive test page with navigation triggers
-- `test-navigationStats.js` - Automated test suite for console testing
+- `navigation-stats-test.html` - Interactive test page with navigation triggers
+- `test-navigation-stats.js` - Automated test suite for console testing
 
 ## Step-by-Step Testing Procedure
 
@@ -29,7 +29,7 @@ Load the `dist/` folder into Chrome Extensions (Developer mode).
 
 ### 2. Open Test Page
 
-Open `navigationStats-test.html` in Chrome. This page provides:
+Open `navigation-stats-test.html` in Chrome. This page provides:
 - Current stats display
 - Navigation test buttons
 - Cross-origin triggers
@@ -72,7 +72,7 @@ Open `navigationStats-test.html` in Chrome. This page provides:
 
 #### Load Test Suite:
 1. Open Console on test page
-2. Copy and paste contents of `test-navigationStats.js`
+2. Copy and paste contents of `test-navigation-stats.js`
 3. Run: `runNavigationStatsTests()`
 
 #### Manual Storage Tests:

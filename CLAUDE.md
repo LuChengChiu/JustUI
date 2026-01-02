@@ -239,12 +239,12 @@ src/scripts/
 │   │   ├── SecurityValidator.js       // URL security validation and threat analysis
 │   │   ├── ModalManager.js            // UI modal creation and management
 │   │   └── NavigationGuardian.original.js // Original monolithic version (backup)
-│   ├── ClickHijackingProtector.js     // Click analysis and overlay detection
+│   ├── click-hijacking-protector.js     // Click analysis and overlay detection
 │   ├── ElementRemover.js              // DOM manipulation strategies
 │   ├── RequestBlockingProtector.js    // Request interception and blocking
 │   └── ICleanable.js                  // Cleanup interface and registry for memory leak prevention
 ├── utils/
-│   └── chromeApiSafe.js               // Safe Chrome API operations with context validation
+│   └── chrome-api-safe.js               // Safe Chrome API operations with context validation
 └── injected-script.js                 // Page-world JavaScript interception
 ```
 

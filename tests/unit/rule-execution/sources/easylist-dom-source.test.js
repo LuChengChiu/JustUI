@@ -7,12 +7,12 @@ import { vi } from 'vitest';
 import { EasyListDomSource } from '@modules/rule-execution/sources/easylist-dom-source.js';
 
 // Mock chromeApiSafe
-vi.mock('../../../../src/scripts/utils/chromeApiSafe.js', () => ({
+vi.mock('../../../../src/scripts/utils/chrome-api-safe.js', () => ({
   safeStorageGet: vi.fn(),
   safeStorageSet: vi.fn()
 }));
 
-import { safeStorageGet, safeStorageSet } from '@script-utils/chromeApiSafe.js';
+import { safeStorageGet, safeStorageSet } from '@script-utils/chrome-api-safe.js';
 
 // Mock fetch
 global.fetch = vi.fn();

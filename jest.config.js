@@ -16,6 +16,7 @@ export default {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@test/(.*)$': '<rootDir>/test/$1',
+    '^@tests/(.*)$': '<rootDir>/tests/$1',
     '^@modules/(.*)$': '<rootDir>/src/scripts/modules/$1',
     '^@utils/(.*)$': '<rootDir>/src/utils/$1',
     '^@script-utils/(.*)$': '<rootDir>/src/scripts/utils/$1'

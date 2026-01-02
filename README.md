@@ -29,6 +29,7 @@ OriginalUI is a powerful Chrome extension built with modern web technologies (Re
   - [Testing](#testing)
 - [API](#api)
   - [Storage Schema](#storage-schema)
+  - [Migration Guide](#migration-guide)
   - [Rule Schema](#rule-schema)
 - [Contributing](#contributing)
 - [License](#license)
@@ -85,6 +86,13 @@ Coming soon.
 
 ### Manual Installation (Development)
 
+> **⚠️ IMPORTANT: This is a build-based extension**
+>
+> - **DO NOT** load the root project folder as an extension
+> - **ALWAYS** build first with `npm run build`
+> - **ONLY** load the `dist/` folder in Chrome Extensions
+> - Source files are in `src/`, built output in `dist/`
+
 This extension requires Node.js and npm. Ensure you have them installed:
 
 ```bash
@@ -106,12 +114,14 @@ Build the extension:
 npm run build
 ```
 
+> ✅ After building, the complete extension will be in the `dist/` directory with all dependencies bundled.
+
 Load the extension in Chrome:
 
 1. Open Chrome and navigate to `chrome://extensions/`
 2. Enable "Developer mode" (toggle in top-right corner)
 3. Click "Load unpacked"
-4. Select the `dist/` directory from the project folder
+4. **Select the `dist/` directory** (NOT the root folder)
 
 The OriginalUI icon should now appear in your Chrome toolbar.
 
@@ -279,13 +289,36 @@ Load the extension in Chrome for testing:
 
 ### Project Structure
 
-- `manifest.json` - Chrome Extension Manifest V3 configuration
-- `popup.html` - Extension popup entry point
-- `settings.html` - Classic settings page
-- `settings-beta.html` - Modern beta settings UI
-- `vite.config.js` - Vite build configuration
-- `tailwind.config.js` - Tailwind CSS configuration
-- `postcss.config.js` - PostCSS configuration
+```
+project/
+├── src/                           # Source files (edit these)
+│   ├── manifest.json             # Extension manifest (source of truth)
+│   ├── scripts/                  # Extension scripts (pre-build)
+│   │   ├── background.js
+│   │   ├── content.js
+│   │   └── modules/              # Protection modules
+│   ├── components/               # React components
+│   ├── data/                     # Default configurations
+│   └── ...
+├── dist/                          # Built extension (load this in Chrome)
+│   ├── manifest.json             # Copied from src/
+│   ├── scripts/                  # Bundled scripts
+│   │   ├── background.js         # Compiled service worker
+│   │   ├── content.js            # Compiled content script
+│   │   └── injected-script.js    # Compiled injected script
+│   └── ...
+├── popup.html                     # Extension popup entry point
+├── settings.html                  # Classic settings page
+├── settings-beta.html             # Modern beta settings UI
+├── vite.config.js                 # Vite build configuration with validation
+├── tailwind.config.js             # Tailwind CSS configuration
+└── postcss.config.js              # PostCSS configuration
+```
+
+**Important:**
+- Edit source files in `src/`
+- Build process copies `src/manifest.json` to `dist/manifest.json`
+- Build validation ensures all manifest references exist in `dist/`
 
 ## API
 
@@ -316,6 +349,14 @@ OriginalUI uses Chrome's Storage API with the following schema:
   }
 }
 ```
+
+Additional internal storage (managed by modules, not user-facing):
+
+- `permissionCacheV1` - Navigation permission cache. See `MIGRATIONS.md` for schema details and versioning policy.
+
+### Migration Guide
+
+See `MIGRATIONS.md` for storage schema versioning, migration steps, and the permission cache upgrade path.
 
 ### Rule Schema
 

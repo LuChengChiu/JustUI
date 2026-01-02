@@ -19,6 +19,7 @@ const actionTypes = {
   SET_DOMAIN_INFO: "SET_DOMAIN_INFO",
   UPDATE_STATS: "UPDATE_STATS",
   SET_LOADING: "SET_LOADING",
+  SET_WHITELIST_ERROR: "SET_WHITELIST_ERROR",
 };
 
 // Initial state
@@ -39,6 +40,7 @@ const initialState = {
     navigation: { blockedCount: 0, allowedCount: 0 },
   },
   loading: true,
+  whitelistError: "",
 };
 
 // Reducer
@@ -98,6 +100,8 @@ const protectionReducer = (state, action) => {
       };
     case actionTypes.SET_LOADING:
       return { ...state, loading: action.value };
+    case actionTypes.SET_WHITELIST_ERROR:
+      return { ...state, whitelistError: action.message || "" };
     default:
       return state;
   }
@@ -143,6 +147,8 @@ const storageAdapter = {
 export default function App() {
   const [state, dispatch] = useReducer(protectionReducer, initialState);
   const whitelistTimeoutRef = useRef(null);
+  const whitelistErrorTimeoutRef = useRef(null);
+  const isMountedRef = useRef(true);
   const currentDomain = state?.domain?.current ?? "";
   // Toggle handlers
   const handleToggle = (newState) => {
@@ -159,15 +165,36 @@ export default function App() {
     storageAdapter.saveProtectionSystem(system, newState);
   };
 
+  const setWhitelistError = (message) => {
+    dispatch({ type: actionTypes.SET_WHITELIST_ERROR, message });
+
+    if (whitelistErrorTimeoutRef.current) {
+      clearTimeout(whitelistErrorTimeoutRef.current);
+      whitelistErrorTimeoutRef.current = null;
+    }
+
+    if (message) {
+      whitelistErrorTimeoutRef.current = setTimeout(() => {
+        if (!isMountedRef.current) return;
+        dispatch({ type: actionTypes.SET_WHITELIST_ERROR, message: "" });
+        whitelistErrorTimeoutRef.current = null;
+      }, 3000);
+    }
+  };
+
   const handleWhitelistToggle = () => {
+    if (!currentDomain) return;
     const whitelistAction = state.domain.isWhitelisted ? "remove" : "add";
+    setWhitelistError("");
 
     if (whitelistTimeoutRef.current) {
       clearTimeout(whitelistTimeoutRef.current);
     }
 
     const timeout = setTimeout(() => {
+      if (!isMountedRef.current) return;
       console.error("Timeout updating whitelist");
+      setWhitelistError("Whitelist update timed out. Please try again.");
     }, 5000);
     whitelistTimeoutRef.current = timeout;
 
@@ -180,8 +207,12 @@ export default function App() {
       (response) => {
         clearTimeout(timeout);
         whitelistTimeoutRef.current = null;
+
+        if (!isMountedRef.current) return;
+
         if (chrome.runtime.lastError) {
           console.error("Error updating whitelist:", chrome.runtime.lastError);
+          setWhitelistError("Failed to update whitelist. Please try again.");
           return;
         }
         if (response && response.success) {
@@ -190,7 +221,12 @@ export default function App() {
             domain: currentDomain,
             isWhitelisted: !state.domain.isWhitelisted,
           });
+          setWhitelistError("");
+          return;
         }
+        setWhitelistError(
+          response?.message || "Whitelist update failed. Please try again."
+        );
       }
     );
   };
@@ -219,16 +255,24 @@ export default function App() {
       try {
         // Load extension state from storage
         const settings = await storageAdapter.load();
+        if (!isMountedRef.current) {
+          return;
+        }
         dispatch({ type: actionTypes.LOAD_SETTINGS, payload: settings });
 
         // Get current domain with timeout
         const domainResponse = await new Promise((resolve) => {
-          const timeout = setTimeout(() => resolve(null), 1000); // 1 second timeout
+          const timeout = setTimeout(() => {
+            if (!isMountedRef.current) return;
+            resolve(null);
+          }, 1000); // 1 second timeout
 
           chrome.runtime.sendMessage(
             { action: "getCurrentDomain" },
             (response) => {
               clearTimeout(timeout);
+              if (!isMountedRef.current) return;
+
               if (chrome.runtime.lastError) {
                 console.error(
                   "Error getting current domain:",
@@ -242,18 +286,23 @@ export default function App() {
           );
         });
 
+        if (!isMountedRef.current) {
+          return;
+        }
         if (domainResponse && domainResponse.domain) {
           // Check if domain is whitelisted with timeout
           const whitelistResponse = await new Promise((resolve) => {
-            const timeout = setTimeout(
-              () => resolve({ isWhitelisted: false }),
-              1000
-            );
+            const timeout = setTimeout(() => {
+              if (!isMountedRef.current) return;
+              resolve({ isWhitelisted: false });
+            }, 1000);
 
             chrome.runtime.sendMessage(
               { action: "checkDomainWhitelist", domain: domainResponse.domain },
               (response) => {
                 clearTimeout(timeout);
+                if (!isMountedRef.current) return;
+
                 if (chrome.runtime.lastError) {
                   console.error(
                     "Error checking whitelist:",
@@ -267,6 +316,9 @@ export default function App() {
             );
           });
 
+          if (!isMountedRef.current) {
+            return;
+          }
           dispatch({
             type: actionTypes.SET_DOMAIN_INFO,
             domain: domainResponse.domain,
@@ -276,7 +328,9 @@ export default function App() {
       } catch (error) {
         console.error("Extension initialization error:", error);
       } finally {
-        dispatch({ type: actionTypes.SET_LOADING, value: false });
+        if (isMountedRef.current) {
+          dispatch({ type: actionTypes.SET_LOADING, value: false });
+        }
       }
     };
 
@@ -333,12 +387,20 @@ export default function App() {
 
     // Cleanup listener on unmount
     return () => {
+      isMountedRef.current = false;
       if (whitelistTimeoutRef.current) {
         clearTimeout(whitelistTimeoutRef.current);
+      }
+      if (whitelistErrorTimeoutRef.current) {
+        clearTimeout(whitelistErrorTimeoutRef.current);
       }
       chrome.storage.onChanged.removeListener(storageListener);
     };
   }, []);
+
+  useEffect(() => {
+    setWhitelistError("");
+  }, [currentDomain]);
 
   if (state.loading) {
     return <Loading />;
@@ -359,6 +421,7 @@ export default function App() {
           domain={currentDomain}
           isWhitelisted={state.domain.isWhitelisted}
           onWhitelistToggle={handleWhitelistToggle}
+          errorMessage={state.whitelistError}
         />
 
         <DefaultSections

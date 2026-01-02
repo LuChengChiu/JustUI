@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toast Notification Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .test-controls {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 5px;
+      transition: transform 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .test-section {
+      margin: 20px 0;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .test-section h3 {
+      margin-top: 0;
+      color: #555;
+    }
+
+    code {
+      background: #e9ecef;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-controls">
+    <h1>🛡️ Toast Notification Visual Test</h1>
+
+    <div class="test-section">
+      <h3>Normal Toast</h3>
+      <button id="test-normal">Show Normal Blocked URL</button>
+      <p>URL: <code>https://malicious-ad-network.com/popup</code></p>
+    </div>
+
+    <div class="test-section">
+      <h3>Long URL Toast</h3>
+      <button id="test-long">Show Long URL (Truncation Test)</button>
+      <p>URL: <code>https://very-long-malicious-domain-name.com/with/many/path/segments/...</code></p>
+    </div>
+
+    <div class="test-section">
+      <h3>XSS Prevention Test ⚠️</h3>
+      <button id="test-xss">Show XSS Attempt (Should be Escaped)</button>
+      <p>URL: <code>&lt;script&gt;alert('XSS')&lt;/script&gt;</code></p>
+      <p style="color: #d97706; font-size: 14px;">✓ If you see plain text (not an alert), XSS is blocked!</p>
+    </div>
+
+    <div class="test-section">
+      <h3>JavaScript Protocol Test ⚠️</h3>
+      <button id="test-js-protocol">Show JavaScript Protocol</button>
+      <p>URL: <code>javascript:alert('XSS')</code></p>
+      <p style="color: #d97706; font-size: 14px;">✓ Should display as plain text, not execute</p>
+    </div>
+
+    <div class="test-section">
+      <h3>Multiple Toasts</h3>
+      <button id="test-multiple">Show 3 Toasts (Stacking Test)</button>
+      <p>Tests if multiple toasts stack properly</p>
+    </div>
+
+    <div class="test-section">
+      <h3>Different Reasons</h3>
+      <button id="test-pop-under">Pop-under</button>
+      <button id="test-malicious">Malicious Pattern</button>
+      <button id="test-high-risk">High-risk Navigation</button>
+    </div>
+  </div>
+
+  <script type="module">
+    // Import the new modular toast notification system
+    import { showBlockedToast } from '../../src/scripts/ui/toast-notification.js';
+
+    // Make it globally accessible for Playwright tests
+    window.showBlockedToast = showBlockedToast;
+
+    // Test button handlers
+    document.getElementById('test-normal').addEventListener('click', () => {
+      showBlockedToast('https://malicious-ad-network.com/popup', 'malicious-pattern');
+    });
+
+    document.getElementById('test-long').addEventListener('click', () => {
+      showBlockedToast(
+        'https://very-long-malicious-domain-name-that-will-be-truncated.com/with/many/path/segments/that/go/on/forever',
+        'high-risk-navigation'
+      );
+    });
+
+    document.getElementById('test-xss').addEventListener('click', () => {
+      // This should be displayed as plain text, NOT executed
+      showBlockedToast('<script>alert("XSS")<\/script><img src=x onerror=alert(1)>', 'malicious-pattern');
+    });
+
+    document.getElementById('test-js-protocol').addEventListener('click', () => {
+      // JavaScript protocol should be displayed as text
+      showBlockedToast('javascript:alert("XSS")', 'high-risk-navigation');
+    });
+
+    document.getElementById('test-multiple').addEventListener('click', () => {
+      showBlockedToast('https://ad1.com/popup', 'pop-under');
+      setTimeout(() => showBlockedToast('https://ad2.com/redirect', 'malicious-pattern'), 200);
+      setTimeout(() => showBlockedToast('https://ad3.com/tracker', 'high-risk-navigation'), 400);
+    });
+
+    document.getElementById('test-pop-under').addEventListener('click', () => {
+      showBlockedToast('https://popup-ad.com/click', 'pop-under');
+    });
+
+    document.getElementById('test-malicious').addEventListener('click', () => {
+      showBlockedToast('https://tracking-ad.com/redirect?param_4=123', 'malicious-pattern');
+    });
+
+    document.getElementById('test-high-risk').addEventListener('click', () => {
+      showBlockedToast('https://suspicious-site.xyz/navigate', 'high-risk-navigation');
+    });
+
+    console.log('✅ New purple toast module loaded successfully!');
+  </script>
+</body>
+</html>

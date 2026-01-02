@@ -56,3 +56,43 @@ export function safeParseUrl(input, base, options = {}) {
     return null;
   }
 }
+
+/**
+ * Normalize and validate an origin string.
+ * Returns canonical origin string or null if invalid.
+ *
+ * @param {string} origin
+ * @returns {string|null}
+ */
+export function normalizeOrigin(origin) {
+  if (typeof origin !== "string") {
+    return null;
+  }
+
+  const trimmed = origin.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed === "null") {
+    return "null";
+  }
+
+  let url;
+  try {
+    url = new URL(trimmed);
+  } catch (error) {
+    return null;
+  }
+
+  if (url.origin === "null") {
+    return null;
+  }
+
+  const hasPath = url.pathname && url.pathname !== "/";
+  if (hasPath || url.search || url.hash) {
+    return null;
+  }
+
+  return url.origin;
+}

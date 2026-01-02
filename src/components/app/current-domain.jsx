@@ -5,6 +5,7 @@ export default function CurrentDomain({
   domain,
   isWhitelisted,
   onWhitelistToggle,
+  errorMessage,
 }) {
   if (!domain) return null;
 
@@ -20,9 +21,11 @@ export default function CurrentDomain({
         </IconExpandButton>
       </div>
 
-      <Text className="italic font-days-one text-truncate">
-        {domain}
-      </Text>
+      <Text className="italic font-days-one text-truncate">{domain}</Text>
+
+      {errorMessage && (
+        <Text className="text-xs text-[#B23B3B]">{errorMessage}</Text>
+      )}
     </div>
   );
 }

@@ -14,8 +14,8 @@ import {
   falsePositiveRules,
   scriptAndLinkRules,
   filterRulesByDomain
-} from '@test/fixtures/mock-rules.js';
-import { adHTMLSamples } from '@test/fixtures/ad-html-samples.js';
+} from '@tests/fixtures/mock-rules.js';
+import { adHTMLSamples } from '@tests/fixtures/ad-html-samples.js';
 
 describe('Rule Execution Pipeline Integration', () => {
   beforeEach(() => {

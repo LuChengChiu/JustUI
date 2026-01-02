@@ -7,11 +7,11 @@ import { vi } from 'vitest';
 import { RuleExecutionManager } from '@modules/rule-execution/core/rule-execution-manager.js';
 
 // Mock chromeApiSafe
-vi.mock('../../../../src/scripts/utils/chromeApiSafe.js', () => ({
+vi.mock('../../../../src/scripts/utils/chrome-api-safe.js', () => ({
   safeStorageGet: vi.fn()
 }));
 
-import { safeStorageGet } from '@script-utils/chromeApiSafe.js';
+import { safeStorageGet } from '@script-utils/chrome-api-safe.js';
 
 describe('RuleExecutionManager', () => {
   let manager;

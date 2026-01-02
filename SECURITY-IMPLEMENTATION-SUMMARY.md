@@ -84,7 +84,7 @@ Successfully implemented critical security fixes for the JustUI Chrome Extension
 
 ### ✅ Issue 3: Memory Leak in Debounced Storage (ALREADY FIXED)
 **Status**: 🟢 PREVIOUSLY RESOLVED in commit 76c596a  
-**File**: `src/scripts/utils/chromeApiSafe.js`  
+**File**: `src/scripts/utils/chrome-api-safe.js`  
 
 **Fix Verification**: 
 - ✅ `cleanupTimeout` helper function properly implemented

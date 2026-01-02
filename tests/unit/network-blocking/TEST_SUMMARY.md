@@ -194,10 +194,10 @@ await expect(customManager.updateAll()).resolves.toBeDefined();
 npm run test:run -- tests/unit/network-blocking/
 
 # Run specific component tests
-npm run test:run -- tests/unit/network-blocking/RuleConverter.test.js
+npm run test:run -- tests/unit/network-blocking/rule-converter.test.js
 npm run test:run -- tests/unit/network-blocking/Parsers.test.js
 npm run test:run -- tests/unit/network-blocking/Sources.test.js
-npm run test:run -- tests/unit/network-blocking/NetworkBlockManager.test.js
+npm run test:run -- tests/unit/network-blocking/network-block-manager.test.js
 
 # Run integration tests
 npm run test:run -- tests/integration/network-blocking.integration.test.js
@@ -218,10 +218,10 @@ Duration    ~600ms
 
 | File | Lines | Tests | Purpose |
 |------|-------|-------|---------|
-| `RuleConverter.test.js` | 328 | 25 | DNR conversion logic |
+| `rule-converter.test.js` | 328 | 25 | DNR conversion logic |
 | `Parsers.test.js` | 315 | 28 | EasyList & JSON parsing |
 | `Sources.test.js` | 331 | 23 | Rule source fetching |
-| `NetworkBlockManager.test.js` | 461 | 18 | Orchestration pipeline |
+| `network-block-manager.test.js` | 461 | 18 | Orchestration pipeline |
 | `Updaters.test.js` | 360 | 22 | Rule update mechanisms |
 | `network-blocking.integration.test.js` | 424 | 8 | End-to-end workflows |
 | **Total** | **2,219** | **124** | **Comprehensive coverage** |

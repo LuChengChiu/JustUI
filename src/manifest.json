@@ -3,14 +3,7 @@
   "name": "OriginalUI",
   "version": "1.0.0",
   "description": "A Chrome extension built with React, Vite, and Tailwind CSS",
-  "permissions": [
-    "activeTab",
-    "storage",
-    "scripting",
-    "alarms",
-    "declarativeNetRequest",
-    "declarativeNetRequestFeedback"
-  ],
+  "permissions": ["activeTab", "storage", "alarms", "declarativeNetRequest"],
   "host_permissions": ["<all_urls>"],
   "declarative_net_request": {
     "rule_resources": [
@@ -35,11 +28,18 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "data/defaultRules.json",
-        "data/defaultWhitelist.json",
-        "network-blocking/data/default-block-requests.json",
         "scripts/injected-script.js",
-        "index.css"
+        "index.css",
+        "days-one-regular.ttf",
+        "barlow-thin.ttf",
+        "barlow-extra-light.ttf",
+        "barlow-light.ttf",
+        "barlow-regular.ttf",
+        "barlow-medium.ttf",
+        "barlow-semi-bold.ttf",
+        "barlow-bold.ttf",
+        "barlow-extra-bold.ttf",
+        "barlow-black.ttf"
       ],
       "matches": ["<all_urls>"]
     }

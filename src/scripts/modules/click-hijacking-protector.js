@@ -4,10 +4,14 @@
  */
 
 import { MAX_Z_INDEX } from "@/scripts/constants.js";
+
+// Detection thresholds and constants
+const SUSPICIOUS_THRESHOLD = 2; // Number of suspicious factors needed to block a click
+const FULLSCREEN_COVERAGE_THRESHOLD = 0.8; // Element must cover 80% of viewport to be considered fullscreen
+
 export class ClickHijackingProtector {
   constructor() {
     this.isActive = false;
-    this.capturedClicks = new Set();
     this.eventListeners = [];
     this.setupDocumentProtection();
   }
@@ -45,7 +49,6 @@ export class ClickHijackingProtector {
 
     // Clear the listeners array
     this.eventListeners = [];
-    this.capturedClicks.clear();
 
     console.log("OriginalUI: Click hijacking protection cleaned up");
   }
@@ -66,7 +69,10 @@ export class ClickHijackingProtector {
       }
 
       const clickedElement = event.target;
-      const suspiciousOverlay = this.findSuspiciousOverlay(clickedElement);
+      const suspiciousOverlay = this.findSuspiciousOverlay(
+        clickedElement,
+        event
+      );
 
       if (suspiciousOverlay) {
         console.warn("OriginalUI: Blocked click on suspicious overlay", {
@@ -108,7 +114,6 @@ export class ClickHijackingProtector {
    */
   handleAdvancedClickProtection(event) {
     try {
-      const clickTime = Date.now();
       const element = event.target;
 
       // Whitelist: Allow clicks on Navigation Guardian modal
@@ -153,15 +158,18 @@ export class ClickHijackingProtector {
 
       // Check for suspicious positioning
       const coversFullScreen =
-        element.offsetWidth >= window.innerWidth * 0.8 &&
-        element.offsetHeight >= window.innerHeight * 0.8;
+        element.offsetWidth >=
+          window.innerWidth * FULLSCREEN_COVERAGE_THRESHOLD &&
+        element.offsetHeight >=
+          window.innerHeight * FULLSCREEN_COVERAGE_THRESHOLD;
 
       if (position === "fixed" && coversFullScreen) {
         suspiciousFactors.push("fullscreen_overlay");
       }
 
       // If multiple suspicious factors, likely a malicious click
-      const isSuspiciousClick = suspiciousFactors.length >= 2;
+      const isSuspiciousClick =
+        suspiciousFactors.length >= SUSPICIOUS_THRESHOLD;
 
       if (isSuspiciousClick) {
         console.log("OriginalUI: Blocked suspicious click event:", {
@@ -225,12 +233,18 @@ export class ClickHijackingProtector {
   /**
    * Find suspicious overlay elements that might be intercepting clicks
    * @param {HTMLElement} clickedElement - The element that was clicked
+   * @param {Event} event - The click event (needed for coordinates)
    * @returns {HTMLElement|null} - Suspicious overlay if found
    */
-  findSuspiciousOverlay(clickedElement) {
+  findSuspiciousOverlay(clickedElement, event) {
     // Check if the clicked element itself is suspicious
     if (this.isSuspiciousInterceptor(clickedElement)) {
       return clickedElement;
+    }
+
+    // Safety check: ensure event exists
+    if (!event) {
+      return null;
     }
 
     // Check for invisible overlays with high z-index covering the click area

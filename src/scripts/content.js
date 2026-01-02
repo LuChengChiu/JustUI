@@ -5,7 +5,7 @@
 
 // Import modules
 import { domainMatches } from "@utils/url-utils.js";
-import { ClickHijackingProtector } from "./modules/ClickHijackingProtector.js";
+import { ClickHijackingProtector } from "./modules/click-hijacking-protector.js";
 import { ElementRemover } from "./modules/element-remover.js";
 import { CleanupRegistry } from "./modules/cleanup-registry.js";
 import { NavigationGuardian } from "./modules/navigation-guardian/navigation-guardian.js";
@@ -14,7 +14,7 @@ import {
   debouncedStorageSet,
   isExtensionContextValid,
   safeStorageGet,
-} from "./utils/chromeApiSafe.js";
+} from "./utils/chrome-api-safe.js";
 
 /**
  * Main OriginalUI Controller - Orchestrates all protection modules

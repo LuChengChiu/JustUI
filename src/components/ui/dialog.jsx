@@ -275,6 +275,7 @@ const DialogClose = ({ className = "", children, ...props }) => {
     <button
       type="button"
       onClick={onClose}
+      aria-label="Close dialog"
       className={`
         absolute top-4 right-4 text-gray-400 hover:text-gray-600
         focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2
