@@ -480,9 +480,20 @@ export async function safeStorageSet(items, options = {}) {
   // Validate item sizes
   const oversizedItems = [];
   for (const [key, value] of Object.entries(items)) {
-    const serialized = JSON.stringify(value);
-    if (serialized.length > maxItemSize) {
-      oversizedItems.push({ key, size: serialized.length });
+    try {
+      const serialized = JSON.stringify(value);
+      if (serialized.length > maxItemSize) {
+        oversizedItems.push({ key, size: serialized.length });
+      }
+    } catch (error) {
+      // Circular references or other serialization failures indicate a bug
+      console.error(
+        `[ChromeAPI] CRITICAL: Cannot serialize storage item "${key}" - this indicates a bug in data flow.`,
+        'Error:', error.message,
+        'Value type:', typeof value,
+        'Value:', value
+      );
+      throw error; // Re-throw to fail fast - don't hide bugs
     }
   }
   
