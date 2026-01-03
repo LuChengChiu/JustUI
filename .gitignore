@@ -43,3 +43,6 @@ coverage/
 *.tmp
 *.temp
 .cache/
+
+# Testing
+.playwright-mcp/
