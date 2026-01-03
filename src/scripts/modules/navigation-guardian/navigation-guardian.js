@@ -29,7 +29,7 @@
  * @author OriginalUI Team
  */
 
-import Logger from '@script-utils/logger.js';
+import Logger from "@script-utils/logger.js";
 import {
   isExtensionContextValid,
   safeStorageSet,
@@ -141,7 +141,10 @@ export class NavigationGuardian {
         this.updateNavigationStats();
       });
     } else {
-      Logger.error('ModalManagerNotInitialized', 'ModalManager not properly initialized');
+      Logger.error(
+        "ModalManagerNotInitialized",
+        "ModalManager not properly initialized"
+      );
     }
 
     if (
@@ -155,8 +158,8 @@ export class NavigationGuardian {
       });
     } else {
       Logger.error(
-        'ValidatorNotInitialized',
-        'SecurityValidator or ModalManager not properly initialized'
+        "ValidatorNotInitialized",
+        "SecurityValidator or ModalManager not properly initialized"
       );
     }
 
@@ -167,8 +170,8 @@ export class NavigationGuardian {
     this._boundMessageHandler = this.handleNavigationMessage.bind(this);
 
     Logger.info(
-      'NavigationGuardianInit',
-      'NavigationGuardian initialized with enhanced modular cleanup'
+      "NavigationGuardianInit",
+      "NavigationGuardian initialized with enhanced modular cleanup"
     );
   }
 
@@ -192,8 +195,8 @@ export class NavigationGuardian {
     this.startModalCacheCleanup();
 
     Logger.info(
-      'GuardianInitialized',
-      'NavigationGuardian initialized with whitelist',
+      "GuardianInitialized",
+      "NavigationGuardian initialized with whitelist",
       { whitelistSize: whitelist.length }
     );
   }
@@ -203,7 +206,7 @@ export class NavigationGuardian {
    */
   enable() {
     this.isEnabled = true;
-    Logger.info('GuardianEnabled', 'NavigationGuardian enabled');
+    Logger.info("GuardianEnabled", "NavigationGuardian enabled");
   }
 
   /**
@@ -211,7 +214,7 @@ export class NavigationGuardian {
    */
   disable() {
     this.isEnabled = false;
-    Logger.info('GuardianDisabled', 'NavigationGuardian disabled');
+    Logger.info("GuardianDisabled", "NavigationGuardian disabled");
   }
 
   /**
@@ -254,7 +257,10 @@ export class NavigationGuardian {
       options: undefined,
     });
 
-    Logger.debug('ListenersSetup', 'Navigation Guardian listeners setup complete');
+    Logger.debug(
+      "ListenersSetup",
+      "Navigation Guardian listeners setup complete"
+    );
   }
 
   /**
@@ -302,20 +308,17 @@ export class NavigationGuardian {
       // Only allow http/https protocols
       if (!["http:", "https:"].includes(url.protocol)) {
         Logger.security(
-          'NonHTTPProtocolBlocked',
-          'Blocked non-HTTP protocol in form action',
+          "NonHTTPProtocolBlocked",
+          "Blocked non-HTTP protocol in form action",
           { protocol: url.protocol }
         );
         return null;
       }
       return url.href;
     } catch (error) {
-      Logger.error(
-        'InvalidFormActionURL',
-        'Invalid form action URL',
-        error,
-        { action }
-      );
+      Logger.error("InvalidFormActionURL", "Invalid form action URL", error, {
+        action,
+      });
       return null;
     }
   }
@@ -335,7 +338,10 @@ export class NavigationGuardian {
         originalForm.getAttribute("action") || window.location.href
       );
       if (!safeAction) {
-        Logger.security('MaliciousFormBlocked', 'Blocked form with malicious action');
+        Logger.security(
+          "MaliciousFormBlocked",
+          "Blocked form with malicious action"
+        );
         return null;
       }
 
@@ -385,7 +391,7 @@ export class NavigationGuardian {
 
       return safeForm;
     } catch (error) {
-      Logger.error('FormSanitizationFailed', 'Form sanitization failed', error);
+      Logger.error("FormSanitizationFailed", "Form sanitization failed", error);
       return null;
     }
   }
@@ -419,8 +425,8 @@ export class NavigationGuardian {
 
         if (!safeForm) {
           Logger.error(
-            'FormSanitizeBlocked',
-            'Failed to sanitize form, blocking submission'
+            "FormSanitizeBlocked",
+            "Failed to sanitize form, blocking submission"
           );
           return;
         }
@@ -454,15 +460,15 @@ export class NavigationGuardian {
             throw submitError;
           }
         } catch (error) {
-          Logger.error('FormSubmissionError', 'Form submission error', error);
+          Logger.error("FormSubmissionError", "Form submission error", error);
           // Ensure form is removed on any error
           if (safeForm?.parentNode) {
             try {
               document.body.removeChild(safeForm);
             } catch (cleanupError) {
               Logger.warn(
-                'FormCleanupFailed',
-                'Form cleanup failed',
+                "FormCleanupFailed",
+                "Form cleanup failed",
                 cleanupError
               );
             }
@@ -485,8 +491,8 @@ export class NavigationGuardian {
       // If this messageId is already being processed, ignore duplicate
       if (this.pendingModalKeys.has(messageId)) {
         Logger.debug(
-          'DuplicateNavigationRequest',
-          'Ignoring duplicate navigation request',
+          "DuplicateNavigationRequest",
+          "Ignoring duplicate navigation request",
           { messageId }
         );
         return;
@@ -496,7 +502,13 @@ export class NavigationGuardian {
 
       // Skip navigation protection if current domain is whitelisted
       if (this.isDomainWhitelisted(this.getCurrentDomain())) {
-        // Send immediate response for allowed navigation from whitelisted domain
+        Logger.info(
+          "NavigationGuardian",
+          "Auto-allowing navigation to whitelisted domain",
+          {
+            targetDomain: safeParseUrl(url, window.location.href)?.hostname,
+          }
+        );
         window.postMessage(
           {
             type: "NAV_GUARDIAN_RESPONSE",
@@ -524,8 +536,8 @@ export class NavigationGuardian {
             urlAnalysis = this.securityValidator.analyzeThreats(url);
           } catch (analysisError) {
             Logger.error(
-              'ThreatAnalysisError',
-              'Error analyzing URL threats',
+              "ThreatAnalysisError",
+              "Error analyzing URL threats",
               analysisError,
               { url: url?.substring(0, 200) }
             );
@@ -533,8 +545,8 @@ export class NavigationGuardian {
           }
         } else {
           Logger.warn(
-            'SecurityValidatorUnavailable',
-            'SecurityValidator not available for threat analysis'
+            "SecurityValidatorUnavailable",
+            "SecurityValidator not available for threat analysis"
           );
         }
 
@@ -591,15 +603,25 @@ export class NavigationGuardian {
                     type: "NAV_CACHE_UPDATE",
                     sourceOrigin: sourceOrigin,
                     targetOrigin: targetOrigin,
-                    decision: userAllowed ? 'ALLOW' : 'DENY',
-                    persistent: true  // 30-day TTL
+                    decision: userAllowed ? "ALLOW" : "DENY",
+                    persistent: true, // 30-day TTL
                   },
                   "*"
                 );
 
-                Logger.debug('PermissionCached', `Cached permission decision (${userAllowed ? 'ALLOW' : 'DENY'})`, { targetOrigin });
+                Logger.debug(
+                  "PermissionCached",
+                  `Cached permission decision (${
+                    userAllowed ? "ALLOW" : "DENY"
+                  })`,
+                  { targetOrigin }
+                );
               } catch (e) {
-                Logger.warn('CacheUpdateFailed', 'Failed to send cache update', e);
+                Logger.warn(
+                  "CacheUpdateFailed",
+                  "Failed to send cache update",
+                  e
+                );
               }
             }
 
@@ -640,8 +662,8 @@ export class NavigationGuardian {
     // Validate callback function
     if (!callback || typeof callback !== "function") {
       Logger.error(
-        'InvalidCallback',
-        'Invalid callback provided to showNavigationModal'
+        "InvalidCallback",
+        "Invalid callback provided to showNavigationModal"
       );
       return;
     }
@@ -656,7 +678,7 @@ export class NavigationGuardian {
         this.safeInvokeCallback(callback, allowed);
       })
       .catch((error) => {
-        Logger.error('ModalError', 'Modal error', error);
+        Logger.error("ModalError", "Modal error", error);
         this.safeInvokeCallback(callback, false); // Default to deny for safety
       });
   }
@@ -671,7 +693,11 @@ export class NavigationGuardian {
     try {
       callback(allowed);
     } catch (error) {
-      Logger.error('CallbackInvocationError', 'Error invoking navigation callback', error);
+      Logger.error(
+        "CallbackInvocationError",
+        "Error invoking navigation callback",
+        error
+      );
     }
   }
 
@@ -683,8 +709,8 @@ export class NavigationGuardian {
       // Validate Chrome extension context before using Chrome APIs
       if (!isExtensionContextValid()) {
         Logger.warn(
-          'ExtensionContextInvalid',
-          'Chrome extension context invalid, skipping script injection'
+          "ExtensionContextInvalid",
+          "Chrome extension context invalid, skipping script injection"
         );
         return;
       }
@@ -695,15 +721,22 @@ export class NavigationGuardian {
       try {
         script.src = chrome.runtime.getURL("scripts/injected-script.js");
       } catch (apiError) {
-        Logger.error('ChromeAPICallFailed', 'Chrome API call failed', apiError);
+        Logger.error("ChromeAPICallFailed", "Chrome API call failed", apiError);
         return;
       }
 
       script.onload = () => script.remove();
       (document.head || document.documentElement).appendChild(script);
-      Logger.debug('InjectedScriptLoaded', 'Navigation Guardian injected script loaded');
+      Logger.debug(
+        "InjectedScriptLoaded",
+        "Navigation Guardian injected script loaded"
+      );
     } catch (error) {
-      Logger.error('ScriptInjectionFailed', 'Failed to inject navigation script', error);
+      Logger.error(
+        "ScriptInjectionFailed",
+        "Failed to inject navigation script",
+        error
+      );
     }
   }
 
@@ -716,8 +749,8 @@ export class NavigationGuardian {
       await safeStorageSet({ navigationStats: this.navigationStats });
     } catch (error) {
       Logger.error(
-        'NavStatsUpdateFailed',
-        'Failed to update navigation statistics',
+        "NavStatsUpdateFailed",
+        "Failed to update navigation statistics",
         error
       );
       // Non-critical failure, continue operation
@@ -842,7 +875,10 @@ export class NavigationGuardian {
    * Enhanced cleanup with comprehensive resource management
    */
   cleanup() {
-    Logger.info('GuardianCleanupStart', 'Starting NavigationGuardian cleanup...');
+    Logger.info(
+      "GuardianCleanupStart",
+      "Starting NavigationGuardian cleanup..."
+    );
 
     try {
       this.isEnabled = false;
@@ -869,7 +905,7 @@ export class NavigationGuardian {
           removedListeners++;
         } catch (error) {
           Logger.warn(
-            'ListenerRemovalError',
+            "ListenerRemovalError",
             `Error removing NavigationGuardian ${type} listener`,
             error
           );
@@ -893,15 +929,19 @@ export class NavigationGuardian {
       // Reset stats
       this.navigationStats = { blockedCount: 0, allowedCount: 0 };
 
-      Logger.info('GuardianCleanupComplete', 'NavigationGuardian cleanup completed', {
-        removedListeners,
-        clearedPendingModals: pendingModalCount,
-        finalCacheStats,
-      });
+      Logger.info(
+        "GuardianCleanupComplete",
+        "NavigationGuardian cleanup completed",
+        {
+          removedListeners,
+          clearedPendingModals: pendingModalCount,
+          finalCacheStats,
+        }
+      );
     } catch (error) {
       Logger.error(
-        'GuardianCleanupError',
-        'Error during NavigationGuardian cleanup',
+        "GuardianCleanupError",
+        "Error during NavigationGuardian cleanup",
         error
       );
       throw error;
@@ -962,7 +1002,7 @@ export class NavigationGuardian {
    */
   startModalCacheCleanup() {
     if (this.modalCleanupTimer) {
-      Logger.warn('CleanupTimerRunning', 'Modal cleanup timer already running');
+      Logger.warn("CleanupTimerRunning", "Modal cleanup timer already running");
       return;
     }
 
@@ -976,8 +1016,8 @@ export class NavigationGuardian {
       if (!guardian) {
         clearInterval(this.modalCleanupTimer);
         Logger.debug(
-          'CleanupTimerAutoStopped',
-          'Auto-stopped cleanup timer (guardian garbage collected)'
+          "CleanupTimerAutoStopped",
+          "Auto-stopped cleanup timer (guardian garbage collected)"
         );
         return;
       }
@@ -986,8 +1026,8 @@ export class NavigationGuardian {
       if (!isExtensionContextValid()) {
         guardian.stopModalCacheCleanup();
         Logger.debug(
-          'CleanupTimerContextInvalid',
-          'Auto-stopped cleanup timer (invalid extension context)'
+          "CleanupTimerContextInvalid",
+          "Auto-stopped cleanup timer (invalid extension context)"
         );
         return;
       }
@@ -996,7 +1036,7 @@ export class NavigationGuardian {
       guardian.cleanupExpiredModals();
     }, 10000); // Check every 10 seconds
 
-    Logger.debug('CleanupTimerStarted', 'Started modal cache cleanup timer');
+    Logger.debug("CleanupTimerStarted", "Started modal cache cleanup timer");
   }
 
   /**
@@ -1006,7 +1046,7 @@ export class NavigationGuardian {
     if (this.modalCleanupTimer !== null) {
       clearInterval(this.modalCleanupTimer);
       this.modalCleanupTimer = null;
-      Logger.debug('CleanupTimerStopped', 'Stopped modal cache cleanup timer');
+      Logger.debug("CleanupTimerStopped", "Stopped modal cache cleanup timer");
     }
   }
 
@@ -1028,7 +1068,7 @@ export class NavigationGuardian {
 
     if (removedCount > 0) {
       Logger.debug(
-        'ExpiredModalsCleanup',
+        "ExpiredModalsCleanup",
         `Cleaned up ${removedCount} expired pending modals`,
         { removedCount }
       );
@@ -1058,8 +1098,8 @@ export class NavigationGuardian {
       }
 
       Logger.debug(
-        'CacheLimitEnforced',
-        'NavigationGuardian cache limit enforcement',
+        "CacheLimitEnforced",
+        "NavigationGuardian cache limit enforcement",
         { removedEntries: toRemove.length }
       );
     }

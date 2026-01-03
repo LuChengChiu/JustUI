@@ -44,22 +44,25 @@ export const REMOTE_URLS = {
  */
 import Logger from "../logger.js";
 export async function fetchDefaultRules() {
-  // NOTE: Remote fetching is currently disabled - uncomment to enable
-  // try {
-  //   // Try to fetch from remote URL first
-  //   const response = await fetch(REMOTE_URLS.RULES);
-  //   if (response.ok) {
-  //     const remoteRules = await response.json();
-  //     Logger.info("DefaultRulesFetch", "Fetched rules from remote URL", remoteRules);
-  //     return remoteRules;
-  //   }
-  // } catch (error) {
-  //   Logger.warn(
-  //     "DefaultRulesFetch",
-  //     "Failed to fetch remote rules, falling back to local",
-  //     error
-  //   );
-  // }
+  try {
+    // Try to fetch from remote URL first
+    const response = await fetch(REMOTE_URLS.RULES);
+    if (response.ok) {
+      const remoteRules = await response.json();
+      Logger.info(
+        "DefaultRulesFetch",
+        "Fetched rules from remote URL",
+        remoteRules
+      );
+      return remoteRules;
+    }
+  } catch (error) {
+    Logger.warn(
+      "DefaultRulesFetch",
+      "Failed to fetch remote rules, falling back to local",
+      error
+    );
+  }
 
   // Fallback to local default rules
   try {
@@ -72,7 +75,11 @@ export async function fetchDefaultRules() {
     });
     return localRules;
   } catch (error) {
-    Logger.error("DefaultRulesFetch", "Failed to load local default rules", error);
+    Logger.error(
+      "DefaultRulesFetch",
+      "Failed to load local default rules",
+      error
+    );
     return [];
   }
 }
@@ -86,22 +93,25 @@ export async function fetchDefaultRules() {
  * Logger.info('DefaultWhitelistFetch', 'Loaded whitelist', { count: whitelist.length });
  */
 export async function fetchDefaultWhitelist() {
-  // NOTE: Remote fetching is currently disabled - uncomment to enable
-  // try {
-  //   // Try to fetch from remote URL first
-  //   const response = await fetch(REMOTE_URLS.WHITELIST);
-  //   if (response.ok) {
-  //     const remoteWhitelist = await response.json();
-  //     Logger.info("DefaultWhitelistFetch", "Fetched whitelist from remote URL", remoteWhitelist);
-  //     return remoteWhitelist;
-  //   }
-  // } catch (error) {
-  //   Logger.warn(
-  //     "DefaultWhitelistFetch",
-  //     "Failed to fetch remote whitelist, falling back to local",
-  //     error
-  //   );
-  // }
+  try {
+    // Try to fetch from remote URL first
+    const response = await fetch(REMOTE_URLS.WHITELIST);
+    if (response.ok) {
+      const remoteWhitelist = await response.json();
+      Logger.info(
+        "DefaultWhitelistFetch",
+        "Fetched whitelist from remote URL",
+        remoteWhitelist
+      );
+      return remoteWhitelist;
+    }
+  } catch (error) {
+    Logger.warn(
+      "DefaultWhitelistFetch",
+      "Failed to fetch remote whitelist, falling back to local",
+      error
+    );
+  }
 
   // Fallback to local default whitelist
   try {

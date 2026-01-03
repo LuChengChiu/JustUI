@@ -269,7 +269,13 @@ export default defineConfig(({ mode }) => ({
       },
       output: {
         entryFileNames: "[name].js",
-        assetFileNames: "[name].[ext]",
+        assetFileNames: (assetInfo) => {
+          // Force CSS files to be named index.css to match manifest.json and shadow-dom.js expectations
+          if (assetInfo.name?.endsWith('.css')) {
+            return 'index.css';
+          }
+          return '[name].[ext]';
+        },
       },
     },
   },
