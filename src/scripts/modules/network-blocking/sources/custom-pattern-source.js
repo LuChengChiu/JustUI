@@ -1,4 +1,5 @@
-import { IRuleSource } from './i-rule-source.js';
+import Logger from "@script-utils/logger.js";
+import { IRuleSource } from "./i-rule-source.js";
 
 /**
  * Custom user patterns source from chrome.storage
@@ -20,9 +21,10 @@ export class CustomPatternSource extends IRuleSource {
 
     // Enforce 5,000 pattern limit (ID range capacity)
     if (patterns.length > 5000) {
-      console.warn(
-        `⚠️ Custom patterns exceed capacity (${patterns.length}/5000). ` +
-        `Only first 5000 will be applied.`
+      Logger.warn(
+        "NetworkBlocking:CustomPatternSource",
+        `Custom patterns exceed capacity (${patterns.length}/5000). ` +
+          "Only first 5000 will be applied."
       );
     }
 

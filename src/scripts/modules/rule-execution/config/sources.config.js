@@ -7,6 +7,7 @@
  * @module sources.config
  */
 
+import Logger from "@script-utils/logger.js";
 import { RuleExecutionManager } from "@modules/rule-execution/core/rule-execution-manager.js";
 import { PerformanceCoordinator } from "@modules/rule-execution/core/performance-coordinator.js";
 import { DefaultRuleSource } from "@modules/rule-execution/sources/default-rule-source.js";
@@ -22,7 +23,7 @@ import { HybridExecutor } from "@modules/rule-execution/executors/hybrid-executo
  * @returns {Promise<RuleExecutionManager>} Configured manager instance
  */
 export async function createRuleExecutionSystem() {
-  console.log('RuleExecution: Initializing rule execution system...');
+  Logger.info('RuleExecution:Config', 'Initializing rule execution system...');
 
   // Initialize sources
   const sources = new Map([
@@ -31,7 +32,10 @@ export async function createRuleExecutionSystem() {
     ['easylist', new EasyListDomSource()]
   ]);
 
-  console.log(`RuleExecution: Initialized ${sources.size} sources: ${Array.from(sources.keys()).join(', ')}`);
+  Logger.debug(
+    'RuleExecution:Config',
+    `Initialized ${sources.size} sources: ${Array.from(sources.keys()).join(', ')}`
+  );
 
   // Initialize performance coordinator
   const performanceCoordinator = new PerformanceCoordinator({
@@ -40,7 +44,11 @@ export async function createRuleExecutionSystem() {
     enableTimeSlicing: true
   });
 
-  console.log('RuleExecution: Performance coordinator configured:', performanceCoordinator.getMetrics());
+  Logger.debug(
+    'RuleExecution:Config',
+    'Performance coordinator configured',
+    () => performanceCoordinator.getMetrics()
+  );
 
   // Initialize parsers (one per executor type)
   const parsers = new Map([
@@ -48,7 +56,10 @@ export async function createRuleExecutionSystem() {
     ['hybrid', new EasyListDomParser()]
   ]);
 
-  console.log(`RuleExecution: Initialized ${parsers.size} parsers: ${Array.from(parsers.keys()).join(', ')}`);
+  Logger.debug(
+    'RuleExecution:Config',
+    `Initialized ${parsers.size} parsers: ${Array.from(parsers.keys()).join(', ')}`
+  );
 
   // Initialize executors (one per rule type)
   const executors = new Map([
@@ -56,7 +67,10 @@ export async function createRuleExecutionSystem() {
     ['hybrid', new HybridExecutor()]
   ]);
 
-  console.log(`RuleExecution: Initialized ${executors.size} executors: ${Array.from(executors.keys()).join(', ')}`);
+  Logger.debug(
+    'RuleExecution:Config',
+    `Initialized ${executors.size} executors: ${Array.from(executors.keys()).join(', ')}`
+  );
 
   // Create manager
   const manager = new RuleExecutionManager(
@@ -66,7 +80,7 @@ export async function createRuleExecutionSystem() {
     performanceCoordinator
   );
 
-  console.log('RuleExecution: System initialization complete');
+  Logger.info('RuleExecution:Config', 'System initialization complete');
 
   return manager;
 }

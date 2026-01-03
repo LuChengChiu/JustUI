@@ -13,6 +13,7 @@ import ShieldLink from "./icons/shield-link.jsx";
 import Button from "./ui/button/index.jsx";
 import Dialog from "./ui/dialog.jsx";
 import { H3, Text } from "./ui/typography.jsx";
+import Logger from "@script-utils/logger.js";
 
 // Ensure React is available globally for JSX components in content script
 if (typeof window !== "undefined" && !window.React) {
@@ -295,8 +296,9 @@ export const showExternalLinkModal = async (config) => {
           })
         );
       } catch (error) {
-        console.error(
-          "OriginalUI: Failed to render React modal with Shadow DOM:",
+        Logger.error(
+          "ExternalLinkModal",
+          "Failed to render React modal with Shadow DOM",
           error
         );
 

@@ -310,7 +310,7 @@ describe('RateLimiter', () => {
     });
 
     test('should log cleanup results', () => {
-      const consoleSpy = vi.spyOn(console, 'log');
+      const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
       const now = Date.now();
       limiter.limits.set('old-key', [now - 10000]);
@@ -318,7 +318,9 @@ describe('RateLimiter', () => {
       limiter._cleanupOldEntries();
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Rate limiter cleanup')
+        expect.stringContaining('[RateLimiterCleanup]'),
+        'Rate limiter cleanup completed',
+        expect.any(Object)
       );
     });
   });

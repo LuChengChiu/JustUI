@@ -2,6 +2,8 @@
  * Global budget coordinator for priority-based rule allocation
  * Enforces Chrome's 30,000 dynamic rule limit across all sources
  */
+import Logger from "@script-utils/logger.js";
+
 export class BudgetCoordinator {
   constructor(maxDynamicRules = 30000) {
     this.maxDynamicRules = maxDynamicRules;
@@ -41,17 +43,22 @@ export class BudgetCoordinator {
 
       // Log allocation
       if (truncated > 0) {
-        console.warn(
-          `⚠️ Budget exceeded for ${sourceName}: ` +
-          `Allocated ${allocated}/${requested} rules, ${truncated} truncated`
+        Logger.warn(
+          "NetworkBlocking:BudgetCoordinator",
+          `Budget exceeded for ${sourceName}: ` +
+            `Allocated ${allocated}/${requested} rules, ${truncated} truncated`
         );
       } else {
-        console.log(`✅ Allocated ${allocated} rules to ${sourceName}`);
+        Logger.info(
+          "NetworkBlocking:BudgetCoordinator",
+          `Allocated ${allocated} rules to ${sourceName}`
+        );
       }
 
       if (remainingBudget <= 0) {
-        console.warn(
-          `⛔ Budget exhausted at ${sourceName}. Remaining sources will be skipped.`
+        Logger.warn(
+          "NetworkBlocking:BudgetCoordinator",
+          `Budget exhausted at ${sourceName}. Remaining sources will be skipped.`
         );
         break;
       }

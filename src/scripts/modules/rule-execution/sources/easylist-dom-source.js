@@ -8,8 +8,9 @@
  * @module easylist-dom-source
  */
 
-import { IDomRuleSource } from './i-dom-rule-source.js';
-import { safeStorageGet, safeStorageSet } from '@script-utils/chrome-api-safe.js';
+import Logger from "@script-utils/logger.js";
+import { IDomRuleSource } from "./i-dom-rule-source.js";
+import { safeStorageGet, safeStorageSet } from "@script-utils/chrome-api-safe.js";
 
 /**
  * EasyList URL for cosmetic (DOM hiding) rules
@@ -76,19 +77,30 @@ export class EasyListDomSource extends IDomRuleSource {
 
       return freshRules;
     } catch (error) {
-      console.error('EasyListDomSource: Failed to fetch rules:', error);
+      Logger.error(
+        "RuleExecution:EasyListDomSource",
+        "Failed to fetch rules",
+        error
+      );
 
       // Graceful degradation: try to return expired cache
       try {
         const cached = await this.getCachedRules();
         if (cached && cached.rules && cached.rules.length > 0) {
-          console.warn('EasyListDomSource: Using expired cache due to fetch failure');
+          Logger.warn(
+            "RuleExecution:EasyListDomSource",
+            "Using expired cache due to fetch failure"
+          );
           this.memoryCachedRules = cached.rules;
           this.memoryCacheTime = now;
           return cached.rules;
         }
       } catch (cacheError) {
-        console.error('EasyListDomSource: Failed to read expired cache:', cacheError);
+        Logger.error(
+          "RuleExecution:EasyListDomSource",
+          "Failed to read expired cache",
+          cacheError
+        );
       }
 
       // No cache available, return empty
@@ -113,7 +125,10 @@ export class EasyListDomSource extends IDomRuleSource {
     // Split into lines and filter out empty lines (keep all for parser to handle)
     const lines = text.split('\n').filter(line => line.trim().length > 0);
 
-    console.log(`EasyListDomSource: Fetched ${lines.length} rules from network`);
+    Logger.info(
+      "RuleExecution:EasyListDomSource",
+      `Fetched ${lines.length} rules from network`
+    );
 
     return lines;
   }
@@ -216,7 +231,11 @@ export class EasyListDomSource extends IDomRuleSource {
 
       return freshRules;
     } catch (error) {
-      console.error('EasyListDomSource: Force refresh failed:', error);
+      Logger.error(
+        "RuleExecution:EasyListDomSource",
+        "Force refresh failed",
+        error
+      );
       throw error;
     }
   }

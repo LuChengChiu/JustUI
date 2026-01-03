@@ -7,6 +7,8 @@
  * @module performance-coordinator
  */
 
+import Logger from "@script-utils/logger.js";
+
 /**
  * Coordinates performance optimizations for rule execution
  */
@@ -108,7 +110,11 @@ export class PerformanceCoordinator {
           results.push(...(Array.isArray(batchResults) ? batchResults : [batchResults]));
         }
       } catch (error) {
-        console.error('PerformanceCoordinator: Batch processing error:', error);
+        Logger.error(
+          "RuleExecution:PerformanceCoordinator",
+          "Batch processing error",
+          error
+        );
         // Continue with next batch instead of failing completely
       }
 

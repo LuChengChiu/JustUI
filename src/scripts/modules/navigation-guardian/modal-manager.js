@@ -26,6 +26,7 @@
  * @author OriginalUI Team
  */
 
+import Logger from '@script-utils/logger.js';
 import { showExternalLinkModal } from "@/components/external-link-modal.jsx";
 
 /**
@@ -60,7 +61,7 @@ export class ModalManager {
      */
     this.urlValidator = null;
 
-    console.log("OriginalUI: ModalManager initialized");
+    Logger.debug('ModalManagerInitialized', 'ModalManager initialized');
   }
 
   /**
@@ -134,8 +135,9 @@ export class ModalManager {
 
     // Prevent multiple modals for the same URL
     if (this.activeModal) {
-      console.warn(
-        "OriginalUI: Navigation modal already exists, ignoring duplicate"
+      Logger.warn(
+        'DuplicateModalIgnored',
+        'Navigation modal already exists, ignoring duplicate'
       );
       return { allowed: false, remember: false }; // Default to deny for safety
     }
@@ -146,8 +148,9 @@ export class ModalManager {
       try {
         validatedURL = this.urlValidator(targetURL);
       } catch (validatorError) {
-        console.error(
-          "OriginalUI: Error in URL validator callback:",
+        Logger.error(
+          'URLValidatorError',
+          'Error in URL validator callback',
           validatorError
         );
         // Use original URL as fallback - validation errors shouldn't break modal display
@@ -176,22 +179,22 @@ export class ModalManager {
         try {
           this.statisticsCallback(result);
         } catch (callbackError) {
-          console.error(
-            "OriginalUI: Error in statistics callback:",
+          Logger.error(
+            'StatsCallbackError',
+            'Error in statistics callback',
             callbackError
           );
         }
       }
 
-      console.log(
-        "OriginalUI: Navigation Guardian modal result for",
-        targetURL,
-        ":",
-        result
+      Logger.debug(
+        'ModalResultReceived',
+        'Navigation Guardian modal result',
+        { targetURL: targetURL?.substring(0, 200), result }
       );
       return result;
     } catch (error) {
-      console.error("OriginalUI: Error showing React modal:", error);
+      Logger.error('ReactModalError', 'Error showing React modal', error);
 
       // Clear active modal flag on error
       this.activeModal = null;
@@ -214,17 +217,18 @@ export class ModalManager {
         try {
           callback(result); // Pass full result object {allowed, remember}
         } catch (callbackError) {
-          console.error("OriginalUI: Error in legacy callback:", callbackError);
+          Logger.error('LegacyCallbackError', 'Error in legacy callback', callbackError);
           // Callback error handling - error already logged, no further action needed
         }
       })
       .catch((error) => {
-        console.error("OriginalUI: Modal error:", error);
+        Logger.error('LegacyModalError', 'Modal error', error);
         try {
           callback({ allowed: false, remember: false }); // Default to deny for safety
         } catch (callbackError) {
-          console.error(
-            "OriginalUI: Error in legacy callback (fallback):",
+          Logger.error(
+            'LegacyCallbackFallbackError',
+            'Error in legacy callback (fallback)',
             callbackError
           );
         }
@@ -235,7 +239,7 @@ export class ModalManager {
    * Enhanced cleanup with comprehensive resource management
    */
   cleanup() {
-    console.log("OriginalUI: Starting ModalManager cleanup...");
+    Logger.debug('ModalManagerCleanupStart', 'Starting ModalManager cleanup...');
 
     try {
       // Clear active modal flag (React modal handles its own cleanup)
@@ -245,9 +249,9 @@ export class ModalManager {
       this.statisticsCallback = null;
       this.urlValidator = null;
 
-      console.log("OriginalUI: ModalManager cleanup completed");
+      Logger.debug('ModalManagerCleanupComplete', 'ModalManager cleanup completed');
     } catch (error) {
-      console.error("OriginalUI: Error during ModalManager cleanup:", error);
+      Logger.error('ModalManagerCleanupError', 'Error during ModalManager cleanup', error);
       throw error;
     }
   }

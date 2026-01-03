@@ -79,8 +79,12 @@ describe('Remote Data Fetcher', () => {
 
         expect(result).toEqual([]);
         expect(consoleErrorSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Failed to load local default rules'),
-          expect.any(Error)
+          expect.stringContaining('[DefaultRulesFetch]'),
+          'Failed to load local default rules',
+          expect.objectContaining({
+            category: 'DefaultRulesFetch',
+            message: 'Failed to load local default rules'
+          })
         );
 
         consoleErrorSpy.mockRestore();
@@ -111,13 +115,16 @@ describe('Remote Data Fetcher', () => {
           json: async () => mockRules
         });
 
-        const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        const consoleLogSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
         await fetchDefaultRules();
 
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Using local default rules'),
-          mockRules
+          expect.stringContaining('[DefaultRulesFetch]'),
+          'Using local default rules',
+          expect.objectContaining({
+            data: { count: mockRules.length }
+          })
         );
 
         consoleLogSpy.mockRestore();
@@ -177,8 +184,12 @@ describe('Remote Data Fetcher', () => {
 
         expect(result).toEqual([]);
         expect(consoleErrorSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Failed to load local default whitelist'),
-          expect.any(Error)
+          expect.stringContaining('[DefaultWhitelistFetch]'),
+          'Failed to load local default whitelist',
+          expect.objectContaining({
+            category: 'DefaultWhitelistFetch',
+            message: 'Failed to load local default whitelist'
+          })
         );
 
         consoleErrorSpy.mockRestore();
@@ -209,13 +220,16 @@ describe('Remote Data Fetcher', () => {
           json: async () => mockWhitelist
         });
 
-        const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        const consoleLogSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
         await fetchDefaultWhitelist();
 
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Using local default whitelist'),
-          mockWhitelist
+          expect.stringContaining('[DefaultWhitelistFetch]'),
+          'Using local default whitelist',
+          expect.objectContaining({
+            data: { count: mockWhitelist.length }
+          })
         );
 
         consoleLogSpy.mockRestore();

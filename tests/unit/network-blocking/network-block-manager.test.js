@@ -268,15 +268,19 @@ describe('NetworkBlockManager', () => {
     });
 
     test('should log update progress', async () => {
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
       await manager.updateSource(mockSources[0]);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('🔄 Updating Test Source')
+        expect.stringContaining('[NetworkBlocking:Manager]'),
+        expect.stringContaining('Updating Test Source'),
+        expect.any(Object)
       );
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('✅ Updated 1 rules for Test Source')
+        expect.stringContaining('[NetworkBlocking:Manager]'),
+        expect.stringContaining('Updated 1 rules for Test Source'),
+        expect.any(Object)
       );
 
       consoleLogSpy.mockRestore();

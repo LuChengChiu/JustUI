@@ -4,6 +4,7 @@
  */
 
 // Import modules
+import Logger from '@script-utils/logger.js';
 import { domainMatches } from "@utils/url-utils.js";
 import { ClickHijackingProtector } from "./modules/click-hijacking-protector.js";
 import { ElementRemover } from "./modules/element-remover.js";
@@ -63,23 +64,18 @@ class OriginalUIController {
     // Rule execution system (initialized in initialize())
     this.ruleExecutionManager = null;
 
-    console.log(
-      "OriginalUI: Controller initialized for domain:",
-      this.currentDomain
-    );
-    console.log(
-      "OriginalUI: Registered",
-      this.cleanupRegistry.getModuleCount(),
-      "cleanable modules:",
-      this.cleanupRegistry.getModuleNames()
-    );
+    Logger.info('ControllerInit', 'Controller initialized', {
+      domain: this.currentDomain,
+      cleanableModules: this.cleanupRegistry.getModuleCount(),
+      moduleNames: this.cleanupRegistry.getModuleNames()
+    });
   }
 
   /**
    * Initialize the controller and all protection systems
    */
   async initialize() {
-    console.log("OriginalUI: Initializing protection systems...");
+    Logger.info('InitStart', 'Initializing protection systems');
 
     // 1. FIRST: Load settings to get whitelist (before any protections)
     await this.loadSettings();
@@ -89,17 +85,14 @@ class OriginalUIController {
 
     // 3. Initialize Rule Execution System
     this.ruleExecutionManager = await createRuleExecutionSystem();
-    console.log("OriginalUI: Rule Execution System initialized");
+    Logger.info('RuleSystemInit', 'Rule Execution System initialized');
 
     // 4. Check whitelist/active state BEFORE applying security protections
     if (!this.isActive || this.isDomainWhitelisted()) {
-      console.log(
-        "OriginalUI: Skipping protections - extension inactive or domain whitelisted",
-        {
-          isActive: this.isActive,
-          isDomainWhitelisted: this.isDomainWhitelisted(),
-        }
-      );
+      Logger.info('ProtectionsSkipped', 'Skipping protections - inactive or whitelisted', {
+        isActive: this.isActive,
+        isDomainWhitelisted: this.isDomainWhitelisted(),
+      });
       return; // Exit early - no protections needed
     }
 
@@ -113,7 +106,7 @@ class OriginalUIController {
     // 7. Start all other protection systems
     this.startProtection();
 
-    console.log("OriginalUI: Initialization complete");
+    Logger.info('InitComplete', 'Initialization complete');
   }
 
   /**
@@ -125,7 +118,7 @@ class OriginalUIController {
       return;
     }
 
-    console.log("OriginalUI: Starting protection systems");
+    Logger.info('ProtectionStart', 'Starting protection systems');
 
     // Start click hijacking protection
     this.clickProtector.activate();
@@ -141,7 +134,7 @@ class OriginalUIController {
    * Stop all protection systems
    */
   stopProtection() {
-    console.log("OriginalUI: Stopping protection systems");
+    Logger.info('ProtectionStop', 'Stopping protection systems');
 
     this.clickProtector.deactivate();
     this.navigationGuardian.disable();
@@ -151,16 +144,14 @@ class OriginalUIController {
    * Execute all enabled rule sets
    */
   async executeRules() {
-    console.log("OriginalUI: Executing rules", {
+    Logger.debug('ExecuteRules', 'Executing rules', {
       isActive: this.isActive,
       isDomainWhitelisted: this.isDomainWhitelisted(),
       currentDomain: this.currentDomain,
     });
 
     if (!this.isActive || this.isDomainWhitelisted()) {
-      console.log(
-        "OriginalUI: Skipping execution - extension inactive or domain whitelisted"
-      );
+      Logger.info('ExecutionSkipped', 'Skipping execution - inactive or whitelisted');
       return;
     }
 
@@ -186,7 +177,7 @@ class OriginalUIController {
       0
     );
     if (totalRemoved > 0) {
-      console.log(`OriginalUI: Total elements removed: ${totalRemoved}`, stats);
+      Logger.info('ElementsRemoved', 'Total elements removed', { totalRemoved, stats });
     }
   }
 
@@ -211,15 +202,13 @@ class OriginalUIController {
    * Perform initial scan for existing threats
    */
   performInitialScan() {
-    console.log("OriginalUI: Performing initial threat scan");
+    Logger.info('InitialScan', 'Performing initial threat scan');
 
     // Scan for click hijacking overlays
     const removedOverlays = this.clickProtector.scanAndRemoveExistingOverlays();
 
     // Note: Script blocking stats are now reported via NAV_GUARDIAN_STATS message from injected-script.js
-    console.log(
-      `OriginalUI: Initial scan complete. Removed ${removedOverlays} suspicious overlays`
-    );
+    Logger.info('InitialScanComplete', 'Initial scan complete', { removedOverlays });
   }
 
   /**
@@ -251,7 +240,7 @@ class OriginalUIController {
       };
       this.domainStats = {};
 
-      console.log("OriginalUI: Settings loaded", {
+      Logger.info('SettingsLoaded', 'Settings loaded', {
         isActive: this.isActive,
         isDomainWhitelisted: this.isDomainWhitelisted(),
         rulesCount: {
@@ -265,10 +254,9 @@ class OriginalUIController {
         },
       });
     } catch (error) {
-      console.warn(
-        "OriginalUI: Failed to load settings from storage:",
-        error.message
-      );
+      Logger.warn('SettingsLoadFailed', 'Failed to load settings from storage', {
+        error: error.message
+      });
 
       // Graceful fallback: Use default settings if storage fails
       this.isActive = false; // Default to disabled for safety
@@ -281,7 +269,7 @@ class OriginalUIController {
       this.navigationStats = { blockedCount: 0, allowedCount: 0 };
       this.domainStats = {};
 
-      console.log("OriginalUI: Using default settings due to storage error");
+      Logger.warn('DefaultSettings', 'Using default settings due to storage error');
     }
   }
 
@@ -363,9 +351,9 @@ class OriginalUIController {
     // Note: injected-script.js loads early and doesn't dynamically toggle
     // May require page reload for this setting to take effect
     if (changes.scriptAnalysisEnabled) {
-      console.log('OriginalUI: scriptAnalysisEnabled changed to',
-        changes.scriptAnalysisEnabled.newValue,
-        '(may require page reload)');
+      Logger.info('ScriptAnalysisToggle', 'Script analysis setting changed (may require reload)', {
+        enabled: changes.scriptAnalysisEnabled.newValue
+      });
     }
 
     // Handle other rule changes (EasyList is bundled with defaultRulesEnabled)
@@ -466,10 +454,9 @@ class OriginalUIController {
           error.message
         );
       } else {
-        console.warn(
-          "OriginalUI: Failed to update domain stats in storage:",
-          error.message
-        );
+        Logger.warn('StatsUpdateFailed', 'Failed to update domain stats in storage', {
+          error: error.message
+        });
       }
       // Continue execution - stats are still updated in memory
     }
@@ -480,7 +467,7 @@ class OriginalUIController {
    * Uses registry pattern to follow SOLID principles with memory verification
    */
   async destructor() {
-    console.log("OriginalUI: Starting controller destructor...");
+    Logger.info('DestructorStart', 'Starting controller destructor');
 
     // Stop all protection systems first
     this.stopProtection();
@@ -492,9 +479,7 @@ class OriginalUIController {
     // Log cleanup results for debugging
     const successful = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
-    console.log(
-      `OriginalUI: Cleanup completed - ${successful} successful, ${failed} failed`
-    );
+    Logger.info('CleanupComplete', 'Cleanup completed', { successful, failed });
 
     // Clear controller state
     this.isActive = false;
@@ -522,7 +507,7 @@ class OriginalUIController {
     // Note: We don't null out module references since they might still be used elsewhere
     // The cleanup registry handles the actual resource cleanup
 
-    console.log("OriginalUI: Controller destructor completed");
+    Logger.info('DestructorComplete', 'Controller destructor completed');
   }
 }
 
@@ -544,7 +529,7 @@ const performCleanup = async (reason) => {
   if (isCleanedUp) return;
   isCleanedUp = true;
 
-  console.log(`OriginalUI: Performing cleanup due to: ${reason}`);
+  Logger.info('PerformCleanup', 'Performing cleanup', { reason });
   await originalUIController.destructor();
 };
 
@@ -556,7 +541,7 @@ window.addEventListener("pagehide", () => performCleanup("pagehide"));
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
     // Don't fully cleanup on visibility change, but ensure we can cleanup later
-    console.log("OriginalUI: Page hidden, prepared for cleanup");
+    Logger.debug('PageHidden', 'Page hidden, prepared for cleanup');
   }
 });
 

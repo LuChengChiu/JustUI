@@ -2,6 +2,8 @@
  * Converts JSON rules to declarativeNetRequest format
  * Browser-compatible (no native dependencies)
  */
+import Logger from "@script-utils/logger.js";
+
 export class JsonRuleConverter {
   /**
    * Convert JSON rules to DNR format
@@ -25,21 +27,35 @@ export class JsonRuleConverter {
           }
         } else {
           stats.failed++;
-          console.warn('Invalid rule format:', rule);
+          Logger.warn(
+            "NetworkBlocking:JsonRuleConverter",
+            "Invalid rule format",
+            rule
+          );
         }
 
         // Check if we exceeded ID range
         if (currentId > idRange.end) {
-          console.warn(`Rule ID exceeded range: ${currentId} > ${idRange.end}`);
+          Logger.warn(
+            "NetworkBlocking:JsonRuleConverter",
+            `Rule ID exceeded range: ${currentId} > ${idRange.end}`
+          );
           break;
         }
       } catch (error) {
         stats.failed++;
-        console.warn('Failed to convert rule:', rule, error);
+        Logger.warn(
+          "NetworkBlocking:JsonRuleConverter",
+          "Failed to convert rule",
+          { rule, error: error.message }
+        );
       }
     }
 
-    console.log(`JSON conversion stats: ${stats.converted}/${stats.total} converted, ${stats.failed} failed`);
+    Logger.info(
+      "NetworkBlocking:JsonRuleConverter",
+      `JSON conversion stats: ${stats.converted}/${stats.total} converted, ${stats.failed} failed`
+    );
     return dnrRules;
   }
 

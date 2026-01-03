@@ -4,6 +4,7 @@
  * @fileoverview Shared helpers for URL parsing and domain matching.
  * @module url-utils
  */
+import Logger from "@script-utils/logger.js";
 
 /**
  * Domain matcher for whitelist and rule evaluation.
@@ -49,9 +50,19 @@ export function safeParseUrl(input, base, options = {}) {
     return base ? new URL(input, base) : new URL(input);
   } catch (error) {
     if (level !== "silent") {
-      const logger =
-        typeof console[level] === "function" ? console[level] : console.warn;
-      logger(`${prefix}: Failed to parse URL for ${context}`, error);
+      const category = `${prefix}:URLParse`;
+      const message = `Failed to parse URL for ${context}`;
+      const metadata = { input, base };
+
+      const logHandlers = {
+        error: Logger.error,
+        warn: Logger.warn,
+        info: Logger.info,
+        debug: Logger.debug,
+      };
+
+      const log = logHandlers[level] || Logger.warn;
+      log(category, message, error, metadata);
     }
     return null;
   }

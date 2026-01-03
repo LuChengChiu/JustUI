@@ -119,7 +119,9 @@ describe('BudgetCoordinator', () => {
       expect(allocations.get('Source1').allocated).toBe(30000);
       expect(allocations.size).toBe(1); // Only Source1 allocated
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Budget exhausted')
+        expect.stringContaining('[NetworkBlocking:BudgetCoordinator]'),
+        expect.stringContaining('Budget exhausted'),
+        expect.any(Object)
       );
       consoleSpy.mockRestore();
     });
@@ -147,11 +149,13 @@ describe('BudgetCoordinator', () => {
       const source = createMockSource('Test', 1000, 2000);
       const sourceRequests = [{ source, ruleCount: 500 }];
 
-      const consoleSpy = vi.spyOn(console, 'log');
+      const consoleSpy = vi.spyOn(console, 'info');
       coordinator.allocateBudget(sourceRequests);
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('✅ Allocated 500 rules to Test')
+        expect.stringContaining('[NetworkBlocking:BudgetCoordinator]'),
+        expect.stringContaining('Allocated 500 rules to Test'),
+        expect.any(Object)
       );
       consoleSpy.mockRestore();
     });
@@ -166,10 +170,14 @@ describe('BudgetCoordinator', () => {
       coordinator.allocateBudget(sourceRequests);
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('⚠️ Budget exceeded for Test')
+        expect.stringContaining('[NetworkBlocking:BudgetCoordinator]'),
+        expect.stringContaining('Budget exceeded for Test'),
+        expect.any(Object)
       );
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Allocated 500/800 rules, 300 truncated')
+        expect.stringContaining('[NetworkBlocking:BudgetCoordinator]'),
+        expect.stringContaining('Allocated 500/800 rules, 300 truncated'),
+        expect.any(Object)
       );
       consoleSpy.mockRestore();
     });

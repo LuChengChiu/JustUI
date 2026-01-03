@@ -17,7 +17,7 @@
  *   'ad-removal-rule',
  *   ElementRemover.REMOVAL_STRATEGIES.REMOVE
  * );
- * console.log(`Removed ${removed} elements`);
+ * Logger.info('ElementRemoval', 'Removed elements', { count: removed });
  *
  * @example
  * // Cleanup (called by content.js destructor)
@@ -27,6 +27,7 @@
  * @since 1.0.0
  * @author OriginalUI Team
  */
+import Logger from '@script-utils/logger.js';
 
 /**
  * ElementRemover class providing comprehensive DOM element removal strategies
@@ -147,7 +148,7 @@ export class ElementRemover {
       this.applyRemovalStrategy(element);
       this.removalStats.totalRemoved++;
     } catch (error) {
-      console.warn('OriginalUI: Error during element removal:', error);
+      Logger.warn('ElementRemoval', 'Error during element removal', error);
       return false;
     }
 
@@ -215,7 +216,7 @@ export class ElementRemover {
 
       const cacheAge = currentTime - this.removalStats.lastReset;
       if (cacheAge > this.CLEANUP_CONFIG.MAX_STATS_AGE_MS) {
-        console.log('OriginalUI: Auto-resetting ElementRemover stats due to age');
+        Logger.info('ElementRemoval', 'Auto-resetting ElementRemover stats due to age');
         this.resetStats();
       }
     }
@@ -236,7 +237,7 @@ export class ElementRemover {
    * Resets WeakSet and statistics. Called by content.js destructor.
    */
   static cleanup() {
-    console.log('OriginalUI: Starting ElementRemover cleanup...');
+    Logger.info('ElementRemovalCleanup', 'Starting ElementRemover cleanup...');
 
     const preCleanupStats = { ...this.removalStats };
 
@@ -249,7 +250,7 @@ export class ElementRemover {
     // Update cleanup timing
     this.lastCleanupCheck = Date.now();
 
-    console.log('OriginalUI: ElementRemover cleanup completed:', {
+    Logger.info('ElementRemovalCleanup', 'ElementRemover cleanup completed', {
       beforeCleanup: preCleanupStats,
       newWeakSetCreated: true,
       timestamp: new Date().toISOString()

@@ -1,28 +1,32 @@
 /**
  * Chrome API Safety Utilities - Production-grade Chrome extension API safety layer
- * 
+ *
  * @fileoverview Provides comprehensive safety layer for Chrome extension APIs with advanced
  * error handling, circuit breaker pattern, exponential backoff retry mechanisms, and context
  * validation. Designed for production stability and resilience against Chrome API failures.
- * 
+ *
  * @example
  * // Safe storage operations
  * const data = await safeStorageGet(['settings', 'whitelist']);
  * await safeStorageSet({ lastSync: Date.now() });
- * 
+ *
  * @example
  * // Safe message passing
  * const response = await safeSendMessage({ action: 'getData' });
- * 
+ *
  * @example
  * // Circuit breaker monitoring
  * const stats = getCircuitBreakerStats();
- * console.log('Storage circuit state:', stats.storage.state);
- * 
+ * StorageLogger.info('circuit-breaker', 'stats', 'Storage circuit state', {
+ *   state: stats.storage.state
+ * });
+ *
  * @module chromeApiSafe
  * @since 1.0.0
  * @author OriginalUI Team
  */
+
+import Logger, { StorageLogger } from './logger.js';
 
 /**
  * Circuit breaker states for API protection
@@ -217,37 +221,9 @@ function getCircuitBreaker(operationType) {
 }
 
 /**
- * Logger utility for structured error reporting
+ * StorageLogger is now imported from logger.js for backward compatibility
+ * See src/scripts/utils/logger.js for the unified Logger implementation
  */
-const StorageLogger = {
-  error: (operation, context, error, metadata = {}) => {
-    console.error(`OriginalUI Storage Error [${operation}]:`, {
-      context,
-      error: error.message || error,
-      timestamp: new Date().toISOString(),
-      extensionContext: isExtensionContextValid(),
-      ...metadata
-    });
-  },
-  
-  warn: (operation, context, message, metadata = {}) => {
-    console.warn(`OriginalUI Storage Warning [${operation}]:`, {
-      context,
-      message,
-      timestamp: new Date().toISOString(),
-      ...metadata
-    });
-  },
-  
-  info: (operation, context, message, metadata = {}) => {
-    console.info(`OriginalUI Storage Info [${operation}]:`, {
-      context,
-      message,
-      timestamp: new Date().toISOString(),
-      ...metadata
-    });
-  }
-};
 
 /**
  * Check if the Chrome extension context is still valid
@@ -487,11 +463,14 @@ export async function safeStorageSet(items, options = {}) {
       }
     } catch (error) {
       // Circular references or other serialization failures indicate a bug
-      console.error(
-        `[ChromeAPI] CRITICAL: Cannot serialize storage item "${key}" - this indicates a bug in data flow.`,
-        'Error:', error.message,
-        'Value type:', typeof value,
-        'Value:', value
+      StorageLogger.error(
+        'storage-set',
+        'serialization-failed',
+        error,
+        {
+          key,
+          valueType: typeof value
+        }
       );
       throw error; // Re-throw to fail fast - don't hide bugs
     }
@@ -614,7 +593,11 @@ export const debouncedStorageSet = (() => {
       if (timeouts.size >= MAX_ENTRIES) {
         const firstKey = timeouts.keys().next().value;
         cleanupTimeout(firstKey);
-        console.warn(`OriginalUI: debouncedStorageSet map reached max size (${MAX_ENTRIES}), removed oldest entry`);
+        StorageLogger.warn(
+          'storage-set',
+          'debounced-max-entries',
+          `debouncedStorageSet map reached max size (${MAX_ENTRIES}), removed oldest entry`
+        );
       }
 
       // Set new timeout
@@ -628,7 +611,9 @@ export const debouncedStorageSet = (() => {
           resolve();
         } catch (error) {
           cleanup();
-          console.warn('OriginalUI: debouncedStorageSet failed:', error);
+          StorageLogger.warn('storage-set', 'debounced-failed', 'debouncedStorageSet failed', {
+            error: error.message
+          });
           resolve(); // Still resolve to prevent hanging promises
         }
       }, delay);
@@ -657,10 +642,14 @@ export async function validateStorageState(expectedItems, criticalKeys = []) {
     for (const key of keysToCheck) {
       const expected = expectedItems[key];
       const actual = actualResult[key];
-      
+
       // Deep comparison for objects and arrays
-      if (JSON.stringify(expected) !== JSON.stringify(actual)) {
-        inconsistencies.push(`${key}: expected ${JSON.stringify(expected)?.substring(0, 100)}..., got ${JSON.stringify(actual)?.substring(0, 100)}...`);
+      // Cache stringified results to avoid duplicate serialization (50% reduction)
+      const expectedStr = JSON.stringify(expected);
+      const actualStr = JSON.stringify(actual);
+
+      if (expectedStr !== actualStr) {
+        inconsistencies.push(`${key}: expected ${expectedStr?.substring(0, 100)}..., got ${actualStr?.substring(0, 100)}...`);
       }
     }
 

@@ -12,6 +12,7 @@
  * - Statistics tracking for cache performance
  */
 
+import Logger from './logger.js';
 import { isExtensionContextValid, safeStorageGet, safeStorageSet } from './chrome-api-safe.js';
 import { normalizeOrigin } from '../../utils/url-utils.js';
 
@@ -352,7 +353,7 @@ export class PermissionCache {
       await this.syncFromStorage();
       return this.getSync(sourceOrigin, targetOrigin);
     } catch (error) {
-      console.warn('PermissionCache: Storage fallback failed:', error);
+      Logger.warn('CacheStorageFallbackFailed', 'Storage fallback failed', { error });
       return null;
     }
   }
@@ -370,7 +371,7 @@ export class PermissionCache {
   setSync(sourceOrigin, targetOrigin, decision, options = {}) {
     const key = PermissionCache.getCacheKey(sourceOrigin, targetOrigin);
     if (!key) {
-      console.warn('PermissionCache: Skipping cache write due to invalid origin(s)', {
+      Logger.warn('CacheInvalidOrigins', 'Skipping cache write - invalid origins', {
         sourceOrigin,
         targetOrigin
       });
@@ -458,7 +459,7 @@ export class PermissionCache {
 
     if (removed > 0) {
       this.stats.totalEntries = this.size;
-      console.log(`PermissionCache: Cleaned ${removed} expired entries`);
+      Logger.info('CacheCleanExpired', 'Cleaned expired entries', { removed });
     }
 
     // Validate DLL integrity (development mode only)
@@ -498,7 +499,7 @@ export class PermissionCache {
     this.stats.totalEntries = this.size;
 
     if (evicted > 0) {
-      console.log(`PermissionCache: Evicted ${evicted} LRU entries (size limit: ${CONFIG.MAX_CACHE_SIZE})`);
+      Logger.info('CacheLRUEviction', 'Evicted LRU entries', { evicted, sizeLimit: CONFIG.MAX_CACHE_SIZE });
     }
 
     // Validate DLL integrity after evictions (development mode only)
@@ -529,7 +530,7 @@ export class PermissionCache {
     this.syncTimer = setTimeout(() => {
       this.syncToStorage()
         .catch(error => {
-          console.error('PermissionCache: Scheduled sync failed:', error);
+          Logger.error('CacheScheduledSyncFailed', 'Scheduled sync failed', error);
         })
         .finally(() => {
           this.syncTimer = null;
@@ -586,9 +587,9 @@ export class PermissionCache {
       this.stats.storageSync++;
       this.stats.lastSyncTime = Date.now();
 
-      console.log(`PermissionCache: Synced ${this.size} entries to storage`);
+      Logger.info('CacheSyncedToStorage', 'Synced entries to storage', { entries: this.size });
     } catch (error) {
-      console.error('PermissionCache: Failed to sync to storage:', error);
+      Logger.error('CacheSyncFailed', 'Failed to sync to storage', error);
       // Don't throw - graceful degradation (cache continues in-memory)
     }
   }
@@ -613,7 +614,7 @@ export class PermissionCache {
       const data = result[STORAGE_KEY];
 
       if (!data || data.version !== CONFIG.VERSION) {
-        console.log('PermissionCache: No valid cache data found in storage');
+        Logger.info('CacheNoValidData', 'No valid cache data found in storage');
         return;
       }
 
@@ -662,11 +663,14 @@ export class PermissionCache {
 
       this.stats.totalEntries = this.size;
 
-      console.log(
-        `PermissionCache: Loaded ${loaded} entries from storage (${expired} expired, ${invalid} invalid, ${normalized} normalized)`
-      );
+      Logger.info('CacheLoadedFromStorage', 'Loaded entries from storage', {
+        loaded,
+        expired,
+        invalid,
+        normalized
+      });
     } catch (error) {
-      console.error('PermissionCache: Failed to load from storage:', error);
+      Logger.error('CacheLoadFailed', 'Failed to load from storage', error);
       // Don't throw - start with empty cache
     }
   }
@@ -688,7 +692,9 @@ export class PermissionCache {
       this.cleanExpired();
     }, CONFIG.CLEANUP_INTERVAL_MS);
 
-    console.log(`PermissionCache: Auto-cleanup enabled (interval: ${CONFIG.CLEANUP_INTERVAL_MS / 1000 / 60}min)`);
+    Logger.info('CacheAutoCleanupEnabled', 'Auto-cleanup enabled', {
+      intervalMinutes: CONFIG.CLEANUP_INTERVAL_MS / 1000 / 60
+    });
   }
 
   /**
@@ -727,7 +733,7 @@ export class PermissionCache {
   handleUnload() {
     // Best-effort final sync before teardown (pagehide/beforeunload).
     this.syncToStorage().catch(error => {
-      console.error('PermissionCache: Final sync failed on unload:', error);
+      Logger.error('CacheFinalSyncFailedUnload', 'Final sync failed on unload', error);
     });
     this.cleanup();
   }
@@ -740,7 +746,7 @@ export class PermissionCache {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
-      console.log('PermissionCache: Auto-cleanup disabled');
+      Logger.info('CacheAutoCleanupDisabled', 'Auto-cleanup disabled');
     }
   }
 
@@ -781,7 +787,7 @@ export class PermissionCache {
       lastSyncTime: 0
     };
 
-    console.log('PermissionCache: Cache cleared');
+    Logger.info('CacheCleared', 'Cache cleared');
 
     // Validate DLL integrity (development mode only)
     this._validateDLL();
@@ -820,10 +826,10 @@ export class PermissionCache {
 
     // Final sync before destruction
     this.syncToStorage().catch(error => {
-      console.error('PermissionCache: Final sync failed:', error);
+      Logger.error('CacheFinalSyncFailed', 'Final sync failed', error);
     });
 
-    console.log('PermissionCache: Destroyed');
+    Logger.info('CacheDestroyed', 'Permission cache destroyed');
   }
 }
 

@@ -1,4 +1,5 @@
-import { convertFilter } from '@eyeo/abp2dnr';
+import Logger from "../../../utils/logger.js";
+import { convertFilter } from "@eyeo/abp2dnr";
 
 /**
  * Converts EasyList/custom rules to declarativeNetRequest format (SRP)
@@ -38,7 +39,11 @@ export class RuleConverter {
             stats.failed++;
             if (stats.failed <= 10) {
               // Only log first 10 failures to avoid spam
-              console.warn(`Skipping invalid filter: ${rule.substring(0, 100)}...`, filterError.message);
+              Logger.warn(
+                "NetworkBlocking:RuleConverter",
+                `Skipping invalid filter: ${rule.substring(0, 100)}...`,
+                filterError.message
+              );
             }
           }
         } else if (typeof rule === 'object') {
@@ -53,16 +58,26 @@ export class RuleConverter {
 
         // Check if we exceeded ID range
         if (currentId > idRange.end) {
-          console.warn(`Rule ID exceeded range: ${currentId} > ${idRange.end}`);
+          Logger.warn(
+            "NetworkBlocking:RuleConverter",
+            `Rule ID exceeded range: ${currentId} > ${idRange.end}`
+          );
           break;
         }
       } catch (error) {
         stats.failed++;
-        console.warn(`Failed to process rule:`, rule, error);
+        Logger.warn(
+          "NetworkBlocking:RuleConverter",
+          "Failed to process rule",
+          { rule, error: error.message }
+        );
       }
     }
 
-    console.log(`Conversion stats: ${stats.converted}/${stats.total} converted, ${stats.failed} failed, ${stats.skipped} skipped`);
+    Logger.info(
+      "NetworkBlocking:RuleConverter",
+      `Conversion stats: ${stats.converted}/${stats.total} converted, ${stats.failed} failed, ${stats.skipped} skipped`
+    );
     return dnrRules;
   }
 

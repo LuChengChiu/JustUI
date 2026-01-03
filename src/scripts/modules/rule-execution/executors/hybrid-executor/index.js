@@ -15,10 +15,11 @@
  * @module hybrid-executor
  */
 
-import { StyleInjector } from './style-injector.js';
-import { TokenIndexer } from './token-indexer.js';
-import { DomScanner } from './dom-scanner.js';
-import { MutationWatcher } from './mutation-watcher.js';
+import Logger from "@script-utils/logger.js";
+import { StyleInjector } from "./style-injector.js";
+import { TokenIndexer } from "./token-indexer.js";
+import { DomScanner } from "./dom-scanner.js";
+import { MutationWatcher } from "./mutation-watcher.js";
 
 /**
  * Hybrid Executor for EasyList DOM rules
@@ -82,7 +83,7 @@ export class HybridExecutor {
 
     // Validate input
     if (!rules || rules.length === 0) {
-      console.warn('HybridExecutor: No rules to execute');
+      Logger.warn("RuleExecution:HybridExecutor", "No rules to execute");
       return 0;
     }
 
@@ -92,7 +93,7 @@ export class HybridExecutor {
       .map(r => r.selector);
 
     if (selectors.length === 0) {
-      console.warn('HybridExecutor: No valid selectors');
+      Logger.warn("RuleExecution:HybridExecutor", "No valid selectors");
       return 0;
     }
 
@@ -131,12 +132,16 @@ export class HybridExecutor {
     }
 
     const duration = performance.now() - startTime;
-    console.log(`HybridExecutor: Execution complete in ${duration.toFixed(2)}ms`, {
-      cssInjected: this.stats.cssInjected,
-      tokens: this.stats.tokens,
-      removed: this.stats.removed,
-      hidden: this.stats.hidden
-    });
+    Logger.info(
+      "RuleExecution:HybridExecutor",
+      `Execution complete in ${duration.toFixed(2)}ms`,
+      {
+        cssInjected: this.stats.cssInjected,
+        tokens: this.stats.tokens,
+        removed: this.stats.removed,
+        hidden: this.stats.hidden,
+      }
+    );
 
     return this.stats.removed + this.stats.hidden;
   }
@@ -160,7 +165,7 @@ export class HybridExecutor {
     // Clear scanner
     this.scanner = null;
 
-    console.log('HybridExecutor: Cleanup complete');
+    Logger.info("RuleExecution:HybridExecutor", "Cleanup complete");
   }
 
   /**
@@ -200,7 +205,7 @@ export class HybridExecutor {
    */
   rescan() {
     if (!this.scanner) {
-      console.warn('HybridExecutor: No scanner available for rescan');
+      Logger.warn("RuleExecution:HybridExecutor", "No scanner available for rescan");
       return { removed: 0, hidden: 0 };
     }
 

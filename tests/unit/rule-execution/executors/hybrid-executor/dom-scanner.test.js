@@ -5,6 +5,7 @@
 
 import { vi } from 'vitest';
 import { DomScanner } from '@modules/rule-execution/executors/hybrid-executor/dom-scanner.js';
+import Logger, { LogLevel } from '@script-utils/logger.js';
 
 describe('DomScanner', () => {
   let scanner;
@@ -565,9 +566,12 @@ describe('DomScanner', () => {
 
       // Should log warning about invalid selector
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'DomScanner: Invalid selector:',
-        '[class*=ad',
-        'Invalid selector'
+        expect.stringContaining('[InvalidSelector]'),
+        'Invalid selector',
+        expect.objectContaining({
+          category: 'InvalidSelector',
+          data: { selector: '[class*=ad', error: 'Invalid selector' }
+        })
       );
       // Should NOT crash, should NOT block
       expect(element.setAttribute).not.toHaveBeenCalled();
@@ -798,6 +802,8 @@ describe('DomScanner', () => {
     test('should log matches when logMatches option is enabled', () => {
       // Create scanner with logMatches enabled
       const logScanner = new DomScanner(mockTokenIndex, { logMatches: true });
+      const previousLevel = Logger.getLevel();
+      Logger.setLevel(LogLevel.DEBUG);
 
       const element = {
         classList: ['ad-banner'],
@@ -819,15 +825,19 @@ describe('DomScanner', () => {
 
       // Should log selector match details
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        'DomScanner: Selector match found',
+        expect.stringContaining('[SelectorMatch]'),
+        'Selector match found',
         expect.objectContaining({
-          selector: '.ad-banner',
-          element: 'DIV',
-          id: 'top-ad',
-          class: 'ad-banner'
+          data: expect.objectContaining({
+            selector: '.ad-banner',
+            element: 'DIV',
+            id: 'top-ad',
+            class: 'ad-banner'
+          })
         })
       );
 
+      Logger.setLevel(previousLevel);
       consoleLogSpy.mockRestore();
     });
   });

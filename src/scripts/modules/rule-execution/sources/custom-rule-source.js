@@ -7,8 +7,9 @@
  * @module custom-rule-source
  */
 
-import { IDomRuleSource } from './i-dom-rule-source.js';
-import { safeStorageGet } from '@script-utils/chrome-api-safe.js';
+import Logger from "@script-utils/logger.js";
+import { IDomRuleSource } from "./i-dom-rule-source.js";
+import { safeStorageGet } from "@script-utils/chrome-api-safe.js";
 
 /**
  * Source for user-defined custom CSS selector rules
@@ -39,7 +40,11 @@ export class CustomRuleSource extends IDomRuleSource {
       this.cacheTime = now;
       return this.cachedRules;
     } catch (error) {
-      console.error('CustomRuleSource: Failed to fetch rules:', error);
+      Logger.error(
+        "RuleExecution:CustomRuleSource",
+        "Failed to fetch rules",
+        error
+      );
       // Return cached rules if available, empty array otherwise
       return this.cachedRules || [];
     }

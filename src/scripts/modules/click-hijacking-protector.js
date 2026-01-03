@@ -3,6 +3,7 @@
  * Prevents malicious overlays from intercepting user clicks
  */
 
+import Logger from '@script-utils/logger.js';
 import { MAX_Z_INDEX } from "@/scripts/constants.js";
 
 // Detection thresholds and constants
@@ -28,7 +29,7 @@ export class ClickHijackingProtector {
    */
   activate() {
     this.isActive = true;
-    console.log("OriginalUI: Click hijacking protection activated");
+    Logger.info('ClickProtectionActivated', 'Click hijacking protection activated');
   }
 
   /**
@@ -36,7 +37,7 @@ export class ClickHijackingProtector {
    */
   deactivate() {
     this.isActive = false;
-    console.log("OriginalUI: Click hijacking protection deactivated");
+    Logger.info('ClickProtectionDeactivated', 'Click hijacking protection deactivated');
   }
 
   /**
@@ -51,14 +52,14 @@ export class ClickHijackingProtector {
       try {
         element.removeEventListener(type, handler, options);
       } catch (error) {
-        console.warn(`OriginalUI: Error removing ${type} listener:`, error);
+        Logger.warn('ListenerRemoveError', 'Error removing event listener', { type, error });
       }
     });
 
     // Clear the listeners array
     this.eventListeners = [];
 
-    console.log("OriginalUI: Click hijacking protection cleaned up");
+    Logger.info('ClickProtectionCleanup', 'Click hijacking protection cleaned up');
   }
 
   /**
@@ -83,9 +84,9 @@ export class ClickHijackingProtector {
     );
 
     if (suspiciousOverlay) {
-      console.warn("OriginalUI: Blocked click on suspicious overlay", {
-        overlay: suspiciousOverlay,
-        clickTarget: clickedElement,
+      Logger.security('ClickHijackBlocked', 'Blocked click on suspicious overlay', {
+        overlay: suspiciousOverlay.tagName,
+        clickTarget: clickedElement.tagName
       });
 
       event.preventDefault();
@@ -109,10 +110,10 @@ export class ClickHijackingProtector {
 
     const target = event.target;
     if (this.isSuspiciousInterceptor(target)) {
-      console.warn(
-        `OriginalUI: Blocked ${event.type} on suspicious element`,
-        target
-      );
+      Logger.security('PointerEventBlocked', 'Blocked pointer event on suspicious element', {
+        eventType: event.type,
+        target: target.tagName
+      });
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
@@ -218,22 +219,19 @@ export class ClickHijackingProtector {
         suspiciousFactors.length >= SUSPICIOUS_THRESHOLD;
 
       if (isSuspiciousClick) {
-        console.log("OriginalUI: Blocked suspicious click event:", {
-          element:
-            element.tagName +
-            (element.className ? "." + element.className : ""),
+        Logger.security('SuspiciousClickBlocked', 'Blocked suspicious click event', {
+          element: element.tagName + (element.className ? "." + element.className : ""),
           factors: suspiciousFactors,
-          coords: { x: event.clientX, y: event.clientY },
+          coords: { x: event.clientX, y: event.clientY }
         });
 
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
-        console.warn("🛡️ OriginalUI blocked a suspicious click (likely ad)");
         return false;
       }
     } catch (error) {
-      console.warn("OriginalUI: Error in advanced click protection:", error);
+      Logger.warn('ClickProtectionError', 'Error in advanced click protection', { error });
     }
 
     return true;
@@ -356,10 +354,7 @@ export class ClickHijackingProtector {
       zIndex: window.getComputedStyle(overlay).zIndex,
     };
 
-    console.log(
-      "OriginalUI: Removing suspicious click hijacking overlay",
-      overlayInfo
-    );
+    Logger.security('OverlayRemoved', 'Removing suspicious click hijacking overlay', overlayInfo);
 
     overlay.setAttribute("data-justui-removed", "click-hijacking-protection");
     overlay.remove();
@@ -401,9 +396,7 @@ export class ClickHijackingProtector {
     });
 
     if (removedCount > 0) {
-      console.log(
-        `OriginalUI: Click protection scan removed ${removedCount} suspicious overlays`
-      );
+      Logger.info('OverlayScanComplete', 'Click protection scan complete', { removedCount });
     }
 
     return removedCount;

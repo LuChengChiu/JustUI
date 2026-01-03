@@ -14,6 +14,8 @@
  * @module token-indexer
  */
 
+import Logger from "@script-utils/logger.js";
+
 /**
  * Builds and manages inverted token index for fast selector lookup
  */
@@ -62,8 +64,9 @@ export class TokenIndexer {
       }
     }
 
-    console.log(
-      `TokenIndexer: Built index with ${this.index.size} unique tokens from ${selectors.length} selectors`
+    Logger.debug(
+      "RuleExecution:TokenIndexer",
+      `Built index with ${this.index.size} unique tokens from ${selectors.length} selectors`
     );
 
     return this;

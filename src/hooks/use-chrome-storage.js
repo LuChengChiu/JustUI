@@ -4,6 +4,7 @@ import {
   safeStorageSet,
   isExtensionContextValid
 } from '../scripts/utils/chrome-api-safe.js';
+import Logger from '@script-utils/logger.js';
 
 /**
  * Custom hook for managing Chrome storage with production-grade safety
@@ -51,7 +52,9 @@ export function useChromeStorage(key, defaultValue, options = {}) {
 
     // Check if Chrome context is still valid
     if (!isExtensionContextValid()) {
-      console.warn('Chrome context invalidated, using default value');
+      Logger.warn('ChromeStorageHook', 'Chrome context invalidated, using default value', {
+        key
+      });
       setLoading(false);
       setError(new Error('Extension context invalidated'));
       return;
@@ -72,7 +75,7 @@ export function useChromeStorage(key, defaultValue, options = {}) {
         }
       } catch (err) {
         if (isMounted) {
-          console.warn(`Failed to load storage key "${key}":`, err);
+          Logger.warn('ChromeStorageHook', `Failed to load storage key "${key}"`, err);
           setValue(defaultValueRef.current); // Explicit default on error
           setError(err);
           setLoading(false); // Loading complete even on error
@@ -106,7 +109,9 @@ export function useChromeStorage(key, defaultValue, options = {}) {
     setValue(newValue);
 
     if (!isExtensionContextValid()) {
-      console.warn('Chrome context invalidated, cannot save to storage');
+      Logger.warn('ChromeStorageHook', 'Chrome context invalidated, cannot save to storage', {
+        key
+      });
       setError(new Error('Extension context invalidated'));
       return;
     }
@@ -120,7 +125,7 @@ export function useChromeStorage(key, defaultValue, options = {}) {
 
       setError(null); // Clear errors on successful save
     } catch (err) {
-      console.error(`Failed to save storage key "${key}":`, err);
+      Logger.error('ChromeStorageHook', `Failed to save storage key "${key}"`, err);
       setError(err);
       // Note: We keep optimistic update even on error for UX
       // The storage listener will revert if needed

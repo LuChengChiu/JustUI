@@ -1,5 +1,6 @@
-import fs from 'fs/promises';
-import path from 'path';
+import fs from "fs/promises";
+import path from "path";
+import Logger from "../../../utils/logger.js";
 
 /**
  * Builds static rulesets at compile-time (for adservers)
@@ -27,6 +28,9 @@ export class StaticRuleBuilder {
       }, null, 2)
     );
 
-    console.log(`✅ Built static ruleset: ${rules.length} rules → ${rulesetPath}`);
+    Logger.info(
+      "NetworkBlocking:StaticRuleBuilder",
+      `Built static ruleset: ${rules.length} rules → ${rulesetPath}`
+    );
   }
 }

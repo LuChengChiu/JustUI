@@ -124,7 +124,9 @@ describe('CustomPatternSource', () => {
 
       expect(result).toHaveLength(5000);
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Custom patterns exceed capacity (6000/5000)')
+        expect.stringContaining('[NetworkBlocking:CustomPatternSource]'),
+        expect.stringContaining('Custom patterns exceed capacity (6000/5000)'),
+        expect.any(Object)
       );
       consoleSpy.mockRestore();
     });

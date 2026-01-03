@@ -165,7 +165,7 @@ describe('JsonRuleConverter', () => {
     });
 
     test('should track conversion statistics', async () => {
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
       const rules = [
         { trigger: 'valid.com', severity: 'high' },
@@ -176,10 +176,14 @@ describe('JsonRuleConverter', () => {
       await converter.convert(rules, mockIdRange);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('JSON conversion stats:')
+        expect.stringContaining('[NetworkBlocking:JsonRuleConverter]'),
+        expect.stringContaining('JSON conversion stats:'),
+        expect.any(Object)
       );
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('2/3 converted, 1 failed')
+        expect.stringContaining('[NetworkBlocking:JsonRuleConverter]'),
+        expect.stringContaining('2/3 converted, 1 failed'),
+        expect.any(Object)
       );
 
       consoleLogSpy.mockRestore();

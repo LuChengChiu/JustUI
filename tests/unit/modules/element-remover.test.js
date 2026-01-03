@@ -151,8 +151,12 @@ describe('ElementRemover', () => {
       expect(result).toBe(false);
       expect(ElementRemover.removalStats.totalRemoved).toBe(0);
       expect(consoleSpy).toHaveBeenCalledWith(
-        'OriginalUI: Error during element removal:',
-        expect.any(Error)
+        expect.stringContaining('[ElementRemoval]'),
+        'Error during element removal',
+        expect.objectContaining({
+          category: 'ElementRemoval',
+          message: 'Error during element removal'
+        })
       );
       consoleSpy.mockRestore();
     });
@@ -341,7 +345,7 @@ describe('ElementRemover', () => {
 
     test('should only check every CLEANUP_CHECK_INTERVAL_MS', () => {
       vi.useFakeTimers();
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
       // Set lastCleanupCheck to 6 minutes ago
       ElementRemover.removalStats.lastReset = Date.now() - 360000;
@@ -359,7 +363,12 @@ describe('ElementRemover', () => {
 
       // Should have checked and reset
       expect(consoleSpy).toHaveBeenCalledWith(
-        'OriginalUI: Auto-resetting ElementRemover stats due to age'
+        expect.stringContaining('[ElementRemoval]'),
+        'Auto-resetting ElementRemover stats due to age',
+        expect.objectContaining({
+          category: 'ElementRemoval',
+          message: 'Auto-resetting ElementRemover stats due to age'
+        })
       );
 
       consoleSpy.mockRestore();

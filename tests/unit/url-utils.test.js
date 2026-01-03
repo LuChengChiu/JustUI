@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import Logger, { LogLevel } from "@script-utils/logger.js";
 import { safeParseUrl } from "@utils/url-utils.js";
 
 describe("safeParseUrl", () => {
@@ -39,7 +40,9 @@ describe("safeParseUrl", () => {
   });
 
   test("uses debug level when specified", () => {
-    debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
+    debugSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const previousLevel = Logger.getLevel();
+    Logger.setLevel(LogLevel.DEBUG);
     const result = safeParseUrl("http://[invalid", undefined, {
       level: "debug",
       context: "test",
@@ -47,5 +50,6 @@ describe("safeParseUrl", () => {
     });
     expect(result).toBeNull();
     expect(debugSpy).toHaveBeenCalledTimes(1);
+    Logger.setLevel(previousLevel);
   });
 });

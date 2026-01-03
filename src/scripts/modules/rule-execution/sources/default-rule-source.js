@@ -7,8 +7,9 @@
  * @module default-rule-source
  */
 
-import { IDomRuleSource } from './i-dom-rule-source.js';
-import { safeStorageGet } from '@script-utils/chrome-api-safe.js';
+import Logger from "@script-utils/logger.js";
+import { IDomRuleSource } from "./i-dom-rule-source.js";
+import { safeStorageGet } from "@script-utils/chrome-api-safe.js";
 
 /**
  * Source for default built-in CSS selector rules
@@ -39,7 +40,11 @@ export class DefaultRuleSource extends IDomRuleSource {
       this.cacheTime = now;
       return this.cachedRules;
     } catch (error) {
-      console.error('DefaultRuleSource: Failed to fetch rules:', error);
+      Logger.error(
+        "RuleExecution:DefaultRuleSource",
+        "Failed to fetch rules",
+        error
+      );
       // Return cached rules if available, empty array otherwise
       return this.cachedRules || [];
     }

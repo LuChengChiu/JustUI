@@ -5,6 +5,7 @@ import { MaliciousPatternDetector } from "./utils/malicious-pattern-detector.js"
 import { PermissionCache } from "./utils/permission-cache.js";
 import { showBlockedToast } from "./ui/toast-notification.js";
 import { safeParseUrl } from "../utils/url-utils.js";
+import Logger from "./utils/logger.js";
 
 (function () {
   "use strict";
@@ -64,9 +65,12 @@ import { safeParseUrl } from "../utils/url-utils.js";
     try {
       await inMemoryPermissionCache.syncFromStorage();
       const stats = inMemoryPermissionCache.getStats();
-      console.log(`Navigation Guardian: Cache hydrated with ${stats.cacheSize} entries (hit rate: ${stats.hitRate})`);
+      Logger.info('CacheHydrated', 'Navigation Guardian cache hydrated', {
+        cacheSize: stats.cacheSize,
+        hitRate: stats.hitRate
+      });
     } catch (error) {
-      console.warn('Navigation Guardian: Cache hydration failed, starting with empty cache:', error);
+      Logger.warn('CacheHydrationFailed', 'Cache hydration failed, starting with empty cache', error);
       // Continue with empty cache - still functional
     }
   })();
@@ -213,7 +217,11 @@ import { safeParseUrl } from "../utils/url-utils.js";
       );
 
       // Debounced sync to chrome.storage happens automatically
-      console.log(`Navigation Guardian: Permission cached (${decision}) for ${targetOrigin}`);
+      Logger.debug('PermissionCached', 'Permission decision cached', () => ({
+        decision,
+        targetOrigin,
+        persistent
+      }));
     }
   });
 
@@ -267,12 +275,11 @@ import { safeParseUrl } from "../utils/url-utils.js";
       window.location.origin
     );
 
-    console.error('Navigation Guardian: Permission error details:', {
-      navType: navType,
+    Logger.error('PermissionCheckError', 'Permission check failed', error, {
+      navType,
       url: truncatedUrl + (urlWasTruncated ? '... [truncated]' : ''),
-      isHighRisk: isHighRisk,
-      totalErrors: errorStats.checkPermissionErrors,
-      errorMessage: error?.message || String(error)
+      isHighRisk,
+      totalErrors: errorStats.checkPermissionErrors
     });
   }
 
@@ -294,9 +301,10 @@ import { safeParseUrl } from "../utils/url-utils.js";
   function safeOverride(obj, propName, newValue, context = "property") {
     // Pre-check if property can be overridden
     if (!canOverrideProperty(obj, propName)) {
-      console.info(
-        `Navigation Guardian: Skipping ${context} ${propName} - not writable/configurable`
-      );
+      Logger.debug('SkipOverride', `Skipping ${context} - not writable/configurable`, {
+        context,
+        propName
+      });
       return false;
     }
 
@@ -304,15 +312,17 @@ import { safeParseUrl } from "../utils/url-utils.js";
       const originalValue = obj[propName];
       obj[propName] = newValue;
 
-      console.log(
-        `Navigation Guardian: Successfully overrode ${context} ${propName}`
-      );
+      Logger.debug('OverrideSuccess', `Successfully overrode ${context}`, {
+        context,
+        propName
+      });
       return true;
     } catch (e) {
-      console.warn(
-        `Navigation Guardian: Cannot override ${context} ${propName}:`,
-        e.message
-      );
+      Logger.warn('OverrideFailed', `Cannot override ${context}`, {
+        context,
+        propName,
+        error: e.message
+      });
       return false;
     }
   }
@@ -323,29 +333,34 @@ import { safeParseUrl } from "../utils/url-utils.js";
     try {
       const existingDescriptor = Object.getOwnPropertyDescriptor(obj, propName);
       if (existingDescriptor && existingDescriptor.configurable === false) {
-        console.info(
-          `Navigation Guardian: Skipping ${context} ${propName} - not configurable`
-        );
+        Logger.debug('SkipDefine', `Skipping ${context} - not configurable`, {
+          context,
+          propName
+        });
         return false;
       }
     } catch (e) {
-      console.warn(
-        `Navigation Guardian: Cannot check descriptor for ${context} ${propName}`
-      );
+      Logger.warn('DescriptorCheckFailed', `Cannot check descriptor for ${context}`, {
+        context,
+        propName,
+        error: e.message
+      });
       return false;
     }
 
     try {
       Object.defineProperty(obj, propName, descriptor);
-      console.log(
-        `Navigation Guardian: Successfully defined ${context} ${propName}`
-      );
+      Logger.debug('DefineSuccess', `Successfully defined ${context}`, {
+        context,
+        propName
+      });
       return true;
     } catch (e) {
-      console.warn(
-        `Navigation Guardian: Cannot define ${context} ${propName}:`,
-        e.message
-      );
+      Logger.warn('DefineFailed', `Cannot define ${context}`, {
+        context,
+        propName,
+        error: e.message
+      });
       return false;
     }
   }
@@ -360,13 +375,13 @@ import { safeParseUrl } from "../utils/url-utils.js";
   try {
     originalLocationAssign = window.location.assign;
   } catch (e) {
-    console.warn("Navigation Guardian: Cannot access location.assign");
+    Logger.warn('AccessFailed', 'Cannot access location.assign', { error: e.message });
   }
 
   try {
     originalLocationReplace = window.location.replace;
   } catch (e) {
-    console.warn("Navigation Guardian: Cannot access location.replace");
+    Logger.warn('AccessFailed', 'Cannot access location.replace', { error: e.message });
   }
 
   try {
@@ -374,7 +389,7 @@ import { safeParseUrl } from "../utils/url-utils.js";
       Object.getOwnPropertyDescriptor(Location.prototype, "href") ||
       Object.getOwnPropertyDescriptor(window.location, "href");
   } catch (e) {
-    console.warn("Navigation Guardian: Cannot access href descriptor");
+    Logger.warn('AccessFailed', 'Cannot access href descriptor', { error: e.message });
   }
 
   // Utility function to check if URL is cross-origin
@@ -444,9 +459,10 @@ import { safeParseUrl } from "../utils/url-utils.js";
           if (!hasResolved) {
             hasResolved = true;
             cleanup();
-            console.warn(
-              "Navigation Guardian: Permission check timed out for:",
-              url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS)
+            Logger.warn(
+              'PermissionTimeout',
+              'Permission check timed out',
+              { url: url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS) }
             );
             resolve(false);
           }
@@ -475,11 +491,10 @@ import { safeParseUrl } from "../utils/url-utils.js";
             cleanup();
 
             const allowed = event.data.allowed || false;
-            console.log(
-              `Navigation Guardian: Permission ${
-                allowed ? "granted" : "denied"
-              } for:`,
-              url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS)
+            Logger.debug(
+              'PermissionResponse',
+              `Permission ${allowed ? 'granted' : 'denied'}`,
+              { url: url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS), allowed }
             );
             resolve(allowed);
           }
@@ -505,7 +520,11 @@ import { safeParseUrl } from "../utils/url-utils.js";
 
       // Send request to content script with pop-under analysis
       try {
-        console.log("Navigation Guardian: Requesting permission for:", url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS));
+        Logger.debug(
+          'PermissionRequest',
+          'Requesting permission for navigation',
+          { url: url?.substring(0, CONFIG.MAX_URL_LENGTH_IN_LOGS) }
+        );
         window.postMessage(
           {
             type: "NAV_GUARDIAN_CHECK",
@@ -550,9 +569,11 @@ import { safeParseUrl } from "../utils/url-utils.js";
           return await checkNavigationPermission(url, activeSignal);
         } catch (error) {
           // Log error with URL context for debugging
-          console.warn(
-            `Navigation Guardian: ${navType} check failed for URL "${truncatedUrl}" (attempt ${attempt + 1}/${CONFIG.MAX_PERMISSION_RETRIES + 1}):`,
-            error
+          Logger.warn(
+            'PermissionCheckRetry',
+            `${navType} check failed (attempt ${attempt + 1}/${CONFIG.MAX_PERMISSION_RETRIES + 1})`,
+            error,
+            { url: truncatedUrl, navType }
           );
 
           // Last attempt failed - decide based on risk level
@@ -568,8 +589,10 @@ import { safeParseUrl } from "../utils/url-utils.js";
             // - Low risk (location.href, safe URLs) -> allow (true)
             const shouldAllowOnError = !isHighRisk;
 
-            console.warn(
-              `Navigation Guardian: Using ${isHighRisk ? 'DENY' : 'ALLOW'} fallback for ${navType} on URL "${truncatedUrl}" (risk: ${isHighRisk ? 'HIGH' : 'LOW'})`
+            Logger.warn(
+              'PermissionFallback',
+              `Using ${isHighRisk ? 'DENY' : 'ALLOW'} fallback for ${navType}`,
+              { url: truncatedUrl, risk: isHighRisk ? 'HIGH' : 'LOW', decision: shouldAllowOnError }
             );
 
             return shouldAllowOnError;
@@ -605,7 +628,7 @@ import { safeParseUrl } from "../utils/url-utils.js";
         return true; // HIGH RISK - malicious URL pattern detected
       }
     } catch (error) {
-      console.warn('Navigation Guardian: Error checking URL maliciousness:', error);
+      Logger.warn('MaliciousCheckError', 'Error checking URL maliciousness', error, { url: url?.substring(0, 200) });
       // If malicious check fails, assume low-medium risk for location methods
       // window.open would have already returned true above
       return false;
@@ -648,8 +671,10 @@ import { safeParseUrl } from "../utils/url-utils.js";
     // Block deprecated 'unload' event - violates Permissions Policy in modern Chrome
     // See: https://developer.chrome.com/blog/deprecating-unload
     if (type === "unload") {
-      console.info(
-        'Navigation Guardian: Blocked deprecated "unload" event listener. Use "pagehide" with { capture: true } instead.'
+      Logger.info(
+        'UnloadEventBlocked',
+        'Blocked deprecated "unload" event listener',
+        { suggestion: 'Use "pagehide" with { capture: true } instead' }
       );
       // Silently ignore - don't throw, just don't register
       return;
@@ -663,13 +688,17 @@ import { safeParseUrl } from "../utils/url-utils.js";
       const analysis = MaliciousPatternDetector.analyze(listenerStr, 6);
 
       if (analysis.isMalicious) {
-        console.log("Navigation Guardian: Blocked malicious click listener:", {
-          target: this.tagName || this.constructor.name,
-          riskScore: analysis.riskScore,
-          threats: analysis.threats,
-          listenerPreview: listenerStr.substring(0, 200) + "...",
-          options: options,
-        });
+        Logger.security(
+          'MaliciousListenerBlocked',
+          'Blocked malicious click listener',
+          {
+            target: this.tagName || this.constructor.name,
+            riskScore: analysis.riskScore,
+            threats: analysis.threats,
+            listenerPreview: listenerStr.substring(0, 200) + '...',
+            options: options,
+          }
+        );
 
         return;
       }
@@ -695,11 +724,15 @@ import { safeParseUrl } from "../utils/url-utils.js";
         const analysis = MaliciousPatternDetector.analyze(content, 7);
 
         if (analysis.isMalicious) {
-          console.log("Navigation Guardian: Removing malicious script:", {
-            riskScore: analysis.riskScore,
-            threats: analysis.threats,
-            contentPreview: content.substring(0, 100) + "...",
-          });
+          Logger.security(
+            'MaliciousScriptRemoved',
+            'Removing malicious script',
+            {
+              riskScore: analysis.riskScore,
+              threats: analysis.threats,
+              contentPreview: content.substring(0, 100) + '...',
+            }
+          );
           script.remove();
           localBlockedCount++;
           blockedScriptsCount++; // Update global counter
@@ -710,8 +743,9 @@ import { safeParseUrl } from "../utils/url-utils.js";
         reportStats();
       }
     } catch (error) {
-      console.warn(
-        "Navigation Guardian: Error cleaning up malicious listeners:",
+      Logger.warn(
+        'CleanupError',
+        'Error cleaning up malicious listeners',
         error
       );
     }
@@ -823,7 +857,7 @@ import { safeParseUrl } from "../utils/url-utils.js";
       try {
         this.abortController.signal.addEventListener('abort', this.abortHandler, { once: true });
       } catch (e) {
-        console.warn('PendingWindowProxy: Failed to add abort listener:', e);
+        Logger.warn('ProxyAbortListenerError', 'Failed to add abort listener', e);
       }
 
       activeProxyRegistry.add(this);
@@ -840,7 +874,7 @@ import { safeParseUrl } from "../utils/url-utils.js";
         }
         this.finalize(allowed, allowed ? 'allowed' : 'denied');
       } catch (error) {
-        console.error('PendingWindowProxy: Permission check failed:', error);
+        Logger.error('ProxyPermissionError', 'Permission check failed', error, { url: this.url?.substring(0, 200) });
         this.finalize(false, 'error');
       }
     }
@@ -871,12 +905,12 @@ import { safeParseUrl } from "../utils/url-utils.js";
         if (this.realWindow) {
           this.replayQueuedOps();
         } else {
-          console.warn('PendingWindowProxy: Failed to open real window (popup blocked?)');
+          Logger.warn('ProxyWindowOpenFailed', 'Failed to open real window (popup blocked?)');
         }
       } else if (reason === 'timeout') {
-        console.warn('PendingWindowProxy: Permission check timed out');
+        Logger.warn('ProxyTimeout', 'Permission check timed out');
       } else if (reason === 'denied') {
-        console.log('PendingWindowProxy: Navigation denied by user');
+        Logger.debug('ProxyDenied', 'Navigation denied by user');
       }
 
       this.pendingOps = [];
@@ -886,17 +920,17 @@ import { safeParseUrl } from "../utils/url-utils.js";
 
     replayQueuedOps() {
       if (!this.realWindow) {
-        console.warn('PendingWindowProxy: Cannot replay ops - no real window');
+        Logger.warn('ProxyReplayError', 'Cannot replay ops - no real window');
         return;
       }
 
-      console.log(`PendingWindowProxy: Replaying ${this.pendingOps.length} queued operations`);
+      Logger.debug('ProxyReplay', `Replaying queued operations`, { count: this.pendingOps.length });
 
       for (const op of this.pendingOps) {
         try {
           op(this.realWindow);
         } catch (e) {
-          console.warn('PendingWindowProxy: Failed to replay operation:', e);
+          Logger.warn('ProxyReplayOpError', 'Failed to replay operation', e);
         }
       }
 
@@ -944,7 +978,7 @@ import { safeParseUrl } from "../utils/url-utils.js";
                 try {
                   return target.realWindow[prop]?.(...args);
                 } catch (e) {
-                  console.warn(`PendingWindowProxy: Failed to call ${String(prop)}:`, e);
+                  Logger.warn('ProxyCallError', `Failed to call ${String(prop)}`, e);
                   return undefined;
                 }
               } else if (!target.resolved) {
@@ -954,7 +988,7 @@ import { safeParseUrl } from "../utils/url-utils.js";
                     try {
                       win[prop](...args);
                     } catch (e) {
-                      console.warn(`PendingWindowProxy: Failed to replay ${String(prop)}:`, e);
+                      Logger.warn('ProxyReplayMethodError', `Failed to replay ${String(prop)}`, e);
                     }
                   }
                 });
@@ -978,7 +1012,7 @@ import { safeParseUrl } from "../utils/url-utils.js";
                 try {
                   win[prop] = value;
                 } catch (e) {
-                  console.warn(`PendingWindowProxy: Failed to set ${String(prop)}:`, e);
+                  Logger.warn('ProxySetError', `Failed to set ${String(prop)}`, e);
                 }
               }
             });
@@ -989,7 +1023,7 @@ import { safeParseUrl } from "../utils/url-utils.js";
             try {
               target.realWindow[prop] = value;
             } catch (e) {
-              console.warn(`PendingWindowProxy: Failed to set ${String(prop)}:`, e);
+              Logger.warn('ProxySetError', `Failed to set ${String(prop)}`, e);
             }
           }
           return true;
@@ -1013,21 +1047,28 @@ import { safeParseUrl } from "../utils/url-utils.js";
 
       if (decision.decision === 'ALLOW') {
         // ✅ Allowed - return real window immediately
-        console.log(`Navigation Guardian: Allowing window.open (${decision.reason}):`, url);
+        Logger.debug('WindowOpenAllowed', 'Allowing window.open', {
+          reason: decision.reason,
+          url: url?.substring(0, 200)
+        });
         return originalWindowOpen.call(this, url, name, features);
       }
 
       if (decision.decision === 'BLOCK') {
         // ❌ Blocked - return null immediately
-        console.warn(`🛡️ OriginalUI blocked window.open (${decision.reason}):`, url);
-        if (decision.metadata) {
-          console.log('Block details:', decision.metadata);
-        }
+        Logger.security('WindowOpenBlocked', 'Blocked window.open', {
+          reason: decision.reason,
+          url: url?.substring(0, 200),
+          ...decision.metadata
+        });
         return null;
       }
 
       // 🔄 NEEDS_MODAL - Return proxy that resolves async
-      console.log(`Navigation Guardian: Creating pending proxy for window.open (${decision.reason}):`, url);
+      Logger.debug('WindowOpenPending', 'Creating pending proxy for window.open', {
+        reason: decision.reason,
+        url: url?.substring(0, 200)
+      });
       const proxy = new PendingWindowProxy(url, name, features);
       return proxy.createProxy();
     },
@@ -1051,13 +1092,19 @@ import { safeParseUrl } from "../utils/url-utils.js";
 
         if (decision.decision === 'ALLOW') {
           // ✅ Allowed - navigate immediately
-          console.log(`Navigation Guardian: Allowing location.assign (${decision.reason}):`, url);
+          Logger.debug('LocationAssignAllowed', 'Allowing location.assign', {
+            reason: decision.reason,
+            url: url?.substring(0, 200)
+          });
           return originalLocationAssign.call(this, url);
         }
 
         if (decision.decision === 'BLOCK') {
           // ❌ Blocked - prevent navigation + show toast
-          console.warn(`🛡️ OriginalUI blocked location.assign (${decision.reason}):`, url);
+          Logger.security('LocationAssignBlocked', 'Blocked location.assign', {
+            reason: decision.reason,
+            url: url?.substring(0, 200)
+          });
           showBlockedToast(url, decision.reason);
           return; // Prevent navigation
         }
@@ -1077,13 +1124,15 @@ import { safeParseUrl } from "../utils/url-utils.js";
             }
           })
           .catch((error) => {
-            console.error('Navigation Guardian: Unexpected error in location.assign:', error);
+            Logger.error('LocationAssignError', 'Unexpected error in location.assign', error, {
+              url: url?.substring(0, 200)
+            });
             reportPermissionError(error, url, 'location.assign', true);
             // Fail-secure: deny navigation
             try {
               showBlockedToast(url, 'Navigation blocked due to security check error');
             } catch (toastError) {
-              console.warn('Navigation Guardian: Could not show blocked toast:', toastError);
+              Logger.warn('ToastFailed', 'Could not show blocked toast', toastError);
             }
           });
       },
@@ -1107,13 +1156,19 @@ import { safeParseUrl } from "../utils/url-utils.js";
 
         if (decision.decision === 'ALLOW') {
           // ✅ Allowed - navigate immediately
-          console.log(`Navigation Guardian: Allowing location.replace (${decision.reason}):`, url);
+          Logger.debug('LocationReplaceAllowed', 'Allowing location.replace', {
+            reason: decision.reason,
+            url: url?.substring(0, 200)
+          });
           return originalLocationReplace.call(this, url);
         }
 
         if (decision.decision === 'BLOCK') {
           // ❌ Blocked - prevent navigation + show toast
-          console.warn(`🛡️ OriginalUI blocked location.replace (${decision.reason}):`, url);
+          Logger.security('LocationReplaceBlocked', 'Blocked location.replace', {
+            reason: decision.reason,
+            url: url?.substring(0, 200)
+          });
           showBlockedToast(url, decision.reason);
           return; // Prevent navigation
         }
@@ -1133,13 +1188,15 @@ import { safeParseUrl } from "../utils/url-utils.js";
             }
           })
           .catch((error) => {
-            console.error('Navigation Guardian: Unexpected error in location.replace:', error);
+            Logger.error('LocationReplaceError', 'Unexpected error in location.replace', error, {
+              url: url?.substring(0, 200)
+            });
             reportPermissionError(error, url, 'location.replace', true);
             // Fail-secure: deny navigation
             try {
               showBlockedToast(url, 'Navigation blocked due to security check error');
             } catch (toastError) {
-              console.warn('Navigation Guardian: Could not show blocked toast:', toastError);
+              Logger.warn('ToastFailed', 'Could not show blocked toast', toastError);
             }
           });
       },
@@ -1165,13 +1222,19 @@ import { safeParseUrl } from "../utils/url-utils.js";
 
           if (decision.decision === 'ALLOW') {
             // ✅ Allowed - navigate immediately
-            console.log(`Navigation Guardian: Allowing location.href (${decision.reason}):`, url);
+            Logger.debug('LocationHrefAllowed', 'Allowing location.href assignment', {
+              reason: decision.reason,
+              url: url?.substring(0, 200)
+            });
             return originalHrefDescriptor.set.call(this, url);
           }
 
           if (decision.decision === 'BLOCK') {
             // ❌ Blocked - prevent navigation + show toast
-            console.warn(`🛡️ OriginalUI blocked location.href (${decision.reason}):`, url);
+            Logger.security('LocationHrefBlocked', 'Blocked location.href assignment', {
+              reason: decision.reason,
+              url: url?.substring(0, 200)
+            });
             showBlockedToast(url, decision.reason);
             return; // Prevent navigation
           }
@@ -1191,13 +1254,15 @@ import { safeParseUrl } from "../utils/url-utils.js";
               }
             })
             .catch((error) => {
-              console.error('Navigation Guardian: Unexpected error in location.href:', error);
+              Logger.error('LocationHrefError', 'Unexpected error in location.href', error, {
+                url: url?.substring(0, 200)
+              });
               reportPermissionError(error, url, 'location.href', true);
               // Fail-secure: deny navigation (consistent with location.assign/replace)
               try {
                 showBlockedToast(url, 'Navigation blocked due to security check error');
               } catch (toastError) {
-                console.warn('Navigation Guardian: Could not show blocked toast:', toastError);
+                Logger.warn('ToastFailed', 'Could not show blocked toast', toastError);
               }
             });
         },
@@ -1217,12 +1282,16 @@ import { safeParseUrl } from "../utils/url-utils.js";
     .filter(([_, success]) => !success)
     .map(([name, _]) => name);
 
-  console.log("Navigation Guardian: JavaScript overrides status:", {
-    successful: successfulOverrides,
-    failed: failedOverrides,
-    note:
-      failedOverrides.length > 0
-        ? "Some overrides failed - relying on DOM interception"
-        : "All overrides successful",
-  });
+  Logger.info(
+    'OverrideStatus',
+    'JavaScript overrides initialization complete',
+    {
+      successful: successfulOverrides,
+      failed: failedOverrides,
+      note:
+        failedOverrides.length > 0
+          ? 'Some overrides failed - relying on DOM interception'
+          : 'All overrides successful',
+    }
+  );
 })();

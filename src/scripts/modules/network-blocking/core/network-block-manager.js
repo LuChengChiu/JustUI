@@ -2,6 +2,8 @@
  * Main orchestrator for network blocking system (SRP)
  * Manages lifecycle of rule updates without knowing implementation details
  */
+import Logger from "@script-utils/logger.js";
+
 export class NetworkBlockManager {
   constructor(sources, updater, parser, converter, budgetCoordinator = null) {
     this.sources = sources;     // Array<IRuleSource>
@@ -59,17 +61,24 @@ export class NetworkBlockManager {
           truncated: allocation?.truncated ?? 0
         });
 
-        console.log(`✅ Updated ${dnrRules.length} rules for ${source.getName()}`);
+        Logger.info(
+          "NetworkBlocking:Manager",
+          `Updated ${dnrRules.length} rules for ${source.getName()}`
+        );
       } catch (error) {
         results.push({ source: source.getName(), success: false, error: error.message });
-        console.error(`Failed to update ${source.getName()}:`, error);
+        Logger.error(
+          "NetworkBlocking:Manager",
+          `Failed to update ${source.getName()}`,
+          error
+        );
       }
     }
 
     // Log final statistics if budget coordinator is available
     if (this.budgetCoordinator) {
       const stats = this.budgetCoordinator.getStats();
-      console.log('📊 Budget Statistics:', stats);
+      Logger.info("NetworkBlocking:Manager", "Budget statistics", stats);
     }
 
     return results;
@@ -79,7 +88,7 @@ export class NetworkBlockManager {
    * Update a single source
    */
   async updateSource(source) {
-    console.log(`🔄 Updating ${source.getName()}...`);
+    Logger.info("NetworkBlocking:Manager", `Updating ${source.getName()}...`);
 
     // Fetch raw rules
     const rawContent = await source.fetchRules();
@@ -96,7 +105,10 @@ export class NetworkBlockManager {
     // Update via appropriate updater
     await this.updater.update(dnrRules, source.getRuleIdRange());
 
-    console.log(`✅ Updated ${dnrRules.length} rules for ${source.getName()}`);
+    Logger.info(
+      "NetworkBlocking:Manager",
+      `Updated ${dnrRules.length} rules for ${source.getName()}`
+    );
     return { ruleCount: dnrRules.length };
   }
 

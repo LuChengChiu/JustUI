@@ -9,6 +9,7 @@ import Status from "./components/app/status";
 import Gear from "./components/icons/gear";
 import Button from "./components/ui/button";
 import { H1 } from "./components/ui/typography";
+import Logger from "@script-utils/logger.js";
 
 // Action types
 const actionTypes = {
@@ -193,7 +194,9 @@ export default function App() {
 
     const timeout = setTimeout(() => {
       if (!isMountedRef.current) return;
-      console.error("Timeout updating whitelist");
+      Logger.error("WhitelistUpdate", "Timeout updating whitelist", {
+        domain: currentDomain
+      });
       setWhitelistError("Whitelist update timed out. Please try again.");
     }, 5000);
     whitelistTimeoutRef.current = timeout;
@@ -211,7 +214,10 @@ export default function App() {
         if (!isMountedRef.current) return;
 
         if (chrome.runtime.lastError) {
-          console.error("Error updating whitelist:", chrome.runtime.lastError);
+          Logger.error("WhitelistUpdate", "Error updating whitelist", chrome.runtime.lastError, {
+            domain: currentDomain,
+            action: whitelistAction
+          });
           setWhitelistError("Failed to update whitelist. Please try again.");
           return;
         }
@@ -274,10 +280,7 @@ export default function App() {
               if (!isMountedRef.current) return;
 
               if (chrome.runtime.lastError) {
-                console.error(
-                  "Error getting current domain:",
-                  chrome.runtime.lastError
-                );
+                Logger.error("PopupInit", "Error getting current domain", chrome.runtime.lastError);
                 resolve(null);
               } else {
                 resolve(response);
@@ -304,10 +307,9 @@ export default function App() {
                 if (!isMountedRef.current) return;
 
                 if (chrome.runtime.lastError) {
-                  console.error(
-                    "Error checking whitelist:",
-                    chrome.runtime.lastError
-                  );
+                  Logger.error("PopupInit", "Error checking whitelist", chrome.runtime.lastError, {
+                    domain: domainResponse.domain
+                  });
                   resolve({ isWhitelisted: false });
                 } else {
                   resolve(response);
@@ -326,7 +328,7 @@ export default function App() {
           });
         }
       } catch (error) {
-        console.error("Extension initialization error:", error);
+        Logger.error("PopupInit", "Extension initialization error", error);
       } finally {
         if (isMountedRef.current) {
           dispatch({ type: actionTypes.SET_LOADING, value: false });

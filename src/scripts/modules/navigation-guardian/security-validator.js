@@ -1,3 +1,4 @@
+import Logger from '@script-utils/logger.js';
 import {
   AD_NETWORK_DOMAINS,
   TRACKING_PARAMETERS,
@@ -23,7 +24,10 @@ import {
  * @example
  * // Threat analysis
  * const analysis = validator.analyzeThreats('https://malicious-site.com/redirect?param_4=123');
- * console.log(`Risk Score: ${analysis.riskScore}, Threats: ${analysis.threats.length}`);
+ * Logger.info('SecurityValidator', 'Threat analysis summary', {
+ *   riskScore: analysis.riskScore,
+ *   threats: analysis.threats.length
+ * });
  *
  * @module SecurityValidator
  * @since 1.0.0
@@ -280,7 +284,7 @@ export class SecurityValidator {
       // Determine if this is likely a pop-under attempt
       analysis.isPopUnder = analysis.riskScore >= 6;
     } catch (error) {
-      console.warn("OriginalUI: Error analyzing URL threats:", error);
+      Logger.warn('URLThreatAnalysisError', 'Error analyzing URL threats', error);
       analysis.threats.push({ type: "Analysis error", score: 1 });
       analysis.riskScore += 1;
     }

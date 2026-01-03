@@ -107,7 +107,7 @@ describe('RuleConverter', () => {
     });
 
     test('should track conversion statistics', async () => {
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
       convertFilter
         .mockResolvedValueOnce([{ priority: 1 }])
@@ -118,7 +118,9 @@ describe('RuleConverter', () => {
       await converter.convert(rules, mockIdRange);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Conversion stats:')
+        expect.stringContaining('[NetworkBlocking:RuleConverter]'),
+        expect.stringContaining('Conversion stats:'),
+        expect.any(Object)
       );
 
       consoleLogSpy.mockRestore();

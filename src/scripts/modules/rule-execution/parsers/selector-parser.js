@@ -7,6 +7,8 @@
  * @module selector-parser
  */
 
+import Logger from "@script-utils/logger.js";
+
 /**
  * Parser for CSS selector-based rules (no-op)
  */
@@ -18,7 +20,7 @@ export class SelectorParser {
    */
   async parse(rules) {
     if (!Array.isArray(rules)) {
-      console.warn('SelectorParser: rules is not an array:', rules);
+      Logger.warn("RuleExecution:SelectorParser", "rules is not an array", rules);
       return [];
     }
 
@@ -29,12 +31,12 @@ export class SelectorParser {
       }
 
       if (!rule.selector || typeof rule.selector !== 'string') {
-        console.warn('SelectorParser: Invalid rule selector:', rule);
+        Logger.warn("RuleExecution:SelectorParser", "Invalid rule selector", rule);
         return false;
       }
 
       if (rule.selector.trim().length === 0) {
-        console.warn('SelectorParser: Empty rule selector:', rule);
+        Logger.warn("RuleExecution:SelectorParser", "Empty rule selector", rule);
         return false;
       }
 
@@ -57,7 +59,11 @@ export class SelectorParser {
       document.querySelectorAll(selector);
       return true;
     } catch (error) {
-      console.warn('SelectorParser: Invalid CSS selector:', selector, error.message);
+      Logger.warn(
+        "RuleExecution:SelectorParser",
+        "Invalid CSS selector",
+        { selector, message: error.message }
+      );
       return false;
     }
   }

@@ -82,7 +82,12 @@ describe('Message Validators', () => {
       isValidExtensionSender(null);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('no sender ID')
+        expect.stringContaining('[MessageValidation]'),
+        'Rejected message - no sender ID',
+        expect.objectContaining({
+          category: 'MessageValidation',
+          message: 'Rejected message - no sender ID'
+        })
       );
 
       consoleWarnSpy.mockRestore();
@@ -95,8 +100,12 @@ describe('Message Validators', () => {
       isValidExtensionSender(wrongSender);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('sender ID mismatch'),
-        'wrong-id'
+        expect.stringContaining('[MessageValidation]'),
+        'Rejected message - sender ID mismatch',
+        expect.objectContaining({
+          category: 'MessageValidation',
+          data: { senderId: 'wrong-id' }
+        })
       );
 
       consoleWarnSpy.mockRestore();
@@ -195,8 +204,12 @@ describe('Message Validators', () => {
       isTrustedUISender(untrustedSender);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('not from trusted UI'),
-        'https://malicious.com'
+        expect.stringContaining('[MessageValidation]'),
+        'Rejected message - sender not from trusted UI',
+        expect.objectContaining({
+          category: 'MessageValidation',
+          data: { url: 'https://malicious.com' }
+        })
       );
 
       consoleWarnSpy.mockRestore();

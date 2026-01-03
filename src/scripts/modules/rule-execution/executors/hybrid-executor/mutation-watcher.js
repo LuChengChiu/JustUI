@@ -12,6 +12,8 @@
  * @module mutation-watcher
  */
 
+import Logger from "@script-utils/logger.js";
+
 /**
  * Debounced MutationObserver for dynamic content
  */
@@ -89,12 +91,12 @@ export class MutationWatcher {
    */
   start(target = document.body) {
     if (this.observer) {
-      console.warn('MutationWatcher: Already running');
+      Logger.warn("RuleExecution:MutationWatcher", "Already running");
       return;
     }
 
     if (!target) {
-      console.error('MutationWatcher: No target element');
+      Logger.error("RuleExecution:MutationWatcher", "No target element");
       return;
     }
 
@@ -109,7 +111,7 @@ export class MutationWatcher {
       attributeFilter: this.options.attributeFilter
     });
 
-    console.log('MutationWatcher: Started observing');
+    Logger.info("RuleExecution:MutationWatcher", "Started observing");
   }
 
   /**
@@ -226,7 +228,7 @@ export class MutationWatcher {
     this.pendingMutations = [];
     this.scheduled = false;
 
-    console.log('MutationWatcher: Stopped');
+    Logger.info("RuleExecution:MutationWatcher", "Stopped");
   }
 
   /**

@@ -9,7 +9,7 @@
  * @example
  * // Fetch default rules
  * const rules = await fetchDefaultRules();
- * console.log('Loaded rules:', rules.length);
+ * Logger.info('DefaultRulesFetch', 'Loaded rules', { count: rules.length });
  *
  * @example
  * // Fetch both rules and whitelist in parallel
@@ -40,8 +40,9 @@ export const REMOTE_URLS = {
  *
  * @example
  * const rules = await fetchDefaultRules();
- * console.log('Loaded rules:', rules.length);
+ * Logger.info('DefaultRulesFetch', 'Loaded rules', { count: rules.length });
  */
+import Logger from "../logger.js";
 export async function fetchDefaultRules() {
   // NOTE: Remote fetching is currently disabled - uncomment to enable
   // try {
@@ -49,13 +50,14 @@ export async function fetchDefaultRules() {
   //   const response = await fetch(REMOTE_URLS.RULES);
   //   if (response.ok) {
   //     const remoteRules = await response.json();
-  //     console.log("OriginalUI: Fetched rules from remote URL", remoteRules);
+  //     Logger.info("DefaultRulesFetch", "Fetched rules from remote URL", remoteRules);
   //     return remoteRules;
   //   }
   // } catch (error) {
-  //   console.log(
-  //     "OriginalUI: Failed to fetch remote rules, falling back to local:",
-  //     error.message
+  //   Logger.warn(
+  //     "DefaultRulesFetch",
+  //     "Failed to fetch remote rules, falling back to local",
+  //     error
   //   );
   // }
 
@@ -65,10 +67,12 @@ export async function fetchDefaultRules() {
       chrome.runtime.getURL("data/defaultRules.json")
     );
     const localRules = await localResponse.json();
-    console.log("OriginalUI: Using local default rules", localRules);
+    Logger.info("DefaultRulesFetch", "Using local default rules", {
+      count: localRules.length,
+    });
     return localRules;
   } catch (error) {
-    console.error("OriginalUI: Failed to load local default rules:", error);
+    Logger.error("DefaultRulesFetch", "Failed to load local default rules", error);
     return [];
   }
 }
@@ -79,7 +83,7 @@ export async function fetchDefaultRules() {
  *
  * @example
  * const whitelist = await fetchDefaultWhitelist();
- * console.log('Loaded whitelist:', whitelist.length);
+ * Logger.info('DefaultWhitelistFetch', 'Loaded whitelist', { count: whitelist.length });
  */
 export async function fetchDefaultWhitelist() {
   // NOTE: Remote fetching is currently disabled - uncomment to enable
@@ -88,13 +92,14 @@ export async function fetchDefaultWhitelist() {
   //   const response = await fetch(REMOTE_URLS.WHITELIST);
   //   if (response.ok) {
   //     const remoteWhitelist = await response.json();
-  //     console.log("OriginalUI: Fetched whitelist from remote URL", remoteWhitelist);
+  //     Logger.info("DefaultWhitelistFetch", "Fetched whitelist from remote URL", remoteWhitelist);
   //     return remoteWhitelist;
   //   }
   // } catch (error) {
-  //   console.log(
-  //     "OriginalUI: Failed to fetch remote whitelist, falling back to local:",
-  //     error.message
+  //   Logger.warn(
+  //     "DefaultWhitelistFetch",
+  //     "Failed to fetch remote whitelist, falling back to local",
+  //     error
   //   );
   // }
 
@@ -104,10 +109,16 @@ export async function fetchDefaultWhitelist() {
       chrome.runtime.getURL("data/defaultWhitelist.json")
     );
     const localWhitelist = await localResponse.json();
-    console.log("OriginalUI: Using local default whitelist", localWhitelist);
+    Logger.info("DefaultWhitelistFetch", "Using local default whitelist", {
+      count: localWhitelist.length,
+    });
     return localWhitelist;
   } catch (error) {
-    console.error("OriginalUI: Failed to load local default whitelist:", error);
+    Logger.error(
+      "DefaultWhitelistFetch",
+      "Failed to load local default whitelist",
+      error
+    );
     return [];
   }
 }
@@ -118,7 +129,10 @@ export async function fetchDefaultWhitelist() {
  *
  * @example
  * const { rules, whitelist } = await fetchAllDefaults();
- * console.log(`Loaded ${rules.length} rules and ${whitelist.length} whitelist entries`);
+ * Logger.info('DefaultDataFetch', 'Loaded default data', {
+ *   rules: rules.length,
+ *   whitelist: whitelist.length
+ * });
  */
 export async function fetchAllDefaults() {
   const [rules, whitelist] = await Promise.all([

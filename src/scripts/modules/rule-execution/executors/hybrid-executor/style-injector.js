@@ -11,6 +11,8 @@
  * @module style-injector
  */
 
+import Logger from "@script-utils/logger.js";
+
 /**
  * Injects CSS hiding rules into the document
  */
@@ -36,7 +38,7 @@ export class StyleInjector {
    */
   inject(selectors) {
     if (!selectors || selectors.length === 0) {
-      console.warn('StyleInjector: No selectors to inject');
+      Logger.warn("RuleExecution:StyleInjector", "No selectors to inject");
       return 0;
     }
 
@@ -56,9 +58,15 @@ export class StyleInjector {
     const target = document.head || document.documentElement;
     if (target) {
       target.appendChild(this.styleElement);
-      console.log(`StyleInjector: Injected ${selectors.length} CSS rules`);
+      Logger.info(
+        "RuleExecution:StyleInjector",
+        `Injected ${selectors.length} CSS rules`
+      );
     } else {
-      console.error('StyleInjector: No valid target for style injection');
+      Logger.error(
+        "RuleExecution:StyleInjector",
+        "No valid target for style injection"
+      );
       return 0;
     }
 

@@ -1,4 +1,5 @@
-import { IUpdater } from './i-updater.js';
+import Logger from "@script-utils/logger.js";
+import { IUpdater } from "./i-updater.js";
 
 /**
  * Updates dynamic rules at runtime (Chrome declarativeNetRequest API)
@@ -17,9 +18,16 @@ export class DynamicRuleUpdater extends IUpdater {
         addRules: rules
       });
 
-      console.log(`✅ Updated ${rules.length} dynamic rules (ID range: ${idRange.start}-${idRange.end})`);
+      Logger.info(
+        "NetworkBlocking:DynamicRuleUpdater",
+        `Updated ${rules.length} dynamic rules (ID range: ${idRange.start}-${idRange.end})`
+      );
     } catch (error) {
-      console.error('Failed to update dynamic rules:', error);
+      Logger.error(
+        "NetworkBlocking:DynamicRuleUpdater",
+        "Failed to update dynamic rules",
+        error
+      );
       throw error;
     }
   }

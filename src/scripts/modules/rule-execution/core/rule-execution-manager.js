@@ -7,6 +7,8 @@
  * @module rule-execution-manager
  */
 
+import Logger from "@script-utils/logger.js";
+
 /**
  * Main orchestrator for rule execution
  */
@@ -59,7 +61,10 @@ export class RuleExecutionManager {
 
     const startTime = performance.now();
 
-    console.log(`RuleExecution: Executing ${enabledSources.length} sources for domain: ${currentDomain}`);
+    Logger.info(
+      "RuleExecution:Manager",
+      `Executing ${enabledSources.length} sources for domain: ${currentDomain}`
+    );
 
     // Execute each enabled source
     for (const sourceName of enabledSources) {
@@ -90,7 +95,11 @@ export class RuleExecutionManager {
         this.updateSourceStats(sourceName, removed);
 
       } catch (error) {
-        console.error(`RuleExecution: Error executing source "${sourceName}":`, error);
+        Logger.error(
+          "RuleExecution:Manager",
+          `Error executing source "${sourceName}"`,
+          error
+        );
         results.errors.push({ source: sourceName, error: error.message });
       }
 
@@ -110,7 +119,11 @@ export class RuleExecutionManager {
     );
     this.stats.lastExecution = Date.now();
 
-    console.log(`RuleExecution: Completed in ${results.executionTimeMs.toFixed(2)}ms`, results);
+    Logger.info(
+      "RuleExecution:Manager",
+      `Completed in ${results.executionTimeMs.toFixed(2)}ms`,
+      results
+    );
 
     return results;
   }
@@ -132,14 +145,20 @@ export class RuleExecutionManager {
     // Check if source is enabled via storage
     const enabled = await this.isSourceEnabled(sourceName);
     if (!enabled) {
-      console.log(`RuleExecution: Source "${sourceName}" is disabled`);
+      Logger.debug(
+        "RuleExecution:Manager",
+        `Source "${sourceName}" is disabled`
+      );
       return 0;
     }
 
     // Fetch rules from source
     const rawRules = await source.fetchRules();
     if (!rawRules || rawRules.length === 0) {
-      console.log(`RuleExecution: No rules from source "${sourceName}"`);
+      Logger.debug(
+        "RuleExecution:Manager",
+        `No rules from source "${sourceName}"`
+      );
       return 0;
     }
 
@@ -153,7 +172,10 @@ export class RuleExecutionManager {
     // Parse rules
     const parsedRules = await parser.parse(rawRules);
     if (!parsedRules || parsedRules.length === 0) {
-      console.log(`RuleExecution: No valid rules after parsing from "${sourceName}"`);
+      Logger.debug(
+        "RuleExecution:Manager",
+        `No valid rules after parsing from "${sourceName}"`
+      );
       return 0;
     }
 
@@ -166,7 +188,10 @@ export class RuleExecutionManager {
     // Execute rules
     const removed = await executor.execute(parsedRules, currentDomain, options);
 
-    console.log(`RuleExecution: ${source.getName()} removed ${removed} elements`);
+    Logger.info(
+      "RuleExecution:Manager",
+      `${source.getName()} removed ${removed} elements`
+    );
 
     return removed;
   }
@@ -195,7 +220,11 @@ export class RuleExecutionManager {
       const result = await safeStorageGet([storageKey]);
       return result[storageKey] !== false; // Default to true if not set
     } catch (error) {
-      console.error(`RuleExecution: Error checking if source "${sourceName}" is enabled:`, error);
+      Logger.error(
+        "RuleExecution:Manager",
+        `Error checking if source "${sourceName}" is enabled`,
+        error
+      );
       return true; // Fail open
     }
   }
@@ -245,7 +274,10 @@ export class RuleExecutionManager {
       throw new Error(`Source "${sourceName}" not found`);
     }
 
-    console.log(`RuleExecution: Forcing update for source "${sourceName}"`);
+    Logger.info(
+      "RuleExecution:Manager",
+      `Forcing update for source "${sourceName}"`
+    );
 
     // Invalidate cache if source supports it
     if (typeof source.invalidateCache === 'function') {
@@ -255,7 +287,10 @@ export class RuleExecutionManager {
     // Force fetch
     await source.fetchRules();
 
-    console.log(`RuleExecution: Source "${sourceName}" updated successfully`);
+    Logger.info(
+      "RuleExecution:Manager",
+      `Source "${sourceName}" updated successfully`
+    );
   }
 
   /**
@@ -274,7 +309,7 @@ export class RuleExecutionManager {
    * Clean up resources
    */
   cleanup() {
-    console.log('RuleExecution: Cleaning up manager resources');
+    Logger.info("RuleExecution:Manager", "Cleaning up manager resources");
 
     // Cleanup executors
     this.executors.forEach((executor, type) => {

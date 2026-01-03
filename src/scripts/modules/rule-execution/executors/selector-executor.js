@@ -7,6 +7,7 @@
  * @module selector-executor
  */
 
+import Logger from "@script-utils/logger.js";
 import { domainMatches } from "@utils/url-utils.js";
 import { ElementRemover } from "@modules/element-remover.js";
 /**
@@ -64,10 +65,9 @@ export class SelectorExecutor {
         removedCount += removed;
 
         if (removed > 0) {
-          console.log(
-            `RuleExecution: "${
-              rule.description || rule.selector
-            }" removed ${removed} elements`
+          Logger.debug(
+            "RuleExecution:SelectorExecutor",
+            `"${rule.description || rule.selector}" removed ${removed} elements`
           );
         }
 
@@ -79,7 +79,11 @@ export class SelectorExecutor {
           );
         }
       } catch (error) {
-        console.error(`RuleExecution: Error executing rule ${rule.id}:`, error);
+        Logger.error(
+          "RuleExecution:SelectorExecutor",
+          `Error executing rule ${rule.id}`,
+          error
+        );
         // Continue with next rule instead of failing completely
       }
     }

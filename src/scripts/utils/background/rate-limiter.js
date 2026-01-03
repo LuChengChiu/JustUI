@@ -15,12 +15,13 @@
  * @example
  * // Get statistics for monitoring
  * const stats = rateLimiter.getStats();
- * console.log('Rate limiter stats:', stats);
+ * Logger.info('RateLimiterStats', 'Rate limiter stats', stats);
  *
  * @module RateLimiter
  * @since 1.0.0
  * @author OriginalUI Team
  */
+import Logger from "../logger.js";
 
 /**
  * RateLimiter class for request throttling with automatic cleanup
@@ -46,7 +47,7 @@ export class RateLimiter {
     // Setup Chrome Alarms API for periodic cleanup (service worker compatible)
     this._setupCleanupAlarm();
 
-    console.log('OriginalUI: RateLimiter initialized', {
+    Logger.info('RateLimiterInit', 'RateLimiter initialized', {
       maxCallsPerWindow: this.maxCallsPerWindow,
       windowMs: this.windowMs,
       cleanupIntervalMinutes: this.cleanupIntervalMinutes
@@ -61,7 +62,7 @@ export class RateLimiter {
    *
    * @example
    * if (!rateLimiter.checkLimit('updateWhitelist', sender)) {
-   *   console.warn('Rate limit exceeded');
+   *   Logger.warn('RateLimiterExceeded', 'Rate limit exceeded');
    *   return false;
    * }
    */
@@ -91,9 +92,10 @@ export class RateLimiter {
 
     // Check rate limit
     if (calls.length >= this.maxCallsPerWindow) {
-      console.warn(
-        `OriginalUI: Rate limit exceeded for ${action} from ${sender.url}`
-      );
+      Logger.warn('RateLimiterExceeded', 'Rate limit exceeded', {
+        action,
+        senderUrl: sender.url
+      });
       this.stats.blocked++;
       return false;
     }
@@ -160,9 +162,10 @@ export class RateLimiter {
     keysToDelete.forEach(key => this.limits.delete(key));
 
     if (keysToDelete.length > 0) {
-      console.log(
-        `OriginalUI: Rate limiter cleanup - removed ${keysToDelete.length} inactive keys, ${this.limits.size} remaining`
-      );
+      Logger.info('RateLimiterCleanup', 'Rate limiter cleanup completed', {
+        removedKeys: keysToDelete.length,
+        remainingKeys: this.limits.size
+      });
     }
   }
 
@@ -172,7 +175,7 @@ export class RateLimiter {
    *
    * @example
    * const stats = rateLimiter.getStats();
-   * console.log('Rate limiter stats:', stats);
+   * Logger.info('RateLimiterStats', 'Rate limiter stats', stats);
    */
   getStats() {
     return {
@@ -190,7 +193,7 @@ export class RateLimiter {
   reset() {
     this.limits.clear();
     this.stats = { totalChecks: 0, blocked: 0, allowed: 0 };
-    console.log('OriginalUI: Rate limiter reset');
+    Logger.info('RateLimiterReset', 'Rate limiter reset');
   }
 
   /**
@@ -200,7 +203,7 @@ export class RateLimiter {
   cleanup() {
     chrome.alarms.clear('rateLimiterCleanup');
     this.limits.clear();
-    console.log('OriginalUI: Rate limiter cleaned up');
+    Logger.info('RateLimiterCleanup', 'Rate limiter cleaned up');
   }
 }
 

@@ -3,6 +3,8 @@
  * Provides basic cleanup coordination for modules
  */
 
+import Logger from '@script-utils/logger.js';
+
 /**
  * Check if object has cleanup method
  * @param {object} obj - Object to check
@@ -19,7 +21,7 @@ export function isCleanable(obj) {
 export class CleanupRegistry {
   constructor() {
     this.modules = new Map(); // name -> { module, priority }
-    console.log('OriginalUI: CleanupRegistry initialized');
+    Logger.debug('CleanupRegistryInit', 'CleanupRegistry initialized');
   }
 
   /**
@@ -31,12 +33,12 @@ export class CleanupRegistry {
    */
   register(module, name = 'unnamed', priority = 'normal') {
     if (!isCleanable(module)) {
-      console.warn(`OriginalUI: Module ${name} does not implement cleanup interface`);
+      Logger.warn('ModuleNotCleanable', 'Module does not implement cleanup interface', { name });
       return false;
     }
 
     this.modules.set(name, { module, priority });
-    console.log(`OriginalUI: Registered module ${name} for cleanup (priority: ${priority})`);
+    Logger.debug('ModuleRegistered', 'Registered module for cleanup', { name, priority });
     return true;
   }
 
@@ -49,7 +51,7 @@ export class CleanupRegistry {
     const wasRegistered = this.modules.has(name);
     if (wasRegistered) {
       this.modules.delete(name);
-      console.log(`OriginalUI: Unregistered module ${name}`);
+      Logger.debug('ModuleUnregistered', 'Unregistered module', { name });
     }
     return wasRegistered;
   }
@@ -84,20 +86,20 @@ export class CleanupRegistry {
           .then(() => {
             clearTimeout(timeoutId); // FIX: Clear timer on success
             const duration = Date.now() - startTime;
-            console.log(`OriginalUI: ✓ Cleaned up ${name} (${duration}ms)`);
+            Logger.debug('ModuleCleanedUp', 'Module cleaned up successfully', { name, duration });
             return { name, success: true, duration };
           })
           .catch((error) => {
             clearTimeout(timeoutId); // FIX: Clear timer on error
             const duration = Date.now() - startTime;
-            console.warn(`OriginalUI: ✗ Error cleaning up ${name}:`, error);
+            Logger.warn('ModuleCleanupError', 'Error cleaning up module', { name, error: error.message, duration });
             return { name, success: false, error: error.message, duration };
           });
       } catch (error) {
         // Synchronous errors - clear timer and return error result
         if (timeoutId) clearTimeout(timeoutId);
         const duration = Date.now() - startTime;
-        console.warn(`OriginalUI: ✗ Synchronous error cleaning up ${name}:`, error);
+        Logger.warn('ModuleCleanupSyncError', 'Synchronous error cleaning up module', { name, error: error.message, duration });
         return Promise.resolve({ name, success: false, error: error.message, duration });
       }
     });
@@ -120,7 +122,7 @@ export class CleanupRegistry {
     // Log summary
     const successful = results.filter(r => r.success).length;
     const failed = results.filter(r => !r.success).length;
-    console.log(`OriginalUI: Cleanup completed - ${successful} successful, ${failed} failed`);
+    Logger.info('CleanupAllComplete', 'Cleanup completed', { successful, failed });
 
     return results;
   }
@@ -146,9 +148,9 @@ export class CleanupRegistry {
    * @returns {Promise<Array>} Promise resolving to array of cleanup results
    */
   async cleanup() {
-    console.log('OriginalUI: Starting CleanupRegistry cleanup...');
+    Logger.debug('RegistryCleanupStart', 'Starting CleanupRegistry cleanup');
     const results = await this.cleanupAll();
-    console.log('OriginalUI: CleanupRegistry cleanup completed');
+    Logger.debug('RegistryCleanupComplete', 'CleanupRegistry cleanup completed');
     return results;
   }
 }

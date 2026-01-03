@@ -12,6 +12,7 @@
  * @module dom-scanner
  */
 
+import Logger from '@script-utils/logger.js';
 import { isSpecialUrlExact } from "@script-utils/threat-patterns.js";
 
 /**
@@ -60,7 +61,14 @@ export class DomScanner {
       this.processElement(el);
     }
 
-    console.log(`DomScanner: Scan complete - removed: ${this.stats.removed}, hidden: ${this.stats.hidden}`);
+    // PERFORMANCE: Gate hot-path logging (scan runs frequently)
+    // Only log if debug level explicitly enabled to avoid overhead
+    if (Logger.isDebugEnabled()) {
+      Logger.debug('DOMScanComplete', 'DOM scan complete', {
+        removed: this.stats.removed,
+        hidden: this.stats.hidden
+      });
+    }
 
     return { ...this.stats };
   }
@@ -129,7 +137,7 @@ export class DomScanner {
               actualMatch = true;
 
               if (this.options.logMatches) {
-                console.log('DomScanner: Selector match found', {
+                Logger.debug('SelectorMatch', 'Selector match found', {
                   selector,
                   element: el.tagName,
                   id: el.id,
@@ -141,7 +149,7 @@ export class DomScanner {
             }
           } catch (e) {
             // Invalid selector - skip it
-            console.warn('DomScanner: Invalid selector:', selector, e.message);
+            Logger.warn('InvalidSelector', 'Invalid selector', { selector, error: e.message });
           }
         }
 

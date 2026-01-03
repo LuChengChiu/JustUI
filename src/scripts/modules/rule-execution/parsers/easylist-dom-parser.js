@@ -14,6 +14,8 @@
  * @module easylist-dom-parser
  */
 
+import Logger from "@script-utils/logger.js";
+
 /**
  * Parser for EasyList cosmetic filter rules
  */
@@ -25,7 +27,11 @@ export class EasyListDomParser {
    */
   async parse(rawLines) {
     if (!Array.isArray(rawLines)) {
-      console.warn('EasyListDomParser: rawLines is not an array:', rawLines);
+      Logger.warn(
+        "RuleExecution:EasyListDomParser",
+        "rawLines is not an array",
+        rawLines
+      );
       return [];
     }
 
@@ -82,7 +88,10 @@ export class EasyListDomParser {
       index++;
     }
 
-    console.log(`EasyListDomParser: Parsed ${rules.length} valid rules from ${rawLines.length} lines`);
+    Logger.debug(
+      "RuleExecution:EasyListDomParser",
+      `Parsed ${rules.length} valid rules from ${rawLines.length} lines`
+    );
 
     return rules;
   }

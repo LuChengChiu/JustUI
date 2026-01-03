@@ -113,7 +113,7 @@ describe('DynamicRuleUpdater', () => {
     });
 
     test('should log success message', async () => {
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
       const rules = [{ id: 1000 }, { id: 1001 }];
       const idRange = { start: 1000, end: 1999 };
 
@@ -122,10 +122,14 @@ describe('DynamicRuleUpdater', () => {
       await updater.update(rules, idRange);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('✅ Updated 2 dynamic rules')
+        expect.stringContaining('[NetworkBlocking:DynamicRuleUpdater]'),
+        expect.stringContaining('Updated 2 dynamic rules'),
+        expect.any(Object)
       );
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('1000-1999')
+        expect.stringContaining('[NetworkBlocking:DynamicRuleUpdater]'),
+        expect.stringContaining('1000-1999'),
+        expect.any(Object)
       );
 
       consoleLogSpy.mockRestore();
@@ -153,8 +157,12 @@ describe('DynamicRuleUpdater', () => {
       await expect(updater.update(rules, idRange)).rejects.toThrow();
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to update dynamic rules:',
-        expect.any(Error)
+        expect.stringContaining('[NetworkBlocking:DynamicRuleUpdater]'),
+        'Failed to update dynamic rules',
+        expect.objectContaining({
+          category: 'NetworkBlocking:DynamicRuleUpdater',
+          message: 'Failed to update dynamic rules'
+        })
       );
 
       consoleErrorSpy.mockRestore();
@@ -287,7 +295,7 @@ describe('StaticRuleBuilder', () => {
     });
 
     test('should log success message', async () => {
-      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
       const rules = [{ id: 1 }, { id: 2 }, { id: 3 }];
 
       mockMkdir.mockResolvedValue();
@@ -296,7 +304,9 @@ describe('StaticRuleBuilder', () => {
       await builder.build(rules);
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('✅ Built static ruleset: 3 rules')
+        expect.stringContaining('[NetworkBlocking:StaticRuleBuilder]'),
+        expect.stringContaining('Built static ruleset: 3 rules'),
+        expect.any(Object)
       );
 
       consoleLogSpy.mockRestore();

@@ -3,6 +3,7 @@ import {
   THREAT_SCORES,
   isSpecialUrl,
 } from "./threat-patterns.js";
+import Logger from "./logger.js";
 
 /**
  * MaliciousPatternDetector
@@ -98,7 +99,9 @@ export const MaliciousPatternDetector = {
         }
       } catch (error) {
         // Ignore regex errors silently
-        console.warn('MaliciousPatternDetector: Pattern test error:', error.message);
+        Logger.warn('MaliciousPatternDetector', 'Pattern test error', {
+          error: error.message
+        });
       }
     });
 
@@ -124,7 +127,9 @@ export const MaliciousPatternDetector = {
         });
       }
     } catch (error) {
-      console.warn('MaliciousPatternDetector: Shared pattern test error:', error.message);
+      Logger.warn('MaliciousPatternDetector', 'Shared pattern test error', {
+        error: error.message
+      });
     }
 
     analysis.isMalicious = analysis.riskScore >= threshold;

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Logger from '@script-utils/logger.js';
 
 /**
  * Check if Chrome extension context is still valid
@@ -43,7 +44,9 @@ const isChromeContextValid = () => {
 export function useBulkChromeStorage(schema) {
   // Validate schema
   if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
-    console.error('useBulkChromeStorage: schema must be a non-null object');
+    Logger.error('BulkChromeStorageHook', 'Schema must be a non-null object', {
+      schemaType: typeof schema
+    });
     schema = {};
   }
 
@@ -62,7 +65,7 @@ export function useBulkChromeStorage(schema) {
   useEffect(() => {
     // Check if Chrome context is still valid
     if (!isChromeContextValid()) {
-      console.warn('Chrome context invalidated, skipping storage load');
+      Logger.warn('BulkChromeStorageHook', 'Chrome context invalidated, skipping storage load');
       setLoading(false);
       setError(new Error('Extension context invalidated'));
       return;
@@ -121,7 +124,9 @@ export function useBulkChromeStorage(schema) {
   const updateValue = useCallback((key, newValue) => {
     // Check if Chrome context is still valid
     if (!isChromeContextValid()) {
-      console.warn('Chrome context invalidated, cannot save to storage');
+      Logger.warn('BulkChromeStorageHook', 'Chrome context invalidated, cannot save to storage', {
+        key
+      });
       setError(new Error('Extension context invalidated'));
       return;
     }
@@ -138,7 +143,7 @@ export function useBulkChromeStorage(schema) {
         setError(chrome.runtime.lastError);
         // CRITICAL: Rollback optimistic update on storage error
         setValues(prev => ({ ...prev, [key]: previousValue }));
-        console.error(`Failed to save ${key} to storage:`, chrome.runtime.lastError);
+        Logger.error('BulkChromeStorageHook', `Failed to save ${key} to storage`, chrome.runtime.lastError);
       } else {
         // Clear any previous errors on successful save
         setError(null);

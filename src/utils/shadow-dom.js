@@ -10,6 +10,7 @@
  * @since 1.0.0
  * @author OriginalUI Team
  */
+import Logger from "@script-utils/logger.js";
 
 /**
  * CSS content cache for performance optimization
@@ -88,10 +89,10 @@ export function createShadowDOMContainer() {
 
   shadowRoot.appendChild(portalTarget);
 
-  // Append container to document body
-  document.body.appendChild(container);
+ // Append container to document body
+ document.body.appendChild(container);
 
-  console.log("OriginalUI: Created Shadow DOM container with portal target");
+  Logger.info("ShadowDOM", "Created Shadow DOM container with portal target");
 
   return {
     container,
@@ -118,7 +119,7 @@ export function createShadowDOMContainer() {
  *
  * @example
  * const cssContent = await fetchCSSContent();
- * console.log(`Loaded ${cssContent.length} bytes of CSS`);
+ * Logger.info("ShadowDOM", "Loaded CSS content", { size: cssContent.length });
  *
  * @example
  * // Custom CSS file
@@ -127,7 +128,7 @@ export function createShadowDOMContainer() {
 export async function fetchCSSContent(cssPath = "index.css") {
   // Return cached CSS if available
   if (cachedCSS) {
-    console.log("OriginalUI: Using cached CSS content");
+    Logger.debug("ShadowDOM", "Using cached CSS content");
     return cachedCSS;
   }
 
@@ -139,7 +140,7 @@ export async function fetchCSSContent(cssPath = "index.css") {
 
     // Get CSS file URL from Chrome extension
     const cssURL = chrome.runtime.getURL(cssPath);
-    console.log("OriginalUI: Fetching CSS from", cssURL);
+    Logger.info("ShadowDOM", "Fetching CSS", { cssURL });
 
     // Fetch CSS content
     const startTime = performance.now();
@@ -152,15 +153,14 @@ export async function fetchCSSContent(cssPath = "index.css") {
     cachedCSS = await response.text();
     const endTime = performance.now();
 
-    console.log(
-      `OriginalUI: Fetched ${cachedCSS.length} bytes of CSS in ${(
-        endTime - startTime
-      ).toFixed(2)}ms`
-    );
+    Logger.info("ShadowDOM", "Fetched CSS content", {
+      size: cachedCSS.length,
+      durationMs: Number((endTime - startTime).toFixed(2))
+    });
 
     return cachedCSS;
   } catch (error) {
-    console.error("OriginalUI: Failed to fetch CSS content:", error);
+    Logger.error("ShadowDOM", "Failed to fetch CSS content", error);
     throw error;
   }
 }
@@ -224,25 +224,28 @@ export function injectCSSIntoShadow(shadowRoot, cssContent) {
       // Wait for CSS to load before resolving
       linkElement.onload = () => {
         const endTime = performance.now();
-        console.log(
-          `OriginalUI: CSS <link> loaded successfully in ${(endTime - startTime).toFixed(2)}ms (href: ${linkElement.href})`
-        );
+        Logger.info("ShadowDOM", "CSS <link> loaded successfully", {
+          durationMs: Number((endTime - startTime).toFixed(2)),
+          href: linkElement.href
+        });
         resolve(linkElement);
       };
 
       linkElement.onerror = (error) => {
-        console.error("OriginalUI: Failed to load CSS <link>:", error);
+        Logger.error("ShadowDOM", "Failed to load CSS <link>", error, {
+          href: linkElement.href
+        });
         reject(new Error(`Failed to load CSS from ${linkElement.href}`));
       };
 
       // Inject into Shadow DOM
       shadowRoot.appendChild(linkElement);
 
-      console.log(
-        `OriginalUI: Injected CSS <link> into Shadow DOM (href: ${linkElement.href}), waiting for load...`
-      );
+      Logger.info("ShadowDOM", "Injected CSS <link> into Shadow DOM", {
+        href: linkElement.href
+      });
     } catch (error) {
-      console.error("OriginalUI: Failed to inject CSS into Shadow DOM:", error);
+      Logger.error("ShadowDOM", "Failed to inject CSS into Shadow DOM", error);
       reject(error);
     }
   });
@@ -350,13 +353,13 @@ export function injectFontsIntoDocument() {
     document.head.appendChild(fontStyle);
 
     const endTime = performance.now();
-    console.log(
-      `OriginalUI: Injected font @font-face rules into document <head> in ${(endTime - startTime).toFixed(2)}ms`
-    );
+    Logger.info("ShadowDOM", "Injected font @font-face rules into document <head>", {
+      durationMs: Number((endTime - startTime).toFixed(2))
+    });
 
     return true;
   } catch (error) {
-    console.error("OriginalUI: Failed to inject fonts into document head:", error);
+    Logger.error("ShadowDOM", "Failed to inject fonts into document head", error);
     return false;
   }
 }
@@ -397,13 +400,13 @@ export function injectBaseShadowStyles(shadowRoot) {
     shadowRoot.insertBefore(baseStyleElement, shadowRoot.firstChild);
 
     const endTime = performance.now();
-    console.log(
-      `OriginalUI: Injected base Shadow DOM typography styles in ${(endTime - startTime).toFixed(2)}ms`
-    );
+    Logger.info("ShadowDOM", "Injected base Shadow DOM typography styles", {
+      durationMs: Number((endTime - startTime).toFixed(2))
+    });
 
     return baseStyleElement;
   } catch (error) {
-    console.error("OriginalUI: Failed to inject base Shadow DOM styles:", error);
+    Logger.error("ShadowDOM", "Failed to inject base Shadow DOM styles", error);
     throw error;
   }
 }
@@ -466,20 +469,17 @@ export async function injectGoogleFontsIntoShadow(shadowRoot) {
 
     const endTime = performance.now();
 
-    console.log(
-      `OriginalUI: Verified bundled fonts in ${(endTime - startTime).toFixed(2)}ms`
-    );
-    console.log("OriginalUI: Font availability (from CSS bundle):", {
+    Logger.info("ShadowDOM", "Verified bundled fonts", {
+      durationMs: Number((endTime - startTime).toFixed(2))
+    });
+    Logger.info("ShadowDOM", "Font availability (from CSS bundle)", {
       "Days One": daysOneLoaded ? "✅ loaded" : "⚠️ loading",
       Barlow: barlowLoaded ? "✅ loaded" : "⚠️ loading",
     });
 
     return true;
   } catch (error) {
-    console.warn(
-      "OriginalUI: Font verification failed (non-critical):",
-      error
-    );
+    Logger.warn("ShadowDOM", "Font verification failed (non-critical)", error);
 
     // Font verification is non-critical - continue rendering
     // Fonts will load asynchronously from the CSS bundle
@@ -545,11 +545,9 @@ export async function createShadowDOMWithStyles(cssPath = "index.css") {
     ]);
 
     const totalEndTime = performance.now();
-    console.log(
-      `OriginalUI: Complete Shadow DOM setup finished in ${(
-        totalEndTime - totalStartTime
-      ).toFixed(2)}ms`
-    );
+    Logger.info("ShadowDOM", "Complete Shadow DOM setup finished", {
+      durationMs: Number((totalEndTime - totalStartTime).toFixed(2))
+    });
 
     return {
       container,
@@ -557,10 +555,7 @@ export async function createShadowDOMWithStyles(cssPath = "index.css") {
       portalTarget,
     };
   } catch (error) {
-    console.error(
-      "OriginalUI: Failed to create Shadow DOM with styles:",
-      error
-    );
+    Logger.error("ShadowDOM", "Failed to create Shadow DOM with styles", error);
     throw error;
   }
 }
@@ -583,5 +578,5 @@ export async function createShadowDOMWithStyles(cssPath = "index.css") {
 export function clearShadowDOMCache() {
   cachedCSS = null;
   cachedFonts = null; // Deprecated but kept for compatibility
-  console.log("OriginalUI: Cleared Shadow DOM CSS cache");
+  Logger.info("ShadowDOM", "Cleared Shadow DOM CSS cache");
 }

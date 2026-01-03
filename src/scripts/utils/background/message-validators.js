@@ -36,18 +36,21 @@
  *
  * @example
  * if (!isValidExtensionSender(sender)) {
- *   console.warn('Invalid extension sender');
+ *   Logger.warn('MessageValidation', 'Invalid extension sender');
  *   return { success: false, error: 'Invalid sender' };
  * }
  */
+import Logger from "../logger.js";
 export function isValidExtensionSender(sender) {
   if (!sender || !sender.id) {
-    console.warn("OriginalUI: Rejected message - no sender ID");
+    Logger.warn("MessageValidation", "Rejected message - no sender ID");
     return false;
   }
 
   if (sender.id !== chrome.runtime.id) {
-    console.warn("OriginalUI: Rejected message - sender ID mismatch:", sender.id);
+    Logger.warn("MessageValidation", "Rejected message - sender ID mismatch", {
+      senderId: sender.id,
+    });
     return false;
   }
 
@@ -80,7 +83,9 @@ export function isTrustedUISender(sender) {
   const isTrusted = trustedPages.some((page) => url.startsWith(page));
 
   if (!isTrusted) {
-    console.warn("OriginalUI: Rejected message - sender not from trusted UI:", url);
+    Logger.warn("MessageValidation", "Rejected message - sender not from trusted UI", {
+      url,
+    });
   }
 
   return isTrusted;
