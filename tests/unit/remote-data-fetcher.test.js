@@ -40,12 +40,12 @@ describe('Remote Data Fetcher', () => {
 
     test('RULES URL should be a valid GitHub raw URL', () => {
       expect(REMOTE_URLS.RULES).toContain('githubusercontent.com');
-      expect(REMOTE_URLS.RULES).toContain('defaultRules.json');
+      expect(REMOTE_URLS.RULES).toContain('default-rules.json');
     });
 
     test('WHITELIST URL should be a valid GitHub raw URL', () => {
       expect(REMOTE_URLS.WHITELIST).toContain('githubusercontent.com');
-      expect(REMOTE_URLS.WHITELIST).toContain('defaultWhitelist.json');
+      expect(REMOTE_URLS.WHITELIST).toContain('default-whitelist.json');
     });
   });
 
@@ -80,7 +80,7 @@ describe('Remote Data Fetcher', () => {
         expect(result).toEqual(mockRules);
         expect(global.fetch).toHaveBeenCalledTimes(2);
         expect(global.fetch).toHaveBeenNthCalledWith(1, REMOTE_URLS.RULES);
-        expect(global.fetch).toHaveBeenNthCalledWith(2, 'chrome-extension://test-extension-id/data/defaultRules.json');
+        expect(global.fetch).toHaveBeenNthCalledWith(2, 'chrome-extension://test-extension-id/data/default-rules.json');
       });
 
       test('should return empty array when both remote and local fail', async () => {
@@ -132,8 +132,9 @@ describe('Remote Data Fetcher', () => {
 
         await fetchDefaultRules();
 
+        // Logger format: emoji prefix, message, metadata object
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          expect.stringContaining('[DefaultRulesFetch]'),
+          'ℹ️ [DefaultRulesFetch]',
           'Fetched rules from remote URL',
           expect.objectContaining({
             level: 'INFO',
@@ -201,7 +202,7 @@ describe('Remote Data Fetcher', () => {
         expect(result).toEqual(mockWhitelist);
         expect(global.fetch).toHaveBeenCalledTimes(2);
         expect(global.fetch).toHaveBeenNthCalledWith(1, REMOTE_URLS.WHITELIST);
-        expect(global.fetch).toHaveBeenNthCalledWith(2, 'chrome-extension://test-extension-id/data/defaultWhitelist.json');
+        expect(global.fetch).toHaveBeenNthCalledWith(2, 'chrome-extension://test-extension-id/data/default-whitelist.json');
       });
 
       test('should return empty array when both remote and local fail', async () => {
@@ -253,8 +254,9 @@ describe('Remote Data Fetcher', () => {
 
         await fetchDefaultWhitelist();
 
+        // Logger format: emoji prefix, message, metadata object
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          expect.stringContaining('[DefaultWhitelistFetch]'),
+          'ℹ️ [DefaultWhitelistFetch]',
           'Fetched whitelist from remote URL',
           expect.objectContaining({
             level: 'INFO',
@@ -328,10 +330,10 @@ describe('Remote Data Fetcher', () => {
       // Should be called twice (once for rules, once for whitelist)
       expect(global.fetch).toHaveBeenCalledTimes(2);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('defaultRules.json')
+        expect.stringContaining('default-rules.json')
       );
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('defaultWhitelist.json')
+        expect.stringContaining('default-whitelist.json')
       );
     });
 
@@ -449,7 +451,7 @@ describe('Remote Data Fetcher', () => {
 
       await fetchDefaultRules();
 
-      expect(chrome.runtime.getURL).toHaveBeenCalledWith('data/defaultRules.json');
+      expect(chrome.runtime.getURL).toHaveBeenCalledWith('data/default-rules.json');
     });
 
     test('should handle chrome.runtime.getURL returning different base URLs', async () => {
@@ -466,7 +468,7 @@ describe('Remote Data Fetcher', () => {
       await fetchDefaultWhitelist();
 
       expect(global.fetch).toHaveBeenNthCalledWith(2,
-        'chrome-extension://different-id/data/defaultWhitelist.json'
+        'chrome-extension://different-id/data/default-whitelist.json'
       );
     });
   });

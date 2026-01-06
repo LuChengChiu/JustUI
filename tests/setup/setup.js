@@ -4,7 +4,7 @@
  */
 
 import { vi } from 'vitest';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 // Mock Chrome Extension APIs globally
 global.chrome = {

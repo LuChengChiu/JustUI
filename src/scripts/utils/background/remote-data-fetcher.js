@@ -29,9 +29,9 @@
  */
 export const REMOTE_URLS = {
   RULES:
-    "https://raw.githubusercontent.com/LuChengChiu/OriginalUI/main/src/data/defaultRules.json",
+    "https://raw.githubusercontent.com/LuChengChiu/OriginalUI/main/src/data/default-rules.json",
   WHITELIST:
-    "https://raw.githubusercontent.com/LuChengChiu/OriginalUI/main/src/data/defaultWhitelist.json",
+    "https://raw.githubusercontent.com/LuChengChiu/OriginalUI/main/src/data/default-whitelist.json",
 };
 
 /**
@@ -67,7 +67,7 @@ export async function fetchDefaultRules() {
   // Fallback to local default rules
   try {
     const localResponse = await fetch(
-      chrome.runtime.getURL("data/defaultRules.json")
+      chrome.runtime.getURL("data/default-rules.json")
     );
     const localRules = await localResponse.json();
     Logger.info("DefaultRulesFetch", "Using local default rules", {
@@ -116,7 +116,7 @@ export async function fetchDefaultWhitelist() {
   // Fallback to local default whitelist
   try {
     const localResponse = await fetch(
-      chrome.runtime.getURL("data/defaultWhitelist.json")
+      chrome.runtime.getURL("data/default-whitelist.json")
     );
     const localWhitelist = await localResponse.json();
     Logger.info("DefaultWhitelistFetch", "Using local default whitelist", {
