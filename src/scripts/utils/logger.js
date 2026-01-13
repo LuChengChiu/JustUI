@@ -122,9 +122,11 @@ class Logger {
     }
 
     // 2. Set default log level based on environment
+    // Production: WARN only (errors + warnings). INFO is too verbose for end users.
+    // Development: DEBUG for full visibility during development.
     this.#currentLevel = this.#environment === 'development'
       ? LogLevel.DEBUG
-      : LogLevel.INFO;
+      : LogLevel.WARN;
 
     // 3. Load user preferences from chrome.storage
     try {
@@ -145,8 +147,10 @@ class Logger {
 
     this.#initialized = true;
 
-    // Log initialization (always show, regardless of level)
-    console.info(`[OriginalUI Logger] Initialized in ${this.#environment} mode (level: ${LogLevelNames[this.#currentLevel]})`);
+    // Only log initialization in development - no need to pollute production console
+    if (this.#environment === 'development') {
+      console.info(`[OriginalUI Logger] Initialized in ${this.#environment} mode (level: ${LogLevelNames[this.#currentLevel]})`);
+    }
   }
 
   /**
